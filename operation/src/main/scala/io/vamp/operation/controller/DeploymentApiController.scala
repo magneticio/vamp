@@ -16,9 +16,15 @@ import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
 
 import scala.concurrent.Future
+
 import scala.util.Try
 
 trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with VampJsonFormats {
+
+  // These methods allows 3rd party users to override these methods
+  protected def userDefinedOverrides(deployment: Deployment)(implicit namespace: Namespace, timeout: Timeout): Deployment = deployment
+  protected def userDefinedOverrides(blueprint: Blueprint)(implicit namespace: Namespace, timeout: Timeout): Blueprint = blueprint
+  protected def userDefinedOverrides(defaultBlueprint: DefaultBlueprint)(implicit namespace: Namespace, timeout: Timeout): DefaultBlueprint = defaultBlueprint
 
   def getDeployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean, page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     val actualPage = if(page < 1) 0 else page-1
@@ -34,12 +40,12 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
   def getDeployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Blueprint] =
     VampPersistence().read[Deployment](Id[Deployment](name)) map (transform(_, asBlueprint, onlyReferences))
 
-  private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean): Blueprint = {
+  private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean)(implicit namespace: Namespace, timeout: Timeout): Blueprint = {
     if (asBlueprint) {
-      val blueprint = deployment.asDefaultBlueprint
-      if (onlyRef) onlyReferences(blueprint).asInstanceOf[DefaultBlueprint] else blueprint
+      val blueprint = userDefinedOverrides(deployment.asDefaultBlueprint)
+      if (onlyRef) onlyReferences(userDefinedOverrides(blueprint)).asInstanceOf[DefaultBlueprint] else userDefinedOverrides(blueprint)
     }
-    else deployment
+    else userDefinedOverrides(deployment)
   }
 
   def createDeployment(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
@@ -48,33 +54,34 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     for {
       request <- sourceImport(source)
       _ <- asBlueprint(request) match {
-        case blueprint: BlueprintReference ⇒ triggerCreateOperation(blueprint)
+        case blueprint: BlueprintReference ⇒ triggerCreateOperation(userDefinedOverrides(blueprint))
         case blueprint: DefaultBlueprint ⇒
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+              userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
                 breed ⇒ VampPersistence().create[Breed](breed)
               }
             else Nil
-          } :+ triggerCreateOperation(blueprint)
+          } :+ triggerCreateOperation(userDefinedOverrides(blueprint))
           Future.sequence(futures)
         case _ => Future.failed(reportException(UnsupportedDeploymentRequest(source)))
       }
     } yield UnitPlaceholder
   }
 
+
   def updateDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     def triggerUpdateOperation(blueprint: Blueprint): Future[Unit] = (actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, source, validateOnly)).map(_ => ())
     for {
       request <- sourceImport(source)
       _ <- asBlueprint(request) match {
-        case blueprint: BlueprintReference ⇒ triggerUpdateOperation(blueprint)
+        case blueprint: BlueprintReference ⇒ triggerUpdateOperation(userDefinedOverrides(blueprint))
         case blueprint: DefaultBlueprint ⇒
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map(VampPersistence().createOrUpdate[Breed](_))
+              userDefinedOverrides(blueprint).clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map(VampPersistence().createOrUpdate[Breed](_))
             else Nil
-          } :+ triggerUpdateOperation(blueprint)
+          } :+ triggerUpdateOperation(userDefinedOverrides(blueprint))
           Future.sequence(futures)
       }
     } yield UnitPlaceholder

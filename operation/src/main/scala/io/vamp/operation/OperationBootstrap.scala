@@ -55,14 +55,18 @@ class OperationBootstrap extends ActorBootstrap {
       IoC.createActor[WorkflowSynchronizationSchedulerActor]
     )
 
-    kick(classOf[DeploymentSynchronizationSchedulerActor], Period(synchronizationPeriod))
-    kick(classOf[GatewaySynchronizationSchedulerActor], Period(synchronizationPeriod, synchronizationPeriod / 3))
-    kick(classOf[WorkflowSynchronizationSchedulerActor], Period(synchronizationPeriod, 2 * synchronizationPeriod / 3))
+    val result = Future.sequence(actors)
 
-    kick(classOf[SlaSchedulerActor], Period(slaPeriod))
-    kick(classOf[EscalationSchedulerActor], Period(escalationPeriod))
+    result.onComplete { _ ⇒
+      kick(classOf[DeploymentSynchronizationSchedulerActor], Period(synchronizationPeriod))
+      kick(classOf[GatewaySynchronizationSchedulerActor], Period(synchronizationPeriod, synchronizationPeriod / 3))
+      kick(classOf[WorkflowSynchronizationSchedulerActor], Period(synchronizationPeriod, 2 * synchronizationPeriod / 3))
 
-    Future.sequence(actors)
+      kick(classOf[SlaSchedulerActor], Period(slaPeriod))
+      kick(classOf[EscalationSchedulerActor], Period(escalationPeriod))
+    }
+
+    result
   }
 
   override def stop(implicit actorSystem: ActorSystem, namespace: Namespace) = {

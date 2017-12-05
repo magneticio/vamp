@@ -43,6 +43,10 @@ object MarathonDriverActor {
 
   val tenantIdOverride = Config.string(s"$config.marathon.tenant-id-override")
 
+  val tenantIdWorkflowOverride = Config.string(s"$config.marathon.tenant-id-workflow-override")
+
+  val useBreedNameForServiceName = Config.boolean(s"$config.marathon.use-breed-name-for-service-name")
+
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
   }
@@ -68,6 +72,10 @@ class MarathonDriverActor
   import ContainerDriverActor._
 
   lazy val tenantIdOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
+
+  lazy val tenantIdWorkflowOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdWorkflowOverride()))).getOrElse(None)
+
+  lazy val useBreedNameForServiceName = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
 
   protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 
@@ -149,10 +157,14 @@ class MarathonDriverActor
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"marathon reconcile workflow: ${workflow.name}")
     get(appId(workflow)).foreach {
-      case Some(app) ⇒
+      case Some(app) if workflow.breed.isInstanceOf[DefaultBreed] ⇒
         val breed = workflow.breed.asInstanceOf[DefaultBreed]
         val (equalHealthChecks, health) = healthCheck(app, breed.ports, breed.healthChecks.getOrElse(List()))
         replyTo ! ContainerWorkflow(workflow, Option(containers(app)), health, equalHealthChecks)
+      case Some(app) if workflow.breed.isInstanceOf[BreedReference] ⇒
+        val breedReference = workflow.breed.asInstanceOf[BreedReference]
+        log.warning(s"marathon reconcile workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
+        replyTo ! ContainerWorkflow(workflow, None)
       case _ ⇒ replyTo ! ContainerWorkflow(workflow, None)
     }
   }
@@ -175,12 +187,30 @@ class MarathonDriverActor
   private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
     case arg @ Argument("override.workflow.docker.network", networkOverrideValue) ⇒ { app ⇒
       if (workflowDeployment)
-        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
+          network = networkOverrideValue match {
+            case "CALICO" => "USER"
+            case _ => networkOverrideValue
+          },
+          portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
+            case "USER" ⇒ portMapping.copy(hostPort = None)
+            case "CALICO" ⇒ portMapping.copy(hostPort = Some(portMapping.containerPort))
+            case _      ⇒ portMapping
+          })))))
       else app
     }
     case arg @ Argument("override.deployment.docker.network", networkOverrideValue) ⇒ { app ⇒
       if (!workflowDeployment)
-        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
+          network = networkOverrideValue match {
+            case "CALICO" => "USER"
+            case _ => networkOverrideValue
+          },
+          portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
+            case "USER" ⇒ portMapping.copy(hostPort = None)
+            case "CALICO" ⇒ portMapping.copy(hostPort = Some(portMapping.containerPort))
+            case _      ⇒ portMapping
+          })))))
       else app
     }
     case arg @ Argument("override.workflow.docker.privileged", runPriviledged) ⇒ { app ⇒
@@ -334,7 +364,7 @@ class MarathonDriverActor
     )
 
     val toDeploy = requestPayload(workflow, purge(marathonAppWithGlobalOverrides))
-    log.info(s"Deploying ${toDeploy}")
+    log.info(s"Deploying ${workflow.name} with id $id")
     sendRequest(update, id, toDeploy)
   }
 

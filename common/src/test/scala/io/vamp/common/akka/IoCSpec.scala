@@ -13,12 +13,16 @@ import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
 
-class IoCSpec extends TestKit(ActorSystem("VaultActorSpec")) with ImplicitSender
+class IoCSpec extends TestKit(ActorSystem("IoCSpec")) with ImplicitSender
     with WordSpecLike with Matchers with BeforeAndAfterAll with NamespaceProvider
     with LazyLogging {
 
   implicit val namespace: Namespace = Namespace("default")
   implicit val timeout: Timeout = Timeout(5L, TimeUnit.SECONDS)
+
+  override def afterAll {
+    TestKit.shutdownActorSystem(system)
+  }
 
   "Echo actor" must {
 
@@ -31,7 +35,7 @@ class IoCSpec extends TestKit(ActorSystem("VaultActorSpec")) with ImplicitSender
       val testMessage = "Example Message"
       testProbe.send(actor, testMessage)
       testProbe.expectMsgPF(30.seconds) {
-        case response ⇒
+        case response: String ⇒
           logger.info(response.toString)
           assert(response == testMessage)
         case _ ⇒
