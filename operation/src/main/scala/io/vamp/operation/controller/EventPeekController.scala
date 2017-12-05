@@ -9,7 +9,7 @@ import scala.util.Try
 
 trait EventPeekController extends AbstractController with EventValue {
 
-  def peek(tags: List[String], window: FiniteDuration)(implicit namespace: Namespace, timeout: Timeout): Future[Option[Double]] =
+  def peekLastDoubleValue(tags: List[String], window: FiniteDuration)(implicit namespace: Namespace, timeout: Timeout): Future[Option[Double]] =
     for {
       last <- lastDoubleValue(tags.toSet, window)
     } yield {
