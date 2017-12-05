@@ -2,20 +2,22 @@ package io.vamp.operation.controller
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.Uri.{ Path, Query }
-import akka.http.scaladsl.model.ws.{ UpgradeToWebSocket, WebSocketRequest }
-import akka.http.scaladsl.server.{ RequestContext, RouteResult }
+import akka.http.scaladsl.model.Uri.{Path, Query}
+import akka.http.scaladsl.model.ws.{UpgradeToWebSocket, WebSocketRequest}
+import akka.http.scaladsl.server.{RequestContext, RouteResult}
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.Namespace
-import io.vamp.model.artifact.Port
+import io.vamp.common.{Id, Namespace}
+import io.vamp.model.artifact.{Deployment, Gateway, Port, Workflow}
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 
-trait ProxyController extends AbstractController with GatewayWorkflowDeploymentResolver {
+trait ProxyController extends AbstractController with VampJsonFormats{
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
@@ -31,7 +33,7 @@ trait ProxyController extends AbstractController with GatewayWorkflowDeploymentR
   }
 
   def gatewayProxy(gatewayName: String, path: Path, skip: Boolean)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
-    gatewayFor(gatewayName).flatMap {
+    VampPersistence().readIfAvailable[Gateway](Id[Gateway](gatewayName)).flatMap {
       case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
         if (upgradeToWebSocket.isDefined) {
           logger.debug(s"WebSocket gateway proxy request [$gatewayName]: $path")
@@ -46,7 +48,7 @@ trait ProxyController extends AbstractController with GatewayWorkflowDeploymentR
   }
 
   def instanceProxy(workflowName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
-    workflowFor(workflowName).flatMap {
+    VampPersistence().readIfAvailable[Workflow](Id[Workflow](workflowName)).flatMap {
       case Some(workflow) ⇒
         workflow.instances.find(instance ⇒ instance.name == instanceName && instance.ports.contains(portName)) match {
           case Some(instance) ⇒
@@ -65,7 +67,7 @@ trait ProxyController extends AbstractController with GatewayWorkflowDeploymentR
   }
 
   def instanceProxy(deploymentName: String, clusterName: String, serviceName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
-    deploymentFor(deploymentName).flatMap {
+    VampPersistence().readIfAvailable[Deployment](Id[Deployment](deploymentName)).flatMap {
       case Some(deployment) ⇒
         deployment.
           clusters.find(_.name == clusterName).

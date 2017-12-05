@@ -3,11 +3,13 @@ package io.vamp.operation.controller
 import java.net.URLDecoder
 
 import akka.util.Timeout
+import io.vamp.common.akka.IoC.actorFor
 import io.vamp.common.{Artifact, Id, Namespace}
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ImportReferenceError, InconsistentArtifactName}
 import io.vamp.model.reader.{YamlReader, _}
 import io.vamp.model.serialization.CoreSerializationFormat
+import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.persistence.refactor.VampPersistence
@@ -16,12 +18,12 @@ import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.persistence.{ArtifactExpansionSupport, ArtifactResponseEnvelope}
 import org.json4s.native.Serialization.write
 import org.json4s.{DefaultFormats, Extraction}
+import akka.pattern.ask
 
 import scala.concurrent.Future
 
 trait ArtifactApiController
     extends DeploymentApiController
-    with GatewayApiController
     with WorkflowApiController
     with MultipleArtifactApiController
     with SingleArtifactApiController
@@ -63,7 +65,9 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
 
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
-    case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(createGateway(_, source, validateOnly))
+    case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(artifact => expandGateway(artifact.asInstanceOf[Gateway]) flatMap { gateway ⇒
+      (actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly))
+    })
     case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(x ⇒ createWorkflow(x.asInstanceOf[Workflow], validateOnly))
     case (_, r)                             ⇒ unmarshall(r, source).flatMap(create(_, source, validateOnly))
   }
@@ -86,14 +90,19 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
 
   def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
-    case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(updateGateway(_, name, source, validateOnly))
+    case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(artifact =>
+      expandGateway(artifact.asInstanceOf[Gateway]) flatMap { gateway ⇒
+        if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway.name))
+        actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
+      }
+    )
     case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(x ⇒ updateWorkflow(x.asInstanceOf[Workflow], name, validateOnly))
     case (_, r)                             ⇒ unmarshall(r, source).flatMap(update(_, name, source, validateOnly))
   }
 
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
-    case (t, _) if t == classOf[Gateway]    ⇒ deleteGateway(name, validateOnly)
+    case (t, _) if t == classOf[Gateway]    ⇒ (actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly))
     case (t, _) if t == classOf[Workflow]   ⇒ deleteWorkflow(read(t, name, expandReferences = false, onlyReferences = false), validateOnly)
     case (t, _)                             ⇒ delete(t, name, validateOnly)
   }
