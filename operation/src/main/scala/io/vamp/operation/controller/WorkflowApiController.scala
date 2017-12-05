@@ -15,28 +15,26 @@ import scala.concurrent.Future
 trait WorkflowApiController extends AbstractController with VampJsonFormats {
   this: ArtifactExpansionSupport ⇒
 
-  protected def createWorkflow(artifact: Workflow, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Workflow] = {
+  protected def createWorkflow(artifact: Workflow, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     createOrUpdateVerifyingConflicts(artifact, validateOnly, create = true)
   }
 
-  protected def updateWorkflow(artifact: Workflow, name: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Workflow] = {
+  protected def updateWorkflow(artifact: Workflow, name: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     if (name != artifact.name)
       throwException(InconsistentArtifactName(name, artifact.name))
     createOrUpdateVerifyingConflicts(artifact, validateOnly, create = false)
   }
 
-  private def createOrUpdateVerifyingConflicts(artifact: Workflow, validateOnly: Boolean, create: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Workflow] = {
+  private def createOrUpdateVerifyingConflicts(artifact: Workflow, validateOnly: Boolean, create: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
      VampPersistence().readIfAvailable[Deployment](Id[Deployment](artifact.name)).flatMap {
       case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
       case _ ⇒ VampPersistence().readIfAvailable[Workflow](Id[Workflow](artifact.name)).flatMap {
         case Some(workflow) if workflow.status != Workflow.Status.Suspended ⇒ throwException(WorkflowUpdateError(workflow))
         case _ ⇒
           if (validateOnly)
-            Future.successful(artifact)
-          else if (create) VampPersistence().createOrUpdate[Workflow](artifact).flatMap(_ => VampPersistence().read[Workflow](workflowSerilizationSpecifier.idExtractor(artifact)))
-          else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ ⇒ artifact).flatMap(_ =>
-            VampPersistence().read[Workflow](workflowSerilizationSpecifier.idExtractor(artifact))
-          )
+            Future.successful(UnitPlaceholder)
+          else if (create) VampPersistence().createOrUpdate[Workflow](artifact).map(_ => UnitPlaceholder)
+          else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ ⇒ artifact).map(_ => UnitPlaceholder)
       }
     }
     /* In the old version of persistence, in some cases it appears the create/update operation returned a list.

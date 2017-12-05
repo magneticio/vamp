@@ -43,6 +43,7 @@ trait ArtifactApiController
     val actualPage = if(page < 1) 0 else page-1
     val fromAndSize = if (perPage > 0) Some((perPage * actualPage, perPage)) else None
     `type`(kind) match {
+      /* Deployments are retrieved from the DeploymentController; This case should never be taken */
       case (t, _) if t == classOf[Deployment] ⇒ Future.successful(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
       case (t, _) if t == classOf[Breed]      ⇒ VampPersistence().getAll[Breed](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
       case (t, _) if t == classOf[Sla]        ⇒ VampPersistence().getAll[Sla](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
@@ -63,51 +64,52 @@ trait ArtifactApiController
 trait SingleArtifactApiController extends SourceTransformer with AbstractController {
   this: ArtifactApiController ⇒
 
-  def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
+  def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = `type`(kind) match {
+    /* Deployments are created from the DeploymentController; This case should never be taken */
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
     case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(artifact => expandGateway(artifact.asInstanceOf[Gateway]) flatMap { gateway ⇒
-      (actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly))
+      ((actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly))).map(_ => UnitPlaceholder)
     })
     case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(x ⇒ createWorkflow(x.asInstanceOf[Workflow], validateOnly))
     case (_, r)                             ⇒ unmarshall(r, source).flatMap(create(_, source, validateOnly))
   }
 
-  def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Option[Artifact]] = `type`(kind) match {
-    case (t, _) if t == classOf[Gateway]    ⇒ VampPersistence().read[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8"))).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
-    case (t, _) if t == classOf[Breed]      ⇒ VampPersistence().read[Breed](Id[Breed](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Sla]        ⇒ VampPersistence().read[Sla](Id[Sla](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Escalation] ⇒ VampPersistence().read[Escalation](Id[Escalation](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Route]      ⇒ VampPersistence().read[Route](Id[Route](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Condition]  ⇒ VampPersistence().read[Condition](Id[Condition](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Rewrite]    ⇒ VampPersistence().read[Rewrite](Id[Rewrite](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Workflow]   ⇒ VampPersistence().read[Workflow](Id[Workflow](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Template]   ⇒ VampPersistence().read[Template](Id[Template](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Scale]      ⇒ VampPersistence().read[Scale](Id[Scale](name)).map(x ⇒ Some(x))
-    case (t, _) if t == classOf[Blueprint]  ⇒ VampPersistence().read[Blueprint](Id[Blueprint](name)).map(x ⇒ Some(x))
+  def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Artifact] = `type`(kind) match {
+    case (t, _) if t == classOf[Gateway]    ⇒ VampPersistence().read[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8")))
+    case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
+    case (t, _) if t == classOf[Breed]      ⇒ VampPersistence().read[Breed](Id[Breed](name))
+    case (t, _) if t == classOf[Sla]        ⇒ VampPersistence().read[Sla](Id[Sla](name))
+    case (t, _) if t == classOf[Escalation] ⇒ VampPersistence().read[Escalation](Id[Escalation](name))
+    case (t, _) if t == classOf[Route]      ⇒ VampPersistence().read[Route](Id[Route](name))
+    case (t, _) if t == classOf[Condition]  ⇒ VampPersistence().read[Condition](Id[Condition](name))
+    case (t, _) if t == classOf[Rewrite]    ⇒ VampPersistence().read[Rewrite](Id[Rewrite](name))
+    case (t, _) if t == classOf[Workflow]   ⇒ VampPersistence().read[Workflow](Id[Workflow](name))
+    case (t, _) if t == classOf[Template]   ⇒ VampPersistence().read[Template](Id[Template](name))
+    case (t, _) if t == classOf[Scale]      ⇒ VampPersistence().read[Scale](Id[Scale](name))
+    case (t, _) if t == classOf[Blueprint]  ⇒ VampPersistence().read[Blueprint](Id[Blueprint](name))
     case other                              ⇒ throwException(PersistenceOperationFailure(other))
   }
 
-  def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
+  def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
     case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(artifact =>
       expandGateway(artifact.asInstanceOf[Gateway]) flatMap { gateway ⇒
         if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway.name))
-        actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
+        (actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)).map(_ => UnitPlaceholder)
       }
     )
     case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(x ⇒ updateWorkflow(x.asInstanceOf[Workflow], name, validateOnly))
     case (_, r)                             ⇒ unmarshall(r, source).flatMap(update(_, name, source, validateOnly))
   }
 
-  def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
-    case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
-    case (t, _) if t == classOf[Gateway]    ⇒ (actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly))
+  def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = `type`(kind) match {
+    case (t, _) if t == classOf[Deployment] ⇒ Future.successful(UnitPlaceholder)
+    case (t, _) if t == classOf[Gateway]    ⇒ (actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly)).map(_ => UnitPlaceholder)
     case (t, _) if t == classOf[Workflow]   ⇒ {
       for {
         existingWorkflow <- VampPersistence().readIfAvailable[Workflow](Id[Workflow](name))
         _ <- existingWorkflow match {
-          case None => Future.successful()
+          case None => Future.successful(())
           case Some(workflow) => VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Stopping))
         }
       } yield UnitPlaceholder
@@ -122,39 +124,21 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
     case _                                  ⇒ true
   }
 
-  private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
-    `type` match {
-      case t if t == classOf[Gateway]    ⇒ VampPersistence().read[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8"))).map(x ⇒ Some(x))
-      case t if t == classOf[Deployment] ⇒ Future.successful(None)
-      case t if t == classOf[Breed]      ⇒ VampPersistence().read[Breed](Id[Breed](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Sla]        ⇒ VampPersistence().read[Sla](Id[Sla](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Escalation] ⇒ VampPersistence().read[Escalation](Id[Escalation](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Route]      ⇒ VampPersistence().read[Route](Id[Route](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Condition]  ⇒ VampPersistence().read[Condition](Id[Condition](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Rewrite]    ⇒ VampPersistence().read[Rewrite](Id[Rewrite](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Workflow]   ⇒ VampPersistence().read[Workflow](Id[Workflow](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Template]   ⇒ VampPersistence().read[Template](Id[Template](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Scale]      ⇒ VampPersistence().read[Scale](Id[Scale](name)).map(x ⇒ Some(x))
-      case t if t == classOf[Blueprint]  ⇒ VampPersistence().read[Blueprint](Id[Blueprint](name)).map(x ⇒ Some(x))
-      case other                         ⇒ throwException(PersistenceOperationFailure(other))
-    }
-  }
-
-  private def create(artifact: Artifact, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
+  private def create(artifact: Artifact, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     if(validateOnly)
-      Future.successful(artifact)
+      Future.successful(UnitPlaceholder)
     else artifact match {
-      case e: Gateway    ⇒ VampPersistence().create[Gateway](e)
-      case e: Deployment ⇒ VampPersistence().create[Deployment](e)
-      case e: Breed      ⇒ VampPersistence().create[Breed](e)
-      case e: Sla        ⇒ VampPersistence().create[Sla](e)
-      case e: Escalation ⇒ VampPersistence().create[Escalation](e)
-      case e: Route      ⇒ VampPersistence().create[Route](e)
-      case e: Condition  ⇒ VampPersistence().create[Condition](e)
-      case e: Rewrite    ⇒ VampPersistence().create[Rewrite](e)
-      case e: Workflow   ⇒ VampPersistence().create[Workflow](e)
-      case e: Template   ⇒ VampPersistence().create[Template](e)
-      case e: Scale      ⇒ VampPersistence().create[Scale](e)
+      case e: Gateway    ⇒ VampPersistence().create[Gateway](e).map(_ => UnitPlaceholder)
+      case e: Deployment ⇒ VampPersistence().create[Deployment](e).map(_ => UnitPlaceholder)
+      case e: Breed      ⇒ VampPersistence().create[Breed](e).map(_ => UnitPlaceholder)
+      case e: Sla        ⇒ VampPersistence().create[Sla](e).map(_ => UnitPlaceholder)
+      case e: Escalation ⇒ VampPersistence().create[Escalation](e).map(_ => UnitPlaceholder)
+      case e: Route      ⇒ VampPersistence().create[Route](e).map(_ => UnitPlaceholder)
+      case e: Condition  ⇒ VampPersistence().create[Condition](e).map(_ => UnitPlaceholder)
+      case e: Rewrite    ⇒ VampPersistence().create[Rewrite](e).map(_ => UnitPlaceholder)
+      case e: Workflow   ⇒ VampPersistence().create[Workflow](e).map(_ => UnitPlaceholder)
+      case e: Template   ⇒ VampPersistence().create[Template](e).map(_ => UnitPlaceholder)
+      case e: Scale      ⇒ VampPersistence().create[Scale](e).map(_ => UnitPlaceholder)
       case e: Blueprint  ⇒ {
         for {
           _ <- VampPersistence().create[Blueprint](e)
@@ -163,48 +147,48 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
             case _ => Nil
           }
           _ <- Future.sequence(defaultBreedsThatNeedCreation.map(b => VampPersistence().create[Breed](b)))
-        } yield ()
+        } yield UnitPlaceholder
       }
       case other         ⇒ throwException(PersistenceOperationFailure(other))
     }
   }
 
-  private def update(artifact: Artifact, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
+  private def update(artifact: Artifact, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     if (name != artifact.name)
       throwException(InconsistentArtifactName(name, artifact.name))
-    if (validateOnly) Future.successful(artifact) else
+    if (validateOnly) Future.successful(UnitPlaceholder) else
       artifact match {
-        case e: Gateway    ⇒ VampPersistence().update[Gateway](Id[Gateway](e.name), _ ⇒ e)
-        case e: Deployment ⇒ VampPersistence().update[Deployment](Id[Deployment](e.name), _ ⇒ e)
-        case e: Breed      ⇒ VampPersistence().update[Breed](Id[Breed](e.name), _ ⇒ e)
-        case e: Sla        ⇒ VampPersistence().update[Sla](Id[Sla](e.name), _ ⇒ e)
-        case e: Escalation ⇒ VampPersistence().update[Escalation](Id[Escalation](e.name), _ ⇒ e)
-        case e: Route      ⇒ VampPersistence().update[Route](Id[Route](e.name), _ ⇒ e)
-        case e: Condition  ⇒ VampPersistence().update[Condition](Id[Condition](e.name), _ ⇒ e)
-        case e: Rewrite    ⇒ VampPersistence().update[Rewrite](Id[Rewrite](e.name), _ ⇒ e)
-        case e: Workflow   ⇒ VampPersistence().update[Workflow](Id[Workflow](e.name), _ ⇒ e)
-        case e: Template   ⇒ VampPersistence().update[Template](Id[Template](e.name), _ ⇒ e)
-        case e: Scale      ⇒ VampPersistence().update[Scale](Id[Scale](e.name), _ ⇒ e)
-        case e: Blueprint  ⇒ VampPersistence().update[Blueprint](Id[Blueprint](e.name), _ ⇒ e)
+        case e: Gateway    ⇒ VampPersistence().update[Gateway](Id[Gateway](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Deployment ⇒ VampPersistence().update[Deployment](Id[Deployment](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Breed      ⇒ VampPersistence().update[Breed](Id[Breed](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Sla        ⇒ VampPersistence().update[Sla](Id[Sla](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Escalation ⇒ VampPersistence().update[Escalation](Id[Escalation](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Route      ⇒ VampPersistence().update[Route](Id[Route](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Condition  ⇒ VampPersistence().update[Condition](Id[Condition](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Rewrite    ⇒ VampPersistence().update[Rewrite](Id[Rewrite](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Workflow   ⇒ VampPersistence().update[Workflow](Id[Workflow](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Template   ⇒ VampPersistence().update[Template](Id[Template](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Scale      ⇒ VampPersistence().update[Scale](Id[Scale](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
+        case e: Blueprint  ⇒ VampPersistence().update[Blueprint](Id[Blueprint](e.name), _ ⇒ e).map(_ => UnitPlaceholder)
         case other         ⇒ throwException(PersistenceOperationFailure(other))
       }
   }
 
-  private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
-    if (validateOnly) Future.successful(None) else
+  private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
+    if (validateOnly) Future.successful(UnitPlaceholder) else
       `type` match {
-        case t if t == classOf[Gateway]    ⇒ VampPersistence().deleteObject[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8"))).map(x ⇒ Some(x))
-        case t if t == classOf[Deployment] ⇒ VampPersistence().deleteObject[Deployment](Id[Deployment](name))
-        case t if t == classOf[Breed]      ⇒ VampPersistence().deleteObject[Breed](Id[Breed](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Sla]        ⇒ VampPersistence().deleteObject[Sla](Id[Sla](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Escalation] ⇒ VampPersistence().deleteObject[Escalation](Id[Escalation](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Route]      ⇒ VampPersistence().deleteObject[Route](Id[Route](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Condition]  ⇒ VampPersistence().deleteObject[Condition](Id[Condition](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Rewrite]    ⇒ VampPersistence().deleteObject[Rewrite](Id[Rewrite](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Workflow]   ⇒ VampPersistence().deleteObject[Workflow](Id[Workflow](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Template]   ⇒ VampPersistence().deleteObject[Template](Id[Template](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Scale]      ⇒ VampPersistence().deleteObject[Scale](Id[Scale](name)).map(x ⇒ Some(x))
-        case t if t == classOf[Blueprint]  ⇒ VampPersistence().deleteObject[Blueprint](Id[Blueprint](name)).map(x ⇒ Some(x))
+        case t if t == classOf[Gateway]    ⇒ VampPersistence().deleteObject[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8"))).map(x ⇒ Some(x)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Deployment] ⇒ VampPersistence().deleteObject[Deployment](Id[Deployment](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Breed]      ⇒ VampPersistence().deleteObject[Breed](Id[Breed](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Sla]        ⇒ VampPersistence().deleteObject[Sla](Id[Sla](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Escalation] ⇒ VampPersistence().deleteObject[Escalation](Id[Escalation](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Route]      ⇒ VampPersistence().deleteObject[Route](Id[Route](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Condition]  ⇒ VampPersistence().deleteObject[Condition](Id[Condition](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Rewrite]    ⇒ VampPersistence().deleteObject[Rewrite](Id[Rewrite](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Workflow]   ⇒ VampPersistence().deleteObject[Workflow](Id[Workflow](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Template]   ⇒ VampPersistence().deleteObject[Template](Id[Template](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Scale]      ⇒ VampPersistence().deleteObject[Scale](Id[Scale](name)).map(_ => UnitPlaceholder)
+        case t if t == classOf[Blueprint]  ⇒ VampPersistence().deleteObject[Blueprint](Id[Blueprint](name)).map(_ => UnitPlaceholder)
         case other                         ⇒ throwException(PersistenceOperationFailure(other))
       }
   }
@@ -217,32 +201,28 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
 trait MultipleArtifactApiController extends AbstractController {
   this: SingleArtifactApiController with DeploymentApiController ⇒
 
-  def createArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = process(source, {
-    item ⇒
-      `type`(item.kind) match {
+  def createArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[UnitPlaceholder]] =
+    Future.sequence {
+      ArtifactListReader.read(source).map(item => `type`(item.kind) match {
         case (t, _) if t == classOf[Deployment] ⇒ createDeployment(item.toString, validateOnly)
         case _                                  ⇒ createArtifact(item.kind, item.toString, validateOnly)
-      }
-  })
+      })
+    }
 
-  def updateArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = process(source, {
-    item ⇒
-      `type`(item.kind) match {
+  def updateArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[UnitPlaceholder]] =
+    Future.sequence {
+      ArtifactListReader.read(source).map(item => `type`(item.kind) match {
         case (t, _) if t == classOf[Deployment] ⇒ updateDeployment(item.name, item.toString, validateOnly)
         case _                                  ⇒ updateArtifact(item.kind, item.name, item.toString, validateOnly)
-      }
-  })
+      })
+  }
 
-  def deleteArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = process(source, {
-    item ⇒
-      `type`(item.kind) match {
+  def deleteArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[UnitPlaceholder]] =
+    Future.sequence {
+      ArtifactListReader.read(source).map(item => `type`(item.kind) match {
         case (t, _) if t == classOf[Deployment] ⇒ deleteDeployment(item.name, item.toString, validateOnly)
         case _                                  ⇒ deleteArtifact(item.kind, item.name, item.toString, validateOnly)
-      }
-  })
-
-  private def process(source: String, execute: ArtifactSource ⇒ Future[Any]) = Future.sequence {
-    ArtifactListReader.read(source).map(execute)
+      })
   }
 }
 
