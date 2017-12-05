@@ -1,21 +1,21 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.{Config, Namespace}
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
-import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
+import io.vamp.gateway_driver.GatewayDriverActor.{Pull, Push}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport, PersistenceActor}
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success, Try}
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -172,10 +172,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
               _.services.find(_.breed.name == service)
             }.map { service ⇒
               service.instances.map {
-                instance ⇒
+                instance ⇒ {
+                  log.info(s"Webport problem: ${instance.name} ${instance.host} ${instance.ports}")
                   Option {
-                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port))
+                    val portInt = instance.ports.getOrElse(port, instance.ports.head._2)
+                    InternalRouteTarget(instance.name, Option(instance.host), portInt )
                   }
+                }
               }
             }.getOrElse(Nil)
 
