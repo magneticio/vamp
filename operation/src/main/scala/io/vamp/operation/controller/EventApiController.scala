@@ -84,7 +84,7 @@ trait EventApiController extends AbstractController {
 trait EventValue {
   this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
-  def last(tags: Set[String], window: FiniteDuration, `type`: Option[String] = None)(implicit namespace: Namespace, timeout: Timeout): Future[Option[AnyRef]] = {
+  def lastDoubleValue(tags: Set[String], window: FiniteDuration, `type`: Option[String] = None)(implicit namespace: Namespace, timeout: Timeout): Future[Option[AnyRef]] = {
     val eventQuery = EventQuery(tags, `type`, Option(timeRange(window)), None)
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case EventResponseEnvelope(Event(_, _, value, _, _) :: _, _, _, _) ⇒ Option(value)

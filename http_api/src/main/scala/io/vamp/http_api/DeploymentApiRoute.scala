@@ -17,7 +17,7 @@ trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
         asBlueprint { asBlueprint ⇒
           pageAndPerPage() { (page, perPage) ⇒
             expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-              onSuccess(getDeployments(asBlueprint, expandReferences, onlyReferences)(page, perPage)) { result ⇒
+              onSuccess(getDeployments(asBlueprint, expandReferences, onlyReferences, page, perPage)) { result ⇒
                 respondWith(OK, result)
               }
             }
@@ -38,7 +38,7 @@ trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
           rejectEmptyResponse {
             asBlueprint { asBlueprint ⇒
               expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-                onSuccess(deployment(name, asBlueprint, expandReferences, onlyReferences)) { result ⇒
+                onSuccess(getDeployment(name, asBlueprint, expandReferences, onlyReferences)) { result ⇒
                   respondWith(OK, result)
                 }
               }

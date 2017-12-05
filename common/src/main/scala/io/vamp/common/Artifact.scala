@@ -3,8 +3,6 @@ package io.vamp.common
 import io.vamp.common.util.HashUtil
 import java.util.UUID
 
-import org.json4s
-
 object Id {
   def apply[A](uuid: UUID) = new Id[A](uuid.toString)
   def generate[A] = new Id[A](UUID.randomUUID.toString)
@@ -84,3 +82,11 @@ object RootAnyMap {
   private def toJsonList(l: RestrictedList): JsonAST.JValue = JsonAST.JArray(l.ls.map(toJson(_)))
   private def toJsonMap(m: RestrictedMap): JsonAST.JValue = JsonAST.JObject(m.mp.toList.map(kvPair => JField(kvPair._1, toJson(kvPair._2))))
 }
+
+/*
+* This type + object will be used where Unit must be returned, Unfortunately, Scala does some type-coercion for Unit so that when a method is declared as returning Unit,
+* it can return any type (String, Int, etc). This in particular becomes problematic when wirking with Future[Unit] as you can return Future[String] and more problematically
+* Future[Future[Unit]]. Using our own type for this fixes it. When we want a method to retunr Future[Unit], declare the returned type Future[UnitPlaceholder].
+* */
+sealed trait UnitPlaceholder
+case object UnitPlaceholder extends UnitPlaceholder

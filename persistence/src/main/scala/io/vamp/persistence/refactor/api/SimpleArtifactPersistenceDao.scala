@@ -1,7 +1,6 @@
 package io.vamp.persistence.refactor.api
 
 import io.vamp.common.{Id, Namespace}
-import io.vamp.persistence.refactor.exceptions.InvalidObjectIdException
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 
 import scala.concurrent.Future
@@ -14,6 +13,8 @@ trait SimpleArtifactPersistenceDao {
   def namespace: Namespace
 
   def create[T: SerializationSpecifier](obj: T): Future[Id[T]]
+
+  def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]]
 
   def read[T: SerializationSpecifier](id: Id[T]): Future[T]
 

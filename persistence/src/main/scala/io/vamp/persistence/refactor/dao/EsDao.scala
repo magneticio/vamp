@@ -60,6 +60,17 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield newObjectId
   }
 
+  override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
+    val sSpecifier = implicitly[SerializationSpecifier[T]]
+    for {
+      existing <- readIfAvailable(sSpecifier.idExtractor(obj))
+      _ <- existing match {
+        case None => create(obj)
+        case Some(_) => update(sSpecifier.idExtractor(obj), (_:T) => obj)
+      }
+    } yield sSpecifier.idExtractor(obj)
+  }
+
   override def read[T: SerializationSpecifier](objectId: Id[T]): Future[T] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     for {
