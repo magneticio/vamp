@@ -21,7 +21,7 @@ PROJECT   := vamp
 TARGET    := $(CURDIR)/bootstrap/target
 VERSION   := $(shell git describe --tags)
 BUILD_CMD := sbt clean test 'project bootstrap' pack
-PACK_CMD  := VAMP_VERSION=katana sbt package publish-local && VAMP_VERSION=$(VERSION) sbt 'project bootstrap' pack
+PACK_CMD  := VAMP_VERSION=katana sbt publish-local && VAMP_VERSION=$(VERSION) sbt 'project bootstrap' pack
 
 # Targets
 .PHONY: all
@@ -56,7 +56,7 @@ pack:
 		--env BUILD_GID=$(shell id -g) \
 		$(BUILD_SERVER) "$(PACK_CMD)"
 
-	rm -rf $(TARGET)/$(PROJECT)-$(VERSION)
+	rm -rf $(TARGET)/$(PROJECT)-*
 	mkdir -p $(TARGET)/$(PROJECT)-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
 	mv $$(find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar") $(TARGET)/$(PROJECT)-$(VERSION)/
@@ -72,7 +72,7 @@ pack:
 pack-local:
 	$(PACK_CMD)
 
-	rm -rf $(TARGET)/$(PROJECT)-$(VERSION)
+	rm -rf $(TARGET)/$(PROJECT)-*
 	mkdir -p $(TARGET)/$(PROJECT)-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
 	mv $$(find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar") $(TARGET)/$(PROJECT)-$(VERSION)/
