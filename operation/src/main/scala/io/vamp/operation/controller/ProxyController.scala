@@ -47,7 +47,7 @@ trait ProxyController extends AbstractController with VampJsonFormats{
     }
   }
 
-  def instanceProxy(workflowName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
+  def workflowInstanceProxy(workflowName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
     VampPersistence().readIfAvailable[Workflow](Id[Workflow](workflowName)).flatMap {
       case Some(workflow) ⇒
         workflow.instances.find(instance ⇒ instance.name == instanceName && instance.ports.contains(portName)) match {
@@ -66,7 +66,7 @@ trait ProxyController extends AbstractController with VampJsonFormats{
     }
   }
 
-  def instanceProxy(deploymentName: String, clusterName: String, serviceName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
+  def deploymentInstanceProxy(deploymentName: String, clusterName: String, serviceName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
     VampPersistence().readIfAvailable[Deployment](Id[Deployment](deploymentName)).flatMap {
       case Some(deployment) ⇒
         deployment.

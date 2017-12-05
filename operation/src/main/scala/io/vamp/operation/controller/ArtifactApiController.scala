@@ -4,7 +4,7 @@ import java.net.URLDecoder
 
 import akka.util.Timeout
 import io.vamp.common.akka.IoC.actorFor
-import io.vamp.common.{Artifact, Id, Namespace}
+import io.vamp.common.{Artifact, Id, Namespace, UnitPlaceholder}
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ImportReferenceError, InconsistentArtifactName}
 import io.vamp.model.reader.{YamlReader, _}
@@ -103,7 +103,15 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
     case (t, _) if t == classOf[Gateway]    ⇒ (actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly))
-    case (t, _) if t == classOf[Workflow]   ⇒ deleteWorkflow(read(t, name, expandReferences = false, onlyReferences = false), validateOnly)
+    case (t, _) if t == classOf[Workflow]   ⇒ {
+      for {
+        existingWorkflow <- VampPersistence().readIfAvailable[Workflow](Id[Workflow](name))
+        _ <- existingWorkflow match {
+          case None => Future.successful()
+          case Some(workflow) => VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Stopping))
+        }
+      } yield UnitPlaceholder
+    }
     case (t, _)                             ⇒ delete(t, name, validateOnly)
   }
 

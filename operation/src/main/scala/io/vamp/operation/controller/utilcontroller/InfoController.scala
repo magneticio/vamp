@@ -42,17 +42,17 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
   def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(InfoMessage, Boolean)] = {
     retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
       InfoMessage(
-        infoMessage(),
-        Model.version,
-        Model.uuid,
-        Model.runningSince,
-        if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
-        VampPersistence().info,
-        result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
-        result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
-        result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
-        result.data.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
-        result.data.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
+        message = infoMessage(),
+        version = Model.version,
+        uuid = Model.uuid,
+        runningSince = Model.runningSince,
+        jvm = if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
+        persistence = VampPersistence().info,
+        keyValue = result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
+        pulse = result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
+        gatewayDriver = result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
+        containerDriver = result.data.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
+        workflowDriver = result.data.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
       ) → result.succeeded
     }
   }

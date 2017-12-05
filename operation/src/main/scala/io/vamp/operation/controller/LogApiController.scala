@@ -22,7 +22,7 @@ trait LogApiController extends AbstractController {
 
   private val eventType = "log"
 
-  def sourceLog(level: String, logger: Option[String], keepAlivePeriod: FiniteDuration)(implicit namespace: Namespace) = {
+  def sourceLog(level: String, logger: Option[String], keepAlivePeriod: FiniteDuration)(implicit namespace: Namespace): Source[ServerSentEvent, ActorRef] = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
         case Request(_) ⇒ openLogStream(self, level, logger, { event ⇒
@@ -36,13 +36,13 @@ trait LogApiController extends AbstractController {
     })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
 
-  def openLogStream(to: ActorRef, level: String, logger: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef)(implicit namespace: Namespace) = {
+  def openLogStream(to: ActorRef, level: String, logger: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef)(implicit namespace: Namespace): Unit = {
     LogPublisherHub.subscribe(to, level, logger, encoder)
   }
 
-  def closeLogStream(to: ActorRef) = LogPublisherHub.unsubscribe(to)
+  def closeLogStream(to: ActorRef): Unit = LogPublisherHub.unsubscribe(to)
 
-  def encode(loggingEvent: ILoggingEvent) = LogEvent(
+  def encode(loggingEvent: ILoggingEvent): LogEvent = LogEvent(
     loggingEvent.getLoggerName,
     loggingEvent.getLevel.toString,
     loggingEvent.getFormattedMessage,

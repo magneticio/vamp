@@ -28,9 +28,9 @@ trait ProxyRoute extends AbstractRoute with ProxyController {
     } ~ path(Gateway.kind / Segment / RemainingPath) {
       (gateway, path) ⇒ handle(gatewayProxy(gateway, path, skip = false))
     } ~ path(Workflow.kind / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
-      (workflow, instance, port, path) ⇒ handle(instanceProxy(workflow, instance, port, path))
+      (workflow, instance, port, path) ⇒ handle(workflowInstanceProxy(workflow, instance, port, path))
     } ~ path(Deployment.kind / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
-      (deployment, cluster, service, instance, port, path) ⇒ handle(instanceProxy(deployment, cluster, service, instance, port, path))
+      (deployment, cluster, service, instance, port, path) ⇒ handle(deploymentInstanceProxy(deployment, cluster, service, instance, port, path))
     }
 
   private def handle(handler: (RequestContext, Option[UpgradeToWebSocket]) ⇒ Future[RouteResult]): Route = {

@@ -17,19 +17,10 @@ import scala.util.Try
 
 trait EventPeekController extends AbstractController {
 
-  def peekLastDoubleValue(tags: List[String], window: FiniteDuration)(implicit namespace: Namespace, timeout: Timeout): Future[Option[Double]] =
-    for {
-      last <- lastDoubleValue(tags.toSet, window)
-    } yield {
-      last.flatMap{ value =>
-        Try(Some(value.toString.asInstanceOf[Double])).getOrElse(None)
-      }
-    }
-
-  private def lastDoubleValue(tags: Set[String], window: FiniteDuration, `type`: Option[String] = None)(implicit namespace: Namespace, timeout: Timeout): Future[Option[AnyRef]] = {
-    val eventQuery = EventQuery(tags, `type`, Option(timeRange(window)), None)
+  def peekLastDoubleValue(tags: List[String], window: FiniteDuration, `type`: Option[String] = None)(implicit namespace: Namespace, timeout: Timeout): Future[Option[Double]] = {
+    val eventQuery = EventQuery(tags.toSet, `type`, Option(timeRange(window)), None)
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
-      case EventResponseEnvelope(Event(_, _, value, _, _) :: _, _, _, _) ⇒ Option(value)
+      case EventResponseEnvelope(Event(_, _, value, _, _) :: _, _, _, _) ⇒ Try(Some(value.toString.asInstanceOf[Double])).getOrElse(None)
       case _ ⇒ None
     }
   }
