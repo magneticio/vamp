@@ -1,15 +1,16 @@
-package io.vamp.operation.controller
+package io.vamp.operation.controller.utilcontroller
 
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
+import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
+import io.vamp.common.{Config, ConfigMagnet, Namespace}
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
+import io.vamp.operation.controller.AbstractController
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.PulseActor
@@ -17,16 +18,6 @@ import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
 import scala.language.postfixOps
-
-trait AbstractInfoMessage extends JvmInfoMessage {
-  def message: String
-
-  def version: String
-
-  def uuid: String
-
-  def runningSince: String
-}
 
 case class InfoMessage(
   message:         String,
@@ -40,7 +31,7 @@ case class InfoMessage(
   gatewayDriver:   Option[Any],
   containerDriver: Option[Any],
   workflowDriver:  Option[Any]
-) extends AbstractInfoMessage
+)
 
 trait InfoController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 
@@ -48,7 +39,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
 
   protected val dataRetrievalTimeout: ConfigMagnet[Timeout] = Config.timeout("vamp.operation.info.timeout")
 
-  def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(AbstractInfoMessage, Boolean)] = {
+  def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(InfoMessage, Boolean)] = {
     retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
       InfoMessage(
         infoMessage(),
@@ -66,7 +57,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
     }
   }
 
-  protected def infoActors(on: Set[String]): List[Class[Actor]] = {
+  private def infoActors(on: Set[String]): List[Class[Actor]] = {
     val list = if (on.isEmpty) {
       List(
         classOf[KeyValueStoreActor],

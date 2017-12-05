@@ -5,8 +5,8 @@ import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import io.vamp.common.{Config, Namespace}
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.operation.controller.EventPeekController
 import io.vamp.model.artifact.{Deployment, Gateway}
+import io.vamp.operation.controller.utilcontroller.EventPeekController
 
 import scala.concurrent.Future
 

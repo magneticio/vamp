@@ -5,16 +5,17 @@ import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.{ Directive0, Route }
+import akka.http.scaladsl.server.{Directive0, Route}
 import akka.stream.Materializer
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
-import io.vamp.common.{ Artifact, Config, Namespace }
+import io.vamp.common.http.{HttpApiDirectives, HttpApiHandlers}
+import io.vamp.common.{Artifact, Config, Namespace}
 import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.http_api.ws.WebSocketRoute
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.operation.controller.{ ArtifactApiController, ComposeApiController }
+import io.vamp.operation.controller.ArtifactApiController
+import io.vamp.operation.controller.utilcontroller.ComposeApiController
 import org.json4s.Formats
 import org.slf4j.LoggerFactory
 

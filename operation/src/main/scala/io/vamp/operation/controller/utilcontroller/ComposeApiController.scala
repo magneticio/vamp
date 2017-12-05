@@ -1,8 +1,7 @@
-package io.vamp.operation.controller
+package io.vamp.operation.controller.utilcontroller
 
-import io.vamp.model.reader.ComposeBlueprintReader
-import ComposeBlueprintReader.fromDockerCompose
 import io.vamp.common.http.HttpApiDirectives
+import io.vamp.model.reader.ComposeBlueprintReader.fromDockerCompose
 
 /**
  * Controller for converting a docker-compose to blueprint
