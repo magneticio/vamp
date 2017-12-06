@@ -2,9 +2,10 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
+import akka.actor.ActorSystem
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.{Config, Namespace, RootAnyMap}
+import io.vamp.common._
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
@@ -16,11 +17,11 @@ import io.vamp.operation.notification._
 import io.vamp.persistence._
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.common.Id
 import io.vamp.persistence.refactor.exceptions.{GeneralPersistenceError, PersistenceTypeError}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.Try
 
 object DeploymentActor {
 
@@ -34,97 +35,105 @@ object DeploymentActor {
 
   def defaultArguments()(implicit namespace: Namespace) = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
 
-  trait DeploymentMessage
 
-  case class Create(blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessage
+  private val deploymentActorrMap: scala.collection.mutable.Map[String, DeploymentActor] =
+    new scala.collection.concurrent.TrieMap[String, DeploymentActor]()
 
-  case class Merge(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessage
-
-  case class Slice(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessage
-
-  case class UpdateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) extends DeploymentMessage
-
-  case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String, validateOnly: Boolean) extends DeploymentMessage
-
-}
-
-class DeploymentActor
-    extends CommonSupportForActors
-    with BlueprintSupport
-    with DeploymentValidator
-    with DeploymentMerger
-    with DeploymentSlicer
-    with DeploymentUpdate
-    with ArtifactSupport
-    with OperationNotificationProvider {
-
-  import DeploymentActor._
-
-  def receive = {
-    case Create(blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(blueprint.name, create = true))
-    }
-
-    case Merge(name, blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(name, create = true))
-    }
-
-    case Slice(name, blueprint, source, validateOnly) ⇒ reply {
-      (slice(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(name))
-    }
-
-    case UpdateSla(deployment, cluster, sla, source, validateOnly) ⇒ reply {
-      updateSla(deployment, cluster, sla, source, validateOnly)
-    }
-
-    case UpdateScale(deployment, cluster, service, scale, source, validateOnly) ⇒ reply {
-      updateScale(deployment, cluster, service, scale, source, validateOnly)
-    }
-
-    case any ⇒ unsupported(UnsupportedDeploymentRequest(any))
+  // TODO: Make only creation of DAO synchronized. Retrieval can be left non-Sync
+  def apply()(implicit ns: Namespace, as: ActorSystem): DeploymentActor = this.synchronized {
+    deploymentActorrMap.getOrElseUpdate(ns.name, createDeploymentActor)
   }
 
-  def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Any]) = { future ⇒
-    if (validateOnly) future
-    else future.flatMap { deployment ⇒
-      implicit val timeout: Timeout = Timeout(5.second)
-      //TODO: source is ignored
+  private def createDeploymentActor(implicit ns: Namespace, as: ActorSystem): DeploymentActor = {
+    new DeploymentActor()
+  }
+}
+
+class DeploymentActor(implicit val actorSystem: ActorSystem, val namespace: Namespace)
+    extends BlueprintSupport
+    with DeploymentValidator
+    with DeploymentMerger
+    with DeploymentSlicer with CommonProvider
+    with OperationNotificationProvider {
+
+  implicit val executionContext: ExecutionContext = ExecutionContext.global
+
+
+  def create(blueprint: Blueprint, source: String, validateOnly: Boolean): Future[Deployment] = {
+    for {
+      deployment <- deploymentFor(blueprint.name)
+      deploymentForBlueprint <- deploymentForBlueprint(blueprint)
+      afterMerge <- doMerge(deploymentForBlueprint, deployment, validateOnly)
+      _ <- if(!validateOnly) createOrUpdate(afterMerge) else Future.successful(UnitPlaceholder)
+    } yield afterMerge
+  }
+
+  def merge(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean): Future[Deployment] = {
+    for {
+      deployment <- deploymentFor(name)
+      deploymentForBlueprint <- deploymentForBlueprint(blueprint)
+      afterMerge <- doMerge(deploymentForBlueprint, deployment, validateOnly)
+      _ <- if(!validateOnly) createOrUpdate(afterMerge) else Future.successful(UnitPlaceholder)
+    } yield afterMerge
+  }
+
+  def slice(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean): Future[UnitPlaceholder] = {
+    for {
+      deployment <- VampPersistence().read[Deployment](Id[Deployment](name))
+      deploymentForBlueprint <- deploymentForBlueprint(blueprint)
+      afterSlice <- doSlice(deploymentForBlueprint, deployment, validateOnly)
+      _ <- if(!validateOnly) createOrUpdate(afterSlice) else Future.successful(UnitPlaceholder)
+    } yield UnitPlaceholder
+  }
+
+  def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla]): Future[UnitPlaceholder] = {
+    val clusters = deployment.clusters.map(c ⇒ if (cluster.name == c.name) c.copy(sla = sla) else c)
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ d.copy(clusters = clusters)).map(_ => UnitPlaceholder)
+  }
+
+  def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String, validateOnly: Boolean): Future[UnitPlaceholder] = {
+    if(cluster.services.find(_.breed.name == service.breed.name).isDefined) {
       for {
-        existing <- VampPersistence().readIfAvailable[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment))
-        _ <- existing match {
-          case None => VampPersistence().create[Deployment](deployment)
-          case Some(_) => VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), _ => deployment)
-        }
-      } yield {
-        IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
-        deployment
-      }
+        _ <- DeploymentPersistenceOperations.updateServiceScale(deployment, cluster, service, scale, source)
+        _ <- DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, Intention.Deployment)
+      } yield UnitPlaceholder
+    } else Future.successful(UnitPlaceholder)
+  }
+
+  private def createOrUpdate(deployment: Deployment): Future[UnitPlaceholder] = {
+    for {
+      objectExists <- VampPersistence().readIfAvailable[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment)).map(_.isDefined)
+      _ <- if(objectExists) VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), _ => deployment)
+            else VampPersistence().create[Deployment](deployment)
+    } yield {
+      IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
+      UnitPlaceholder
     }
+  }
+
+  private def deploymentFor(name: String): Future[Deployment] = {
+    for {
+      existingDeployment <- VampPersistence().readIfAvailable[Deployment](Id[Deployment](name))
+      deployment <- existingDeployment match {
+        case Some(x) => Future.successful(x)
+        case None => {
+          VampPersistence().readIfAvailable[Workflow](Id[Workflow](name)).map {
+            case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(name))
+            case _ ⇒ {
+              validateName(name)
+              Deployment(name, RootAnyMap.empty, clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+            }
+          }
+        }
+      }
+    } yield deployment
   }
 }
 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintGatewayHelper with ArtifactExpansionSupport {
-  this: DeploymentValueResolver with CommonProvider with VampJsonFormats ⇒
+  this: CommonProvider with VampJsonFormats ⇒
 
-  def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
-    if (!create) {
-      VampPersistence().read[Deployment](Id[Deployment](name))
-    }
-    else {
-      VampPersistence().readIfAvailable[Deployment](Id[Deployment](name)) flatMap {
-        case Some(deployment) ⇒ Future.successful(deployment)
-        case None ⇒
-          VampPersistence().readIfAvailable[Workflow](Id[Workflow](name)).map {
-            case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(name))
-            case _ ⇒
-              validateName(name)
-              Deployment(name, RootAnyMap.empty, clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
-          }
-      }
-    }
-  }
-
-  def deploymentFor(blueprint: Blueprint): Future[Deployment] = {
+  def deploymentForBlueprint(blueprint: Blueprint): Future[Deployment] = {
     VampPersistence().read[Blueprint](Id[Blueprint](blueprint.name)) flatMap { blueprint ⇒
       val bp = if(blueprint.isInstanceOf[DefaultBlueprint]) blueprint.asInstanceOf[DefaultBlueprint]
                 else throw PersistenceTypeError(objectId = Id[Blueprint](blueprint.name), objectTypeName = blueprint.getClass.getName, desiredTypeName = "DefaultBlueprint")
@@ -169,10 +178,10 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 }
 
-trait DeploymentValidator extends VampJsonFormats {
-  this: BlueprintGatewayHelper with DeploymentValueResolver with ArtifactSupport with CommonProvider ⇒
+trait DeploymentValidator extends VampJsonFormats with DeploymentValueResolver {
+  this: BlueprintGatewayHelper with ArtifactSupport with CommonProvider ⇒
 
-  def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
+  def validateServices(deployment: Deployment): UnitPlaceholder = {
     val services = deployment.clusters.flatMap(_.services).filterNot(_.status.intention == Intention.Undeployment)
 
     val breeds = services.map(_.breed)
@@ -196,13 +205,17 @@ trait DeploymentValidator extends VampJsonFormats {
         if (!service.breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(service.breed, environmentVariable.name))
       }
     }
-
-    deployment
+    UnitPlaceholder
   }
 
-  def validateInternalGateways: (Deployment ⇒ Deployment) = validateRouteWeights andThen validateBlueprintGateways andThen validateInternalGatewayAnonymousPortMapping
+  def validateInternalGateways(deployment: Deployment): UnitPlaceholder = {
+    validateRouteWeights(deployment)
+    validateBlueprintGateways(deployment)
+    validateInternalGatewayAnonymousPortMapping(deployment)
+    UnitPlaceholder
+  }
 
-  def validateRouteWeights: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
+  def validateRouteWeights(deployment: Deployment): UnitPlaceholder =  {
     deployment.clusters.map(cluster ⇒
 
       cluster → weightOf(cluster, cluster.services, "")).find({
@@ -210,50 +223,42 @@ trait DeploymentValidator extends VampJsonFormats {
     }).flatMap({
       case (cluster, weight) ⇒ throwException(UnsupportedRouteWeight(deployment, cluster, weight))
     })
-
-    deployment
+    UnitPlaceholder
   }
 
-  def validateScaleEscalations: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
+  def validateScaleEscalations(deployment: Deployment): UnitPlaceholder =  {
     BlueprintReader.validateScaleEscalations(deployment)
-    deployment
+    UnitPlaceholder
   }
 
-  def validateBlueprintEnvironmentVariables: (Future[Deployment] ⇒ Future[Deployment]) = { (futureBlueprint: Future[Deployment]) ⇒
-    futureBlueprint.map {
+  def validateBlueprintEnvironmentVariables(deloyment: Deployment): UnitPlaceholder = {
+    deloyment match {
       case bp: AbstractBlueprint ⇒
         bp.environmentVariables.find(ev ⇒ !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap { t ⇒
           throwException(UnresolvedEnvironmentVariableError(t.name, t.value.getOrElse("")))
-        }.getOrElse(bp)
-      case blueprint ⇒ blueprint
-    }
-  }
+        }.getOrElse(UnitPlaceholder)
+      case blueprint ⇒ UnitPlaceholder
+    }}
 
-  def validateBlueprintRoutes: (Future[Deployment] ⇒ Future[Deployment]) = { (futureBlueprint: Future[Deployment]) ⇒
-    // Reference check.
-    futureBlueprint.map {
-      case bp: AbstractBlueprint ⇒
-        val ports = bp.gateways.flatMap { gateway ⇒
-          gateway.routes.map { route ⇒
-            if (route.length != 2) throwException(UnresolvedGatewayPortError(route.path.source, gateway.port.value.get))
-            gateway.port.copy(name = TraitReference(route.path.segments.head, TraitReference.Ports, route.path.segments.tail.head).reference)
+  def validateBlueprintRoutes(deployment: Deployment): UnitPlaceholder = {
+    deployment match {
+        case bp: AbstractBlueprint ⇒
+          val ports = bp.gateways.flatMap { gateway ⇒
+            gateway.routes.map { route ⇒
+              if (route.length != 2) throwException(UnresolvedGatewayPortError(route.path.source, gateway.port.value.get))
+              gateway.port.copy(name = TraitReference(route.path.segments.head, TraitReference.Ports, route.path.segments.tail.head).reference)
+            }
           }
-        }
-
-        ports.find(ev ⇒ !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap { t ⇒
-          throwException(UnresolvedGatewayPortError(t.name, t.value))
-        }.getOrElse(bp)
-      case blueprint ⇒ blueprint
+          ports.find(ev ⇒ !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap { t ⇒
+            throwException(UnresolvedGatewayPortError(t.name, t.value))
+          }.getOrElse(UnitPlaceholder)
+        case blueprint ⇒ UnitPlaceholder
+      }
     }
-    futureBlueprint
-  }
 
-  def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
+  def validateGateways(deployment: Deployment): Future[UnitPlaceholder] = {
     // Availability check.
-    implicit val timeout = Timeout(5.second)
-
     VampPersistence().getAll[Gateway]() map { gatewayResult ⇒
-
       val gateways = gatewayResult.response
       val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
@@ -263,8 +268,7 @@ trait DeploymentValidator extends VampJsonFormats {
           case _       ⇒ gateway
         }
       }
-
-      deployment
+      UnitPlaceholder
     }
   }
 
@@ -298,18 +302,12 @@ trait DeploymentValidator extends VampJsonFormats {
   }).getOrElse(0)
 }
 
-trait DeploymentOperation extends DeploymentGatewayOperation {
-  this: CommonProvider ⇒
-
-  def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Any])
-}
-
 trait DeploymentGatewayOperation {
   this: CommonProvider ⇒
 
   def serviceRoutePath(deployment: Deployment, cluster: DeploymentCluster, serviceName: String, portName: String) = GatewayPath(deployment.name :: cluster.name :: serviceName :: portName :: Nil)
 
-  def updateRoutePaths(deployment: Deployment, cluster: DeploymentCluster, gateway: Gateway) = {
+  def updateRoutePaths(deployment: Deployment, cluster: DeploymentCluster, gateway: Gateway): Gateway = {
     gateway.copy(
       name = GatewayPath(deployment.name :: cluster.name :: gateway.port.name :: Nil).normalized,
       routes = gateway.routes.map {
@@ -331,41 +329,49 @@ trait DeploymentGatewayOperation {
   }
 }
 
-trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver {
-  this: ReplyActor with DeploymentValidator with ArtifactSupport with CommonProvider ⇒
+trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOperation {
+  this: DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
-  def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
+  def validateBlueprint(deployment: Deployment): Future[UnitPlaceholder] = Future.fromTry(Try{
+    validateBlueprintEnvironmentVariables(deployment);(validateBlueprintRoutes(deployment))
+  })
 
-  def resolveProperties = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
+  def resolveProperties(deployment: Deployment): Future[Deployment] = Future.fromTry(Try{
+    val resolved = resolveDependencyMapping(resolveHosts(deployment))
+    validateEmptyVariables(resolved)
+    resolved
+  })
 
-  def validateMerge = validateServices andThen validateInternalGateways andThen validateScaleEscalations andThen validateGateways
 
-  def merge(blueprint: Future[Deployment], validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.flatMap { deployment ⇒
-      (validateBlueprint andThen resolveProperties)(blueprint) flatMap { attachment ⇒
-        mergeClusters(futureDeployment, attachment, validateOnly) flatMap { clusters ⇒
-          val gateways = mergeGateways(attachment, deployment)
-          val ports = mergeTrait(attachment.ports, deployment.ports)
-          val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
-          val hosts = mergeTrait(attachment.hosts, deployment.hosts)
-          val metadata = RootAnyMap(deployment.metadata.rootMap ++ attachment.metadata.rootMap)
-          val dialects = RootAnyMap(deployment.dialects.rootMap ++ attachment.dialects.rootMap)
+  //andThen validateEmptyVariables andThen resolveDependencyMapping
 
-          validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)) flatMap {
-            deployment ⇒
-              implicit val timeout = GatewayActor.timeout
-              Future.sequence {
-                gateways.map { gateway ⇒
-                  if (deployment.gateways.exists(_.name == gateway.name))
-                    actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
-                  else
-                    actorFor[GatewayActor] ? GatewayActor.Create(gateway, None, validateOnly = validateOnly, force = true)
-                }
-              } map (_ ⇒ deployment)
-          }
+  def validateMerge(deployment: Deployment) = validateGateways(deployment).map{_ => validateServices(deployment); validateInternalGateways(deployment);validateScaleEscalations(deployment)}
+
+  def doMerge(deploymentForBlueprint: Deployment, deployment: Deployment, validateOnly: Boolean): Future[Deployment] = {
+    for {
+      _ <- validateBlueprint(deployment)
+      attachment <- resolveProperties(deploymentForBlueprint)
+      result <- mergeClusters(deployment, attachment, validateOnly) flatMap { clusters ⇒
+        val gateways = mergeGateways(attachment, deployment)
+        val ports = mergeTrait(attachment.ports, deployment.ports)
+        val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
+        val hosts = mergeTrait(attachment.hosts, deployment.hosts)
+        val metadata = RootAnyMap(deployment.metadata.rootMap ++ attachment.metadata.rootMap)
+        val dialects = RootAnyMap(deployment.dialects.rootMap ++ attachment.dialects.rootMap)
+        val newDeployment = Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)
+        validateMerge(newDeployment) flatMap {_ =>
+            implicit val timeout = GatewayActor.timeout
+            Future.sequence {
+              gateways.map { gateway ⇒
+                if (newDeployment.gateways.exists(_.name == gateway.name))
+                  actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
+                else
+                  actorFor[GatewayActor] ? GatewayActor.Create(gateway, None, validateOnly = validateOnly, force = true)
+              }
+            } map (_ ⇒ newDeployment)
         }
       }
-    }
+    } yield result
   }
 
   def mergeGateways(blueprint: Deployment, deployment: Deployment): List[Gateway] = {
@@ -375,36 +381,33 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
   def mergeTrait[A <: Trait](traits1: List[A], traits2: List[A]): List[A] =
     (traits1.map(t ⇒ t.name → t).toMap ++ traits2.map(t ⇒ t.name → t).toMap).values.toList
 
-  def mergeClusters(futureStable: Future[Deployment], blueprint: Deployment, validateOnly: Boolean): Future[List[DeploymentCluster]] = {
-    futureStable.flatMap { stable ⇒
-      val deploymentClusters = stable.clusters.filter(cluster ⇒ !blueprint.clusters.exists(_.name == cluster.name)).map(Future(_))
+  def mergeClusters(stable: Deployment, blueprint: Deployment, validateOnly: Boolean): Future[List[DeploymentCluster]] = {
+    val deploymentClusters = stable.clusters.filter(cluster ⇒ !blueprint.clusters.exists(_.name == cluster.name)).map(Future(_))
 
-      val blueprintClusters = blueprint.clusters.map { cluster ⇒
-        stable.clusters.find(_.name == cluster.name) match {
-          case None ⇒
-            mergeServices(stable, None, cluster, validateOnly).flatMap { services ⇒
-              val nc = cluster.copy(services = services)
-              updatedRouting(stable, None, nc, validateOnly) map {
-                routing ⇒ nc.copy(gateways = routing)
-              }
+    val blueprintClusters = blueprint.clusters.map { cluster ⇒
+      stable.clusters.find(_.name == cluster.name) match {
+        case None ⇒
+          mergeServices(stable, None, cluster, validateOnly).flatMap { services ⇒
+            val nc = cluster.copy(services = services)
+            updatedRouting(stable, None, nc, validateOnly) map {
+              routing ⇒ nc.copy(gateways = routing)
             }
-          case Some(deploymentCluster) ⇒
-            mergeServices(stable, Some(deploymentCluster), cluster, validateOnly).flatMap { services ⇒
-              val nc = deploymentCluster.copy(
-                services = services,
-                dialects = RootAnyMap(deploymentCluster.dialects.rootMap ++ cluster.dialects.rootMap),
-                gateways = if (cluster.gateways.nonEmpty) cluster.gateways else deploymentCluster.gateways,
-                sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
-              )
-              updatedRouting(stable, Some(deploymentCluster), nc, validateOnly) map {
-                routing ⇒ nc.copy(gateways = routing)
-              }
+          }
+        case Some(deploymentCluster) ⇒
+          mergeServices(stable, Some(deploymentCluster), cluster, validateOnly).flatMap { services ⇒
+            val nc = deploymentCluster.copy(
+              services = services,
+              dialects = RootAnyMap(deploymentCluster.dialects.rootMap ++ cluster.dialects.rootMap),
+              gateways = if (cluster.gateways.nonEmpty) cluster.gateways else deploymentCluster.gateways,
+              sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
+            )
+            updatedRouting(stable, Some(deploymentCluster), nc, validateOnly) map {
+              routing ⇒ nc.copy(gateways = routing)
             }
-        }
+          }
       }
-
-      Future.sequence(deploymentClusters ++ blueprintClusters)
     }
+    Future.sequence(deploymentClusters ++ blueprintClusters)
   }
 
   def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster, validateOnly: Boolean): Future[List[DeploymentService]] = {
@@ -473,9 +476,13 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
     Future.sequence {
       routings.map { gateway ⇒
         if (exists(gateway))
-          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, promote = promote, force = true))
+          (IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, promote = promote, force = true)).map(x =>
+            if (x.isInstanceOf[Gateway]) x.asInstanceOf[Gateway] else throwException(InternalServerError(s"Cannot Update Gateway for deployment : $deployment"))
+          )
         else
-          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Create(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true))
+          (IoC.actorFor[GatewayActor] ? GatewayActor.Create(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true)).map(x =>
+            if (x.isInstanceOf[Gateway]) x.asInstanceOf[Gateway] else throwException(InternalServerError(s"Cannot Update Gateway for deployment : $deployment"))
+          )
       } ++ stableCluster.map(cluster ⇒ cluster.gateways.filterNot(routing ⇒ blueprintCluster.gateways.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
     }
   }
@@ -519,53 +526,47 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
     gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway), routes = routes)
   }
 
-  def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.map {
-      d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost()))))
-    }
+  def resolveHosts(deployment: Deployment): Deployment = {
+    deployment.copy(hosts = deployment.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost()))))
   }
 
-  def validateEmptyVariables: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.map {
-      deployment ⇒
-        deployment.clusters.flatMap({ cluster ⇒
-          cluster.services.flatMap(service ⇒ {
-            service.breed.ports.filter(_.value.isEmpty).map(port ⇒ {
-              val name = TraitReference(cluster.name, TraitReference.Ports, port.name).toString
-              deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, port.name)))
-            })
 
-            service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable ⇒ {
-              service.environmentVariables.find(_.name == environmentVariable.name).orElse {
-                val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
-                deployment.environmentVariables.find(_.name == name)
-              } getOrElse throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name))
-            })
-          })
+  def validateEmptyVariables(deployment: Deployment): UnitPlaceholder = {
+    deployment.clusters.flatMap({ cluster ⇒
+      cluster.services.flatMap(service ⇒ {
+        service.breed.ports.filter(_.value.isEmpty).map(port ⇒ {
+          val name = TraitReference(cluster.name, TraitReference.Ports, port.name).toString
+          deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, port.name)))
         })
-        deployment
-    }
+
+        service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable ⇒ {
+          service.environmentVariables.find(_.name == environmentVariable.name).orElse {
+            val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
+            deployment.environmentVariables.find(_.name == name)
+          } getOrElse throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name))
+        })
+      })
+    })
+    UnitPlaceholder
   }
 
-  def resolveDependencyMapping: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.map { deployment ⇒
-      val dependencies = deployment.clusters.flatMap(cluster ⇒ cluster.services.map(service ⇒ (service.breed.name, cluster.name))).toMap
-      deployment.copy(clusters = deployment.clusters.map({ cluster ⇒
-        cluster.copy(services = cluster.services.map({ service ⇒
-          service.copy(dependencies = service.breed.dependencies.flatMap({
-            case (name, breed) ⇒
-              dependencies.get(breed.name) match {
-                case Some(d) ⇒ (name, d) :: Nil
-                case None    ⇒ Nil
-              }
-          }))
+  def resolveDependencyMapping(deployment: Deployment): Deployment = {
+    val dependencies = deployment.clusters.flatMap(cluster ⇒ cluster.services.map(service ⇒ (service.breed.name, cluster.name))).toMap
+    deployment.copy(clusters = deployment.clusters.map({ cluster ⇒
+      cluster.copy(services = cluster.services.map({ service ⇒
+        service.copy(dependencies = service.breed.dependencies.flatMap({
+          case (name, breed) ⇒
+            dependencies.get(breed.name) match {
+              case Some(d) ⇒ (name, d) :: Nil
+              case None    ⇒ Nil
+            }
         }))
       }))
-    }
+    }))
   }
 }
 
-trait DeploymentSlicer extends DeploymentOperation {
+trait DeploymentSlicer extends DeploymentGatewayOperation {
   this: DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster ⇒
@@ -578,96 +579,63 @@ trait DeploymentSlicer extends DeploymentOperation {
     }
   }
 
-  def slice(futureBlueprint: Future[Deployment], validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment]) = { (stableFuture: Future[Deployment]) ⇒
-    futureBlueprint.flatMap { blueprint ⇒
-      stableFuture.flatMap { stable ⇒
+  def doSlice(blueprint: Deployment, stable: Deployment, validateOnly: Boolean): Future[Deployment] = {
+    validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
-        validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+    val newClusters = stable.clusters.map(cluster ⇒
+      blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
 
-        val newClusters = stable.clusters.map(cluster ⇒
-          blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
-
-            val services = cluster.services.map { service ⇒
-              if (bpc.services.exists(service.breed.name == _.breed.name)) {
-                if (!validateOnly) resetServiceArtifacts(stable, bpc, service, Intention.Undeployment)
-                service.copy(status = Intention.Undeployment)
-              }
-              else service
-            }
-
-            val routing = cluster.gateways.map { gateway ⇒
-              updateRoutePaths(stable, cluster, gateway.copy(routes = gateway.routes.filterNot { route ⇒
-                route.path.segments match {
-                  case _ :: _ :: s :: _ :: Nil ⇒ bpc.services.exists(_.breed.name == s)
-                  case _                       ⇒ false
-                }
-              }))
-            } map (updateRoutePaths(stable, cluster, _))
-
-            cluster.copy(services = services, gateways = routing)
-
-          } getOrElse cluster)
-
-        val deployment = (validateServices andThen validateInternalGateways andThen validateScaleEscalations)(stable.copy(clusters = newClusters.filter(_.services.nonEmpty)))
-
-        val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.status.intention == Intention.Undeployment))
-
-        implicit val timeout = GatewayActor.timeout
-        Future.sequence {
-          deleteRouting.flatMap { cluster ⇒
-            stable.clusters.find(_.name == cluster.name) match {
-              case Some(c) ⇒
-                c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
-                  actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = validateOnly, force = true)
-                }
-              case None ⇒ List.empty[Future[_]]
-            }
-          } ++ updateRouting.flatMap { cluster ⇒
-            stable.clusters.find(_.name == cluster.name) match {
-              case Some(_) ⇒
-                cluster.gateways.map(updateRoutePaths(stable, cluster, _)).map {
-                  gateway ⇒
-                    if (gateway.routes.isEmpty)
-                      actorFor[GatewayActor] ? GatewayActor.Delete(gateway.name, validateOnly = validateOnly, force = true)
-                    else
-                      actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
-                }
-              case None ⇒ List.empty[Future[_]]
-            }
+        val services = cluster.services.map { service ⇒
+          if (bpc.services.exists(service.breed.name == _.breed.name)) {
+            if (!validateOnly) resetServiceArtifacts(stable, bpc, service, Intention.Undeployment)
+            service.copy(status = Intention.Undeployment)
           }
-        } map { _ ⇒ deployment }
-      }
-    }
-  }
-}
-
-trait DeploymentUpdate extends VampJsonFormats {
-  this: DeploymentValidator with CommonProvider ⇒
-
-  private implicit val timeout = Timeout(5.second)
-
-  def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) = {
-    if (validateOnly) Future.successful(true) else {
-      val clusters = deployment.clusters.map(c ⇒ if (cluster.name == c.name) c.copy(sla = sla) else c)
-      // TODO: source is not handled
-      VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ d.copy(clusters = clusters))
-    }
-  }
-
-  def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String, validateOnly: Boolean) = {
-    cluster.services.find(_.breed.name == service.breed.name) match {
-      case Some(_) ⇒
-        if (validateOnly) Future.successful(true)
-        else {
-          // TODO: source parameter is ignored in updateServiceScale
-          DeploymentPersistenceOperations.updateServiceScale(deployment, cluster, service, scale, source) flatMap {
-            _ ⇒
-              {
-                DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, Intention.Deployment)
-              }
-          }
+          else service
         }
-      case _ ⇒ Future.successful(None)
-    }
+
+        val routing = cluster.gateways.map { gateway ⇒
+          updateRoutePaths(stable, cluster, gateway.copy(routes = gateway.routes.filterNot { route ⇒
+            route.path.segments match {
+              case _ :: _ :: s :: _ :: Nil ⇒ bpc.services.exists(_.breed.name == s)
+              case _                       ⇒ false
+            }
+          }))
+        } map (updateRoutePaths(stable, cluster, _))
+
+        cluster.copy(services = services, gateways = routing)
+
+      } getOrElse cluster)
+
+    val deployment = (stable.copy(clusters = newClusters.filter(_.services.nonEmpty)))
+    validateServices(deployment)
+    validateInternalGateways(deployment)
+    validateScaleEscalations(deployment)
+
+    val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.status.intention == Intention.Undeployment))
+
+    implicit val timeout = GatewayActor.timeout
+    Future.sequence {
+      deleteRouting.flatMap { cluster ⇒
+        stable.clusters.find(_.name == cluster.name) match {
+          case Some(c) ⇒
+            c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
+              actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = validateOnly, force = true)
+            }
+          case None ⇒ List.empty[Future[_]]
+        }
+      } ++ updateRouting.flatMap { cluster ⇒
+        stable.clusters.find(_.name == cluster.name) match {
+          case Some(_) ⇒
+            cluster.gateways.map(updateRoutePaths(stable, cluster, _)).map {
+              gateway ⇒
+                if (gateway.routes.isEmpty)
+                  actorFor[GatewayActor] ? GatewayActor.Delete(gateway.name, validateOnly = validateOnly, force = true)
+                else
+                  actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
+            }
+          case None ⇒ List.empty[Future[_]]
+        }
+      }
+    } map { _ ⇒ deployment }
   }
 }

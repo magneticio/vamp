@@ -14,6 +14,7 @@ object VampPersistence {
   private val persistenceDaoMap: scala.collection.mutable.Map[String, SimpleArtifactPersistenceDao] =
     new scala.collection.concurrent.TrieMap[String, SimpleArtifactPersistenceDao]()
 
+  // TODO: Make only creation of DAO synchronized. Retrieval can be left non-Sync
   def apply()(implicit ns: Namespace): SimpleArtifactPersistenceDao = this.synchronized {
     persistenceDaoMap.getOrElseUpdate(ns.name, createPersistenceDao)
   }

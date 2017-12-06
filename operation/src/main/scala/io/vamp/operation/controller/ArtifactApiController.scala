@@ -204,7 +204,7 @@ trait MultipleArtifactApiController extends AbstractController {
   def createArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[UnitPlaceholder]] =
     Future.sequence {
       ArtifactListReader.read(source).map(item => `type`(item.kind) match {
-        case (t, _) if t == classOf[Deployment] ⇒ createDeployment(item.toString, validateOnly)
+        case (t, _) if t == classOf[Deployment] ⇒ createDeployment(item.toString, validateOnly).map(_ => UnitPlaceholder)
         case _                                  ⇒ createArtifact(item.kind, item.toString, validateOnly)
       })
     }
@@ -212,7 +212,7 @@ trait MultipleArtifactApiController extends AbstractController {
   def updateArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[UnitPlaceholder]] =
     Future.sequence {
       ArtifactListReader.read(source).map(item => `type`(item.kind) match {
-        case (t, _) if t == classOf[Deployment] ⇒ updateDeployment(item.name, item.toString, validateOnly)
+        case (t, _) if t == classOf[Deployment] ⇒ updateDeployment(item.name, item.toString, validateOnly).map(_ => UnitPlaceholder)
         case _                                  ⇒ updateArtifact(item.kind, item.name, item.toString, validateOnly)
       })
   }

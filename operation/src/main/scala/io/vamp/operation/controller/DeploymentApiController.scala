@@ -1,11 +1,8 @@
 package io.vamp.operation.controller
 
-import akka.actor.FSM.Failure
-import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{Artifact, Id, Namespace, UnitPlaceholder}
-import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.NotificationErrorException
+import io.vamp.common.{Artifact, Id, Namespace, UnitPlaceholder}
 import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
@@ -16,10 +13,11 @@ import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
 
 import scala.concurrent.Future
-
 import scala.util.Try
 
 trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with VampJsonFormats {
+
+  def deploymentService(implicit ns: Namespace): DeploymentActor = DeploymentActor()
 
   // These methods allows 3rd party users to override these methods
   protected def userDefinedOverrides(deployment: Deployment)(implicit namespace: Namespace, timeout: Timeout): Deployment = deployment
@@ -48,43 +46,39 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     else userDefinedOverrides(deployment)
   }
 
-  def createDeployment(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
-    def triggerCreateOperation(blueprint: Blueprint): Future[Unit] = (actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, source, validateOnly)).map(_ => ())
-
+  def createDeployment(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[Artifact]] = {
+    def triggerCreateOperation(blueprint: Blueprint): Future[Deployment] = deploymentService.create(blueprint, source, validateOnly)
     for {
       request <- sourceImport(source)
-      _ <- asBlueprint(request) match {
-        case blueprint: BlueprintReference ⇒ triggerCreateOperation(userDefinedOverrides(blueprint))
-        case blueprint: DefaultBlueprint ⇒
-          val futures = {
-            if (!validateOnly)
-              userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-                breed ⇒ VampPersistence().create[Breed](breed)
-              }
-            else Nil
-          } :+ triggerCreateOperation(userDefinedOverrides(blueprint))
-          Future.sequence(futures)
+      result <- asBlueprint(request) match {
+        case blueprint: BlueprintReference ⇒ triggerCreateOperation(userDefinedOverrides(blueprint)).map(x => List(x))
+        case blueprint: DefaultBlueprint if (!validateOnly) ⇒
+          for {
+            breedCreationResult <- Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map{VampPersistence().create[Breed](_).flatMap(VampPersistence().read[Breed](_))})
+            result <- triggerCreateOperation(userDefinedOverrides(blueprint))
+          } yield breedCreationResult :+ result
+        case blueprint: DefaultBlueprint if (validateOnly) => triggerCreateOperation(userDefinedOverrides(blueprint)).map(x => List(x))
         case _ => Future.failed(reportException(UnsupportedDeploymentRequest(source)))
       }
-    } yield UnitPlaceholder
+    } yield result
   }
 
 
-  def updateDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
-    def triggerUpdateOperation(blueprint: Blueprint): Future[Unit] = (actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, source, validateOnly)).map(_ => ())
+  def updateDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[Artifact]] = {
+    def triggerUpdateOperation(blueprint: Blueprint): Future[Deployment] = deploymentService.merge(name, blueprint, source, validateOnly)
     for {
       request <- sourceImport(source)
-      _ <- asBlueprint(request) match {
-        case blueprint: BlueprintReference ⇒ triggerUpdateOperation(userDefinedOverrides(blueprint))
-        case blueprint: DefaultBlueprint ⇒
-          val futures = {
-            if (!validateOnly)
-              userDefinedOverrides(blueprint).clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map(VampPersistence().createOrUpdate[Breed](_))
-            else Nil
-          } :+ triggerUpdateOperation(userDefinedOverrides(blueprint))
-          Future.sequence(futures)
+      result <- asBlueprint(request) match {
+        case blueprint: BlueprintReference ⇒ triggerUpdateOperation(userDefinedOverrides(blueprint)).map(List(_))
+        case blueprint: DefaultBlueprint if !validateOnly ⇒
+          for {
+            breedUpdateResult <- Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map{b =>  VampPersistence().createOrUpdate[Breed](b).flatMap(_ => VampPersistence().read[Breed](Id[Breed](b.name)))})
+            result <- triggerUpdateOperation(userDefinedOverrides(blueprint))
+          } yield breedUpdateResult :+ result
+        case blueprint: DefaultBlueprint if validateOnly ⇒ triggerUpdateOperation(userDefinedOverrides(blueprint)).map(List(_))
+        case _ => Future.failed(reportException(UnsupportedDeploymentRequest(source)))
       }
-    } yield UnitPlaceholder
+    } yield result
   }
 
 
@@ -100,7 +94,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
   def deleteDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     if(!source.isEmpty) for {
         afterImport <- sourceImport(source)
-        _ <- (actorFor[DeploymentActor] ? DeploymentActor.Slice(name, asBlueprint(afterImport), source, validateOnly))
+        _ <- deploymentService.slice(name, asBlueprint(afterImport), source, validateOnly)
       } yield UnitPlaceholder
     else Future.successful(UnitPlaceholder)
   }
@@ -114,7 +108,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment ⇒
       deployment.clusters.find(_.name == clusterName) match {
         case None          ⇒ Future.successful(UnitPlaceholder)
-        case Some(cluster) ⇒ (actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request, validateOnly)).map(_ => UnitPlaceholder)
+        case Some(cluster) ⇒ deploymentService.updateSla(deployment, cluster, Some(SlaReader.read(request))).map(_ => UnitPlaceholder)
       }
     }
 
@@ -122,7 +116,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment ⇒
       deployment.clusters.find(_.name == clusterName) match {
         case None          ⇒ Future.successful(UnitPlaceholder)
-        case Some(cluster) ⇒ (actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, None, "", validateOnly)).map(_ => UnitPlaceholder)
+        case Some(cluster) ⇒ deploymentService.updateSla(deployment, cluster, None)
       }
     }
 
@@ -142,7 +136,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
               case s: ScaleReference ⇒ VampPersistence().read[Scale](Id[Scale](s.name))
               case s: DefaultScale   ⇒ Future.successful(s)
             }).map {
-              case scale: DefaultScale ⇒ (actorFor[DeploymentActor] ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request, validateOnly)).map(_ => UnitPlaceholder)
+              case scale: DefaultScale ⇒ deploymentService.updateScale(deployment, cluster, service, scale, request, validateOnly)
               case _                   ⇒ Future.successful(UnitPlaceholder)
             }
         }

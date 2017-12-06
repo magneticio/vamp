@@ -30,7 +30,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
         "type" → "zookeeper",
         "zookeeper" → (Map("version" → version) ++ (zk.underlying match {
           case Some(zookeeper) ⇒
-            log.info(s"Getting Zookeeper info for servers: ${servers}")
+            log.debug(s"Getting Zookeeper info for servers: ${servers}")
             val state = zookeeper.getState
             Map(
               "client" → Map(
@@ -53,7 +53,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   override protected def children(path: List[String]): Future[List[String]] = {
     val zookeeperPath = pathToString(path)
-    log.info(s"Zookeeper get children for path: ${zookeeperPath}")
+    log.debug(s"Zookeeper get children for path: ${zookeeperPath}")
     zooKeeperClient match {
       case Some(zk) ⇒ zk.getChildren(zookeeperPath) recoverWith recoverRetrieval(Nil) map {
         case node: ChildrenResponse ⇒ node.children.map { child ⇒ (path :+ child).mkString("/") }.toList
@@ -65,7 +65,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   override protected def get(path: List[String]): Future[Option[String]] = {
     val zookeeperPath = pathToString(path)
-    log.info(s"Zookeeper get value for path ${zookeeperPath}")
+    log.debug(s"Zookeeper get value for path ${zookeeperPath}")
     zooKeeperClient match {
       case Some(zk) ⇒ zk.get(zookeeperPath) recoverWith recoverRetrieval(None) map {
         case response: DataResponse ⇒ response.data.map(new String(_))
@@ -77,7 +77,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = {
     val zookeeperPath = pathToString(path)
-    log.info(s"Zookeeper set value for path ${zookeeperPath}")
+    log.debug(s"Zookeeper set value for path ${zookeeperPath}")
     zooKeeperClient match {
       case Some(zk) ⇒
         zk.get(zookeeperPath) recoverWith {

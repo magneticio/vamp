@@ -34,7 +34,7 @@ class OperationBootstrap extends ActorBootstrap {
       IoC.createActor[ConfigurationLoaderActor],
       IoC.createActor[KamonMetricsActor],
 
-      IoC.createActor[DeploymentActor],
+//      IoC.createActor[DeploymentActor],
 
       IoC.createActor(Props(classOf[DeploymentSynchronizationActor]).withMailbox(synchronizationMailbox)),
       IoC.createActor[DeploymentSynchronizationSchedulerActor],
