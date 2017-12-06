@@ -171,9 +171,21 @@ class MarathonDriverActor
 
   private def get(id: String): Future[Option[App]] = {
     httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
-      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id)
+      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(app => fixForCalicoNetwork(app))
       case _                  ⇒ None
     }
+  }
+
+  private def fixForCalicoNetwork(app: App): App = {
+    app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.map(f => f.copy(
+      portMappings = f.portMappings.map(portMapping ⇒ portMapping.hostPort match {
+        case Some(portInt) ⇒ if (portInt == 0)
+            portMapping.copy(hostPort = portMapping.containerPort)
+          else
+            portMapping
+        case None ⇒ portMapping.copy(hostPort = portMapping.containerPort)
+        case _      ⇒ portMapping
+      }))))))
   }
 
   private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
@@ -188,13 +200,9 @@ class MarathonDriverActor
     case arg @ Argument("override.workflow.docker.network", networkOverrideValue) ⇒ { app ⇒
       if (workflowDeployment)
         app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
-          network = networkOverrideValue match {
-            case "CALICO" => "USER"
-            case _ => networkOverrideValue
-          },
+          network = networkOverrideValue,
           portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
             case "USER" ⇒ portMapping.copy(hostPort = None)
-            case "CALICO" ⇒ portMapping.copy(hostPort = Some(portMapping.containerPort))
             case _      ⇒ portMapping
           })))))
       else app
@@ -202,13 +210,9 @@ class MarathonDriverActor
     case arg @ Argument("override.deployment.docker.network", networkOverrideValue) ⇒ { app ⇒
       if (!workflowDeployment)
         app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
-          network = networkOverrideValue match {
-            case "CALICO" => "USER"
-            case _ => networkOverrideValue
-          },
+          network = networkOverrideValue,
           portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
             case "USER" ⇒ portMapping.copy(hostPort = None)
-            case "CALICO" ⇒ portMapping.copy(hostPort = Some(portMapping.containerPort))
             case _      ⇒ portMapping
           })))))
       else app

@@ -173,10 +173,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
             }.map { service ⇒
               service.instances.map {
                 instance ⇒ {
-                  log.info(s"Webport problem: ${instance.name} ${instance.host} ${instance.ports}")
+                  if (!instance.ports.contains(port))
+                    log.error(s"$port does not exist in instance: ${instance.name} host: ${instance.host} ports: ${instance.ports}")
                   Option {
-                    val portInt = instance.ports.getOrElse(port, instance.ports.head._2)
-                    InternalRouteTarget(instance.name, Option(instance.host), portInt )
+                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port) )
                   }
                 }
               }
