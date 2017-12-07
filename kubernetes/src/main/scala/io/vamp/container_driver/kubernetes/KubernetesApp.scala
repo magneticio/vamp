@@ -1,6 +1,8 @@
 package io.vamp.container_driver.kubernetes
 
 import io.vamp.container_driver.Docker
+import org.json4s.native.Serialization._
+import org.json4s.{ DefaultFormats, Formats }
 
 case class KubernetesApp(
     name:       String,
@@ -12,46 +14,57 @@ case class KubernetesApp(
     env:        Map[String, String],
     cmd:        List[String],
     args:       List[String],
-    labels:     Map[String, String]
+    labels:     Map[String, String],
+    dialect:    Map[String, Any]    = Map()
 ) extends KubernetesArtifact {
 
-  override def toString =
-    s"""
-       |{
-       |  "apiVersion": "extensions/v1beta1",
-       |  "kind": "Deployment",
-       |  "metadata": {
-       |    "name": "$name"
-       |  },
-       |  "spec": {
-       |    "replicas": $replicas,
-       |    "template": {
-       |      "metadata": {
-       |        ${labels2json(labels)}
-       |      },
-       |      "spec": {
-       |        "containers": [{
-       |          "image": "${docker.image}",
-       |          "name": "$name",
-       |          "env": [${env.map({ case (n, v) ⇒ s"""{"name": "$n", "value": "$v"}""" }).mkString(", ")}],
-       |          "ports": [${docker.portMappings.map(pm ⇒ s"""{"name": "p${pm.containerPort}", "containerPort": ${pm.containerPort}, "protocol": "${pm.protocol.toUpperCase}"}""").mkString(", ")}],
-       |          "args": [${args.map(str ⇒ s""""$str"""").mkString(", ")}],
-       |          "command": [${cmd.map(str ⇒ s""""$str"""").mkString(", ")}],
-       |          "resources": {
-       |            "requests": {
-       |              "cpu": $cpu,
-       |              "memory": "${mem}Mi"
-       |            }
-       |          },
-       |          "securityContext": {
-       |            "privileged": $privileged
-       |          }
-       |        }]
-       |      }
-       |    }
-       |  }
-       |}
-     """.stripMargin
+  override def toString: String = {
+
+    val container: Map[String, Any] = Map[String, Any](
+      "image" → docker.image,
+      "name" → name,
+      "env" → env.map({ case (n, v) ⇒ Map[String, Any]("name" → n, "value" → v) }),
+      "ports" → docker.portMappings.map(pm ⇒ Map[String, Any](
+        "name" → s"p${pm.containerPort}", "containerPort" → pm.containerPort, "protocol" → pm.protocol.toUpperCase
+      )),
+      "args" → args,
+      "command" → cmd,
+      "resources" → Map[String, Any](
+        "requests" → Map[String, Any](
+          "cpu" → cpu,
+          "memory" → s"${mem}Mi"
+        )
+      ),
+      "securityContext" → Map[String, Any]("privileged" → privileged)
+    )
+
+    val containerDialect: Map[String, Any] = (dialect.getOrElse("containers", List()) match {
+      case l: List[_] ⇒ l.headOption.getOrElse(Map()).asInstanceOf[Map[String, Any]]
+      case _          ⇒ Map[String, Any]()
+    }).filterNot { case (k, _) ⇒ container.contains(k) }
+
+    val deployment = Map(
+      "apiVersion" → "extensions/v1beta1",
+      "kind" → "Deployment",
+      "metadata" → Map("name" → name),
+      "spec" → Map(
+        "replicas" → replicas,
+        "template" → Map(
+          "metadata" → labels2map(labels),
+          "spec" → (
+            dialect ++ Map(
+              "containers" → List(
+                containerDialect ++ container
+              )
+            )
+          )
+        )
+      )
+    )
+
+    implicit val formats: Formats = DefaultFormats
+    write(deployment)
+  }
 }
 
 case class KubernetesApiResponse(items: List[KubernetesItem] = Nil)
