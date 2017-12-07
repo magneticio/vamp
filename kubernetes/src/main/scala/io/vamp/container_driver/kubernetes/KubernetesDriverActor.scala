@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config, Lookup, Namespace }
+import akka.actor.{ Actor, ActorRef }
+import io.vamp.common._
 import io.vamp.common.http.HttpClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
@@ -22,24 +22,24 @@ class KubernetesDriverActorMapper extends ClassMapper {
 object KubernetesDriverActor {
 
   object Schema extends Enumeration {
-    val Docker = Value
+    val Docker: Schema.Value = Value
   }
 
   private val config = "vamp.container-driver.kubernetes"
 
-  val url = Config.string(s"$config.url")
+  val url: ConfigMagnet[String] = Config.string(s"$config.url")
 
-  val workflowNamePrefix = Config.string(s"$config.workflow-name-prefix")
+  val workflowNamePrefix: ConfigMagnet[String] = Config.string(s"$config.workflow-name-prefix")
 
-  val token = Config.string(s"$config.token")
+  val token: ConfigMagnet[String] = Config.string(s"$config.token")
 
-  val bearer = Config.string(s"$config.bearer")
+  val bearer: ConfigMagnet[String] = Config.string(s"$config.bearer")
 
-  val createServices = Config.boolean(s"$config.create-services")
+  val createServices: ConfigMagnet[Boolean] = Config.boolean(s"$config.create-services")
 
-  val vampGatewayAgentId = Config.string(s"$config.vamp-gateway-agent-id")
+  val vampGatewayAgentId: ConfigMagnet[String] = Config.string(s"$config.vamp-gateway-agent-id")
 
-  def serviceType()(implicit namespace: Namespace) = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
+  def serviceType()(implicit namespace: Namespace): KubernetesServiceType.Value = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
@@ -54,11 +54,11 @@ class KubernetesDriverActor
 
   import KubernetesDriverActor._
 
-  protected val schema = KubernetesDriverActor.Schema
+  protected val schema: Enumeration = KubernetesDriverActor.Schema
 
   protected val apiUrl = KubernetesDriverActor.url()
 
-  protected val apiHeaders = {
+  protected val apiHeaders: List[(String, String)] = {
     def headers(bearer: String) = ("Authorization" → s"Bearer $bearer") :: HttpClient.jsonHeaders
 
     if (bearer().nonEmpty) headers(bearer())
@@ -71,7 +71,7 @@ class KubernetesDriverActor
 
   protected val workflowNamePrefix = KubernetesDriverActor.workflowNamePrefix()
 
-  def receive = {
+  def receive: Actor.Receive = {
 
     case InfoRequest                    ⇒ reply(info)
 
@@ -102,16 +102,16 @@ class KubernetesDriverActor
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }
 
-  protected def get(deploymentServices: List[DeploymentServices]) = {
+  protected def get(deploymentServices: List[DeploymentServices]): Unit = {
     val replyTo = sender()
     allContainerServices(deploymentServices).map(_.foreach {
       replyTo ! _
     })
   }
 
-  protected def get(workflow: Workflow, replyTo: ActorRef) = containerWorkflow(workflow).map(replyTo ! _)
+  protected def get(workflow: Workflow, replyTo: ActorRef): Unit = containerWorkflow(workflow).map(replyTo ! _)
 
-  protected override def deployedGateways(gateways: List[Gateway]) = {
+  protected override def deployedGateways(gateways: List[Gateway]): Future[Any] = {
     if (createServices()) {
       services(gatewayService).map { response ⇒
         // update service ports
