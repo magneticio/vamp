@@ -494,7 +494,7 @@ class MarathonDriverActor
         docker ← container.docker
         networkName ← docker.network
         ipAddressToUse ← task.ipAddresses.headOption
-        if (networkName == "USER" || app.networks.map(_.mode).flatten.contains("container"))
+        if (networkName == "USER" || app.networks.map(_.mode).contains("container"))
       } yield (ipAddressToUse.ipAddress, docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
       portsAndIpForUserNetwork match {
         case None ⇒ {
