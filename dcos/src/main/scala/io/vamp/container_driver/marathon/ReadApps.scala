@@ -14,14 +14,17 @@ case class App(
   mem:          Double,
   tasks:        List[Task],
   healthChecks: List[MarathonHealthCheck],
-  taskStats:    Option[MarathonTaskStats]
+  taskStats:    Option[MarathonTaskStats],
+  networks:     List[AppNetwork]
 )
 
-case class AppContainer(docker: Option[DockerAppContainer])
+case class AppContainer(docker: Option[DockerAppContainer], portMappings: List[DockerAppContainerPort])
 
 case class DockerAppContainer(image: String, network: Option[String], portMappings: List[DockerAppContainerPort])
 
 case class DockerAppContainerPort(containerPort: Option[Int], hostPort: Option[Int], servicePort: Option[Int])
+
+case class AppNetwork(mode: String, name: String)
 
 /**
  * A class to compare the app and marathon app for checking whether Marathon needs to be updated based on config settings
