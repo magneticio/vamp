@@ -492,7 +492,7 @@ class MarathonDriverActor
       val portsAndIpForUserNetwork = for {
         container ← app.container
         docker ← container.docker
-        networkName ← docker.network
+        networkName ← Option(docker.network.getOrElse("")) // This is a hack to support 1.4 and 1.5 at the same time
         ipAddressToUse ← task.ipAddresses.headOption
         if (networkName == "USER" || app.networks.map(_.mode).contains("container"))
       } yield (ipAddressToUse.ipAddress, docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
