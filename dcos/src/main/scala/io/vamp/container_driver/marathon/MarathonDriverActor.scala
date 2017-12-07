@@ -495,11 +495,13 @@ class MarathonDriverActor
       } yield (ipAddressToUse.ipAddress, docker.portMappings.map(_.containerPort).flatten)
       portsAndIpForUserNetwork match {
         case None ⇒ {
-          logger.info(s"Ports for ${task.id} => ${task.ports}")
+          val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
+          logger.info(s"Ports for ${task.id} => ${task.ports} network: ${network}")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
         }
         case Some(portsAndIp) ⇒ {
-          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2}")
+          val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
+          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
         }
       }
