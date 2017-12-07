@@ -171,7 +171,10 @@ class MarathonDriverActor
 
   private def get(id: String): Future[Option[App]] = {
     httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
-      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(app => fixForCalicoNetwork(app))
+      case apps: AppsResponse ⇒ {
+        logger.info(s"apps: for $id => $apps")
+        apps.apps.find(app ⇒ app.id == id).map(app => fixForCalicoNetwork(app))
+      }
       case _                  ⇒ None
     }
   }
