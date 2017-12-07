@@ -69,7 +69,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
 
     def convert(server: ContainerInstance): Instance = {
       val ports = {
-        log.info(s"[calico] For ${server.name} breed.ports: ${deploymentService.breed.ports} matched to server ports: ${server.ports}")
+        log.debug(s"For ${server.name} breed.ports: ${deploymentService.breed.ports} matched to server ports: ${server.ports}")
         deploymentService.breed.ports.map(_.name) zip server.ports
       }
       Instance(server.name, server.host, ports.toMap, server.deployed)

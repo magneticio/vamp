@@ -172,7 +172,7 @@ class MarathonDriverActor
   private def get(id: String): Future[Option[App]] = {
     httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
       case apps: AppsResponse ⇒ {
-        logger.info(s"apps(1.5): for $id => $apps")
+        logger.debug(s"apps: for $id => $apps")
         apps.apps.find(app ⇒ app.id == id).map(app ⇒ fixForCalicoNetwork(app))
       }
       case _ ⇒ None
@@ -499,12 +499,12 @@ class MarathonDriverActor
       portsAndIpForUserNetwork match {
         case None ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports for ${task.id} => ${task.ports} network: ${network}")
+          logger.debug(s"Ports for ${task.id} => ${task.ports} network: ${network}")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
         }
         case Some(portsAndIp) ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
+          logger.debug(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
         }
       }
