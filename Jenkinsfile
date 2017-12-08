@@ -13,7 +13,7 @@ pipeline {
       steps {
         build job: "../vamp-docker-images/" + getBranch().replaceAll("/", "%2F"),
           parameters: [
-            [$class: 'StringParameterValue', name: 'VAMP_GIT_ROOT', value: 'https://github.com/' + env.JOB_NAME.split("/").first()],
+            [$class: 'StringParameterValue', name: 'VAMP_GIT_ROOT', value: 'git@github.com:' + env.JOB_NAME.split("/").first()],
             [$class: 'StringParameterValue', name: 'VAMP_GIT_BRANCH', value: env.BRANCH_NAME]
           ],
           wait: true
