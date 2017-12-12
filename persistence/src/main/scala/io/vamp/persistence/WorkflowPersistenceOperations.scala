@@ -4,6 +4,7 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.common.akka.IoC.actorFor
 import io.vamp.model.artifact._
 import io.vamp.model.reader.WorkflowStatusReader
 
@@ -68,7 +69,20 @@ trait WorkflowPersistenceOperations {
       case Workflow.Status.Restarting(phase) ⇒ WorkflowStatus(workflow.name, status.toString, phase.map(_.toString))
       case _                                 ⇒ WorkflowStatus(workflow.name, status.toString, None)
     }
-    self ? PersistenceActor.Update(message, Option(status.describe))
+    // TODO: change log info to debug level
+    checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(message.name, classOf[WorkflowStatus])) map {
+      case Some(currentStatus: WorkflowStatus) ⇒ if (currentStatus != message) {
+        log.info("Workflow Status changed, writing to db")
+        self ? PersistenceActor.Update(message, Option(status.describe))
+      }
+      else {
+        log.info("Workflow Status did changed, not writing to db")
+      }
+      case _ ⇒ {
+        log.info("Workflow Status does not exist, writing to db")
+        self ? PersistenceActor.Update(message, Option(status.describe))
+      }
+    }
   }
 
   private def updateWorkflowScale(workflow: Workflow, scale: DefaultScale) = reply {
