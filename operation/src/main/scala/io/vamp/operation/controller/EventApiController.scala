@@ -1,20 +1,20 @@
 package io.vamp.operation.controller
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{ ActorRef, Props }
 import akka.pattern.ask
 import akka.stream.actor.ActorPublisher
-import akka.stream.actor.ActorPublisherMessage.{Cancel, Request}
+import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
 import de.heikoseeberger.akkasse.ServerSentEvent
 import io.vamp.common.akka.IoC._
-import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
-import io.vamp.common.{Namespace, UnitPlaceholder}
-import io.vamp.model.event.{Event, EventQuery}
+import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
+import io.vamp.common.{ Namespace, UnitPlaceholder }
+import io.vamp.model.event.{ Event, EventQuery }
 import io.vamp.model.reader._
-import io.vamp.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
-import io.vamp.pulse.PulseActor.{Publish, Query}
-import io.vamp.pulse.{EventRequestEnvelope, PulseActor}
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
+import io.vamp.pulse.PulseActor.{ Publish, Query }
+import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
@@ -43,7 +43,7 @@ trait EventApiController extends AbstractController {
 
   def publishEvent(request: String)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     val event = EventReader.read(request)
-    (actorFor[PulseActor] ? Publish(event)).map(_ => UnitPlaceholder)
+    (actorFor[PulseActor] ? Publish(event)).map(_ ⇒ UnitPlaceholder)
   }
 
   def queryEvents(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
@@ -60,12 +60,11 @@ trait EventApiController extends AbstractController {
       }
     }
 
-    actorFor[PulseActor].tell (RegisterPercolator(percolator(to), tags, kind, message), to)
+    actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, kind, message), to)
   }
 
   def closeEventStream(to: ActorRef)(implicit namespace: Namespace): Unit =
     actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
-
 
   private def parseQuery(parameters: Map[String, List[String]], request: String) = {
     if (request.isEmpty) EventQuery(tags = parameters.getOrElse(tagParameter, Nil).toSet, `type` = parameters.get(typeParameter).map(_.head), timestamp = None, aggregator = None)

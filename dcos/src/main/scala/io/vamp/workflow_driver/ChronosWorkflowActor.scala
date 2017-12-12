@@ -3,8 +3,8 @@ package io.vamp.workflow_driver
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.http.HttpClient
-import io.vamp.common.{ClassMapper, Config}
-import io.vamp.container_driver.{ContainerDriverValidation, Docker, DockerDeployableType}
+import io.vamp.common.{ ClassMapper, Config }
+import io.vamp.container_driver.{ ContainerDriverValidation, Docker, DockerDeployableType }
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
 import io.vamp.model.artifact._
 import io.vamp.persistence.refactor.VampPersistence

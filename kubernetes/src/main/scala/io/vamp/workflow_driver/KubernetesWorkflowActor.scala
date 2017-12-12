@@ -4,8 +4,8 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import io.vamp.common.ClassMapper
 import io.vamp.common.akka.IoC
-import io.vamp.container_driver.kubernetes.{Job, KubernetesDriverActor}
-import io.vamp.container_driver.{ContainerDriverMapping, ContainerDriverValidation, DockerDeployableType}
+import io.vamp.container_driver.kubernetes.{ Job, KubernetesDriverActor }
+import io.vamp.container_driver.{ ContainerDriverMapping, ContainerDriverValidation, DockerDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.persistence.refactor.VampPersistence

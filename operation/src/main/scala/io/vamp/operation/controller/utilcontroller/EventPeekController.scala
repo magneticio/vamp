@@ -7,9 +7,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.Namespace
 import io.vamp.common.akka.IoC.actorFor
-import io.vamp.model.event.{Event, EventQuery, TimeRange}
+import io.vamp.model.event.{ Event, EventQuery, TimeRange }
 import io.vamp.operation.controller.AbstractController
-import io.vamp.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseActor}
+import io.vamp.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration

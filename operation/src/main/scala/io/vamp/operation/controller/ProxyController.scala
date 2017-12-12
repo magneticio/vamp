@@ -2,22 +2,22 @@ package io.vamp.operation.controller
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.Uri.{Path, Query}
-import akka.http.scaladsl.model.ws.{UpgradeToWebSocket, WebSocketRequest}
-import akka.http.scaladsl.server.{RequestContext, RouteResult}
+import akka.http.scaladsl.model.Uri.{ Path, Query }
+import akka.http.scaladsl.model.ws.{ UpgradeToWebSocket, WebSocketRequest }
+import akka.http.scaladsl.server.{ RequestContext, RouteResult }
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.{Id, Namespace}
-import io.vamp.model.artifact.{Deployment, Gateway, Port, Workflow}
+import io.vamp.common.{ Id, Namespace }
+import io.vamp.model.artifact.{ Deployment, Gateway, Port, Workflow }
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 
-trait ProxyController extends AbstractController with VampJsonFormats{
+trait ProxyController extends AbstractController with VampJsonFormats {
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 

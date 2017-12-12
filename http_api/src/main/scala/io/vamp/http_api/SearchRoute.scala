@@ -3,13 +3,13 @@ package io.vamp.http_api
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkasse.EventStreamMarshalling
-import io.vamp.common.{ConfigMagnet, Namespace}
+import io.vamp.common.{ ConfigMagnet, Namespace }
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.utilcontroller.SearchController
 
 import scala.collection.immutable.Nil
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Left, Right}
+import scala.util.{ Left, Right }
 
 /**
  * Provides the routes for searching Artifacts

@@ -101,7 +101,7 @@ class WorkflowActor extends ArtifactSupport with CommonSupportForActors with Ope
       case _ ⇒
         undeploy(workflow, running, () ⇒ {
           (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Restarting(
-              phase = Some(Workflow.Status.RestartingPhase.Starting))))
+            phase = Some(Workflow.Status.RestartingPhase.Starting))))
           ).map { _ ⇒
             pulse(workflow, scheduled = false)
           }

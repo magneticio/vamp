@@ -2,9 +2,9 @@ package io.vamp.workflow_driver
 
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
-import io.vamp.common.{ClassMapper, Config}
-import io.vamp.common.http.{HttpClient, HttpClientException}
-import io.vamp.container_driver.{ContainerDriverValidation, DeployableType, Docker, DockerDeployableType}
+import io.vamp.common.{ ClassMapper, Config }
+import io.vamp.common.http.{ HttpClient, HttpClientException }
+import io.vamp.container_driver.{ ContainerDriverValidation, DeployableType, Docker, DockerDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
@@ -55,7 +55,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
       workflows.foreach { workflow ⇒
         IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
           case Some(_) if runnable(workflow) ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = List(instance(workflow))
-        ))
+          ))
           case _ ⇒
             VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = Nil))
             if (existingJobNames.contains(getWorkflowId(workflow))) safelyDeleteWorkflow(workflow)

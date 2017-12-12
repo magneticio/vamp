@@ -5,10 +5,10 @@ import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{Namespace, RootAnyMap}
+import io.vamp.common.{ Namespace, RootAnyMap }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.model.artifact.{Breed, DefaultBreed, Deployable}
+import io.vamp.model.artifact.{ Breed, DefaultBreed, Deployable }
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 

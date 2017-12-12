@@ -1,6 +1,6 @@
 package io.vamp.http_api
 
-import akka.http.scaladsl.model.StatusCodes.{InternalServerError, OK}
+import akka.http.scaladsl.model.StatusCodes.{ InternalServerError, OK }
 import akka.util.Timeout
 import io.vamp.common.Namespace
 import io.vamp.common.akka._

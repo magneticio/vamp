@@ -189,13 +189,13 @@ class MarathonDriverActor
       if (workflowDeployment)
         app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
           network = networkOverrideValue match {
-            case "CALICO" => "USER"
-            case _ => networkOverrideValue
+            case "CALICO" ⇒ "USER"
+            case _        ⇒ networkOverrideValue
           },
           portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
-            case "USER" ⇒ portMapping.copy(hostPort = None)
+            case "USER"   ⇒ portMapping.copy(hostPort = None)
             case "CALICO" ⇒ portMapping.copy(hostPort = Some(portMapping.containerPort))
-            case _      ⇒ portMapping
+            case _        ⇒ portMapping
           })))))
       else app
     }
@@ -203,13 +203,13 @@ class MarathonDriverActor
       if (!workflowDeployment)
         app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
           network = networkOverrideValue match {
-            case "CALICO" => "USER"
-            case _ => networkOverrideValue
+            case "CALICO" ⇒ "USER"
+            case _        ⇒ networkOverrideValue
           },
           portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
-            case "USER" ⇒ portMapping.copy(hostPort = None)
+            case "USER"   ⇒ portMapping.copy(hostPort = None)
             case "CALICO" ⇒ portMapping.copy(hostPort = Some(portMapping.containerPort))
-            case _      ⇒ portMapping
+            case _        ⇒ portMapping
           })))))
       else app
     }

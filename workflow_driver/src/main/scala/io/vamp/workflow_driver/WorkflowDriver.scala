@@ -5,17 +5,17 @@ import io.vamp.common.Config
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.{ContainerDriverActor, Docker}
+import io.vamp.container_driver.{ ContainerDriverActor, Docker }
 import io.vamp.model.artifact.Workflow.Status
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.WorkflowValueResolver
 import io.vamp.persistence.ArtifactSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriverActor.{GetScheduled, Schedule, Unschedule}
+import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 import io.vamp.common.Id
 import io.vamp.persistence.refactor.exceptions.PersistenceTypeError
@@ -73,16 +73,16 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
   protected def enrich(workflow: Workflow, data: Any): Future[Workflow] = {
     VampPersistence().read[Breed](Id[Breed](workflow.breed.name)).flatMap { breed ⇒
-      val defaultBreed = if(breed.isInstanceOf[DefaultBreed]) breed.asInstanceOf[DefaultBreed]
+      val defaultBreed = if (breed.isInstanceOf[DefaultBreed]) breed.asInstanceOf[DefaultBreed]
       else throw PersistenceTypeError(Id[Breed](breed.name), breed.getClass.getName, "DefaultBreed")
 
       (deployables.get(defaultBreed.deployable.defaultType()) match {
         case Some(reference) ⇒ {
-          VampPersistence().read[Breed](Id[Breed](reference)).map(x =>
-            if(x.isInstanceOf[DefaultBreed]) x.asInstanceOf[DefaultBreed] else throw PersistenceTypeError(Id[Breed](x.name), x.getClass.getName, "DefaultBreed")
+          VampPersistence().read[Breed](Id[Breed](reference)).map(x ⇒
+            if (x.isInstanceOf[DefaultBreed]) x.asInstanceOf[DefaultBreed] else throw PersistenceTypeError(Id[Breed](x.name), x.getClass.getName, "DefaultBreed")
           )
         }
-        case _               ⇒ Future.successful(defaultBreed)
+        case _ ⇒ Future.successful(defaultBreed)
       }).flatMap { executor ⇒
 
         val updatedEnvironmentVariables = (executor.environmentVariables ++ defaultBreed.environmentVariables ++ workflow.environmentVariables).

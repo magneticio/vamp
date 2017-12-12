@@ -2,7 +2,7 @@ package io.vamp.operation.controller
 
 import akka.util.Timeout
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.common.{Artifact, Id, Namespace, UnitPlaceholder}
+import io.vamp.common.{ Artifact, Id, Namespace, UnitPlaceholder }
 import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
@@ -10,7 +10,7 @@ import io.vamp.operation.deployment.DeploymentActor
 import io.vamp.operation.notification.UnsupportedDeploymentRequest
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
+import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage }
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -25,7 +25,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
   protected def userDefinedOverrides(defaultBlueprint: DefaultBlueprint)(implicit namespace: Namespace, timeout: Timeout): DefaultBlueprint = defaultBlueprint
 
   def getDeployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean, page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
-    val actualPage = if(page < 1) 0 else page-1
+    val actualPage = if (page < 1) 0 else page - 1
     val fromAndSize = if (perPage > 0) Some((perPage * actualPage, perPage)) else None
     VampPersistence().getAll[Deployment](fromAndSize) map { searchResponse ⇒
       ArtifactResponseEnvelope(
@@ -49,53 +49,50 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
   def createDeployment(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[Artifact]] = {
     def triggerCreateOperation(blueprint: Blueprint): Future[Deployment] = deploymentService.create(blueprint, source, validateOnly)
     for {
-      request <- sourceImport(source)
-      result <- asBlueprint(request) match {
-        case blueprint: BlueprintReference ⇒ triggerCreateOperation(userDefinedOverrides(blueprint)).map(x => List(x))
+      request ← sourceImport(source)
+      result ← asBlueprint(request) match {
+        case blueprint: BlueprintReference ⇒ triggerCreateOperation(userDefinedOverrides(blueprint)).map(x ⇒ List(x))
         case blueprint: DefaultBlueprint if (!validateOnly) ⇒
           for {
-            breedCreationResult <- Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map{VampPersistence().create[Breed](_).flatMap(VampPersistence().read[Breed](_))})
-            result <- triggerCreateOperation(userDefinedOverrides(blueprint))
+            breedCreationResult ← Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { VampPersistence().create[Breed](_).flatMap(VampPersistence().read[Breed](_)) })
+            result ← triggerCreateOperation(userDefinedOverrides(blueprint))
           } yield breedCreationResult :+ result
-        case blueprint: DefaultBlueprint if (validateOnly) => triggerCreateOperation(userDefinedOverrides(blueprint)).map(x => List(x))
-        case _ => Future.failed(reportException(UnsupportedDeploymentRequest(source)))
+        case blueprint: DefaultBlueprint if (validateOnly) ⇒ triggerCreateOperation(userDefinedOverrides(blueprint)).map(x ⇒ List(x))
+        case _ ⇒ Future.failed(reportException(UnsupportedDeploymentRequest(source)))
       }
     } yield result
   }
-
 
   def updateDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[List[Artifact]] = {
     def triggerUpdateOperation(blueprint: Blueprint): Future[Deployment] = deploymentService.merge(name, blueprint, source, validateOnly)
     for {
-      request <- sourceImport(source)
-      result <- asBlueprint(request) match {
+      request ← sourceImport(source)
+      result ← asBlueprint(request) match {
         case blueprint: BlueprintReference ⇒ triggerUpdateOperation(userDefinedOverrides(blueprint)).map(List(_))
         case blueprint: DefaultBlueprint if !validateOnly ⇒
           for {
-            breedUpdateResult <- Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map{b =>  VampPersistence().createOrUpdate[Breed](b).flatMap(_ => VampPersistence().read[Breed](Id[Breed](b.name)))})
-            result <- triggerUpdateOperation(userDefinedOverrides(blueprint))
+            breedUpdateResult ← Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map { b ⇒ VampPersistence().createOrUpdate[Breed](b).flatMap(_ ⇒ VampPersistence().read[Breed](Id[Breed](b.name))) })
+            result ← triggerUpdateOperation(userDefinedOverrides(blueprint))
           } yield breedUpdateResult :+ result
         case blueprint: DefaultBlueprint if validateOnly ⇒ triggerUpdateOperation(userDefinedOverrides(blueprint)).map(List(_))
-        case _ => Future.failed(reportException(UnsupportedDeploymentRequest(source)))
+        case _ ⇒ Future.failed(reportException(UnsupportedDeploymentRequest(source)))
       }
     } yield result
   }
 
-
   private def asBlueprint(source: String): Blueprint = {
     Try(DeploymentBlueprintReader.readReferenceFromSource(source)) match {
-      case scala.util.Failure(e) if(e.isInstanceOf[NotificationErrorException]) => DeploymentReader.readReferenceFromSource(source)
-      case scala.util.Failure(e) => throw e
-      case scala.util.Success(s) => s
+      case scala.util.Failure(e) if (e.isInstanceOf[NotificationErrorException]) ⇒ DeploymentReader.readReferenceFromSource(source)
+      case scala.util.Failure(e) ⇒ throw e
+      case scala.util.Success(s) ⇒ s
     }
   }
 
-
   def deleteDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
-    if(!source.isEmpty) for {
-        afterImport <- sourceImport(source)
-        _ <- deploymentService.slice(name, asBlueprint(afterImport), source, validateOnly)
-      } yield UnitPlaceholder
+    if (!source.isEmpty) for {
+      afterImport ← sourceImport(source)
+      _ ← deploymentService.slice(name, asBlueprint(afterImport), source, validateOnly)
+    } yield UnitPlaceholder
     else Future.successful(UnitPlaceholder)
   }
 
@@ -108,7 +105,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment ⇒
       deployment.clusters.find(_.name == clusterName) match {
         case None          ⇒ Future.successful(UnitPlaceholder)
-        case Some(cluster) ⇒ deploymentService.updateSla(deployment, cluster, Some(SlaReader.read(request))).map(_ => UnitPlaceholder)
+        case Some(cluster) ⇒ deploymentService.updateSla(deployment, cluster, Some(SlaReader.read(request))).map(_ ⇒ UnitPlaceholder)
       }
     }
 

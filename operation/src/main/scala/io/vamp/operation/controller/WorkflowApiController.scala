@@ -1,11 +1,11 @@
 package io.vamp.operation.controller
 
 import akka.util.Timeout
-import io.vamp.common.{Id, Namespace, UnitPlaceholder}
+import io.vamp.common.{ Id, Namespace, UnitPlaceholder }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.WorkflowStatusReader
-import io.vamp.operation.notification.{DeploymentWorkflowNameCollision, WorkflowUpdateError}
+import io.vamp.operation.notification.{ DeploymentWorkflowNameCollision, WorkflowUpdateError }
 import io.vamp.persistence.ArtifactExpansionSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
@@ -26,15 +26,15 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats {
   }
 
   private def createOrUpdateVerifyingConflicts(artifact: Workflow, validateOnly: Boolean, create: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
-     VampPersistence().readIfAvailable[Deployment](Id[Deployment](artifact.name)).flatMap {
+    VampPersistence().readIfAvailable[Deployment](Id[Deployment](artifact.name)).flatMap {
       case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
       case _ ⇒ VampPersistence().readIfAvailable[Workflow](Id[Workflow](artifact.name)).flatMap {
         case Some(workflow) if workflow.status != Workflow.Status.Suspended ⇒ throwException(WorkflowUpdateError(workflow))
         case _ ⇒
           if (validateOnly)
             Future.successful(UnitPlaceholder)
-          else if (create) VampPersistence().createOrUpdate[Workflow](artifact).map(_ => UnitPlaceholder)
-          else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ ⇒ artifact).map(_ => UnitPlaceholder)
+          else if (create) VampPersistence().createOrUpdate[Workflow](artifact).map(_ ⇒ UnitPlaceholder)
+          else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ ⇒ artifact).map(_ ⇒ UnitPlaceholder)
       }
     }
     /* In the old version of persistence, in some cases it appears the create/update operation returned a list.
@@ -58,6 +58,6 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats {
   def workflowStatusUpdate(name: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
     val newStatus = WorkflowStatusReader.status(request)
     if (validateOnly) Future.successful(UnitPlaceholder)
-    else VampPersistence().update[Workflow](Id[Workflow](name), _.copy(status = newStatus)).map(_ => UnitPlaceholder)
+    else VampPersistence().update[Workflow](Id[Workflow](name), _.copy(status = newStatus)).map(_ ⇒ UnitPlaceholder)
   }
 }

@@ -3,7 +3,7 @@ package io.vamp.model.serialization
 import io.vamp.common.RootAnyMap
 import io.vamp.common.json.SerializationFormat
 import io.vamp.model.artifact._
-import org.json4s.JsonAST.{JObject, JString}
+import org.json4s.JsonAST.{ JObject, JString }
 import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
@@ -49,7 +49,7 @@ class ClusterFieldSerializer
     case ("gateways", gateways) ⇒ Some(("gateways", serializeGateways(gateways.asInstanceOf[List[Gateway]])))
     case ("healthChecks", Some(healthChecks)) ⇒
       Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
-    case ("dialects", dialects) if(dialects.isInstanceOf[RootAnyMap]) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[RootAnyMap])))
+    case ("dialects", dialects) if (dialects.isInstanceOf[RootAnyMap]) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[RootAnyMap])))
   }
 
 }
@@ -63,12 +63,12 @@ class ServiceFieldSerializer
     with HealthCheckSerializer {
 
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
-    case ("kind", _)                                    ⇒ None
+    case ("kind", _) ⇒ None
     case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
-    case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
-    case ("dialects", dialects) if(dialects.isInstanceOf[RootAnyMap])                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[RootAnyMap])))
-    case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
-    case ("healthChecks", Some(healthChecks))           ⇒ Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
+    case ("arguments", arguments) ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
+    case ("dialects", dialects) if (dialects.isInstanceOf[RootAnyMap]) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[RootAnyMap])))
+    case ("scale", Some(scale: Scale)) ⇒ Some(("scale", serializerScale(scale, full = false)))
+    case ("healthChecks", Some(healthChecks)) ⇒ Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
   }
 
 }

@@ -1,6 +1,6 @@
 package io.vamp.persistence.refactor.api
 
-import io.vamp.common.{Id, Namespace}
+import io.vamp.common.{ Id, Namespace }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 
 import scala.concurrent.Future

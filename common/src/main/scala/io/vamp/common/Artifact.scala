@@ -65,22 +65,22 @@ object RootAnyMap {
   def empty: RootAnyMap = RootAnyMap(Map())
   import org.json4s._
 
-  def toJson(mp: RootAnyMap): JsonAST.JValue = JsonAST.JObject(mp.rootMap.toList.map(kvPair => JField(kvPair._1, toJson(kvPair._2))))
+  def toJson(mp: RootAnyMap): JsonAST.JValue = JsonAST.JObject(mp.rootMap.toList.map(kvPair ⇒ JField(kvPair._1, toJson(kvPair._2))))
 
   private def toJson(v: RestrictedAny) = v match {
-    case x: RestrictedInt => toJsonInt(x)
-    case x: RestrictedString => toJsonString(x)
-    case x: RestrictedBoolean => toJsonBoolean(x)
-    case x: RestrictedDouble => toJsonDouble(x)
-    case x: RestrictedList => toJsonList(x)
-    case x: RestrictedMap => toJsonMap(x)
+    case x: RestrictedInt     ⇒ toJsonInt(x)
+    case x: RestrictedString  ⇒ toJsonString(x)
+    case x: RestrictedBoolean ⇒ toJsonBoolean(x)
+    case x: RestrictedDouble  ⇒ toJsonDouble(x)
+    case x: RestrictedList    ⇒ toJsonList(x)
+    case x: RestrictedMap     ⇒ toJsonMap(x)
   }
   private def toJsonInt(v: RestrictedInt): JsonAST.JValue = JsonAST.JInt(v.i)
   private def toJsonString(v: RestrictedString): JsonAST.JValue = JsonAST.JString(v.s)
   private def toJsonBoolean(v: RestrictedBoolean): JsonAST.JValue = JsonAST.JBool(v.b)
   private def toJsonDouble(v: RestrictedDouble): JsonAST.JValue = JsonAST.JDouble(v.d)
   private def toJsonList(l: RestrictedList): JsonAST.JValue = JsonAST.JArray(l.ls.map(toJson(_)))
-  private def toJsonMap(m: RestrictedMap): JsonAST.JValue = JsonAST.JObject(m.mp.toList.map(kvPair => JField(kvPair._1, toJson(kvPair._2))))
+  private def toJsonMap(m: RestrictedMap): JsonAST.JValue = JsonAST.JObject(m.mp.toList.map(kvPair ⇒ JField(kvPair._1, toJson(kvPair._2))))
 }
 
 /*
