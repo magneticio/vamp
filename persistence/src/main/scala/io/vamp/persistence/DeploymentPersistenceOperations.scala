@@ -2,7 +2,7 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import akka.pattern.ask
-import io.vamp.common.{ Id, Namespace }
+import io.vamp.common.{ Id, Namespace, UnitPlaceholder }
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact._
@@ -31,63 +31,66 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   def updateServiceStatus(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceStatus: Status)(implicit ns: Namespace): Future[Unit] = {
-    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
-      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
-        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(status = serviceStatus) else s)
-      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
-      d.copy(clusters = clusters)
-    })
+    for {
+      _ ← VampPersistence().createOrUpdate[Deployment]({
+        val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).map(_.
+          services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(status = serviceStatus) else s)).getOrElse(Nil)
+        val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+        deployment.copy(clusters = clusters)
+      })
+      _ ← updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))
+    } yield ()
   }
 
   def updateServiceScale(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceScale: DefaultScale, source: String)(implicit ns: Namespace): Future[Unit] = {
     // TODO: source is ignored
-    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
-      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+    VampPersistence().createOrUpdate[Deployment]({
+      val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).get
         .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(scale = Option(serviceScale)) else s)
-      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
-      d.copy(clusters = clusters)
-    })
+      val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      deployment.copy(clusters = clusters)
+    }).flatMap(_ ⇒ updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))).map(_ ⇒ ())
   }
 
   def updateServiceHealth(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceHealth: Health)(implicit ns: Namespace): Future[Unit] = {
-    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
-      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+    VampPersistence().createOrUpdate[Deployment]({
+      val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).get
         .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(health = Option(serviceHealth)) else s)
-      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
-      d.copy(clusters = clusters)
-    })
+      val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      deployment.copy(clusters = clusters)
+    }).flatMap(_ ⇒ updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))).map(_ ⇒ ())
   }
 
   def updateServiceEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, envVars: List[EnvironmentVariable])(implicit ns: Namespace): Future[Unit] = {
-    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
-      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+    VampPersistence().createOrUpdate[Deployment]({
+      val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).get
         .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(environmentVariables = envVars) else s)
-      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
-      d.copy(clusters = clusters)
-    })
+      val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      deployment.copy(clusters = clusters)
+    }).flatMap(_ ⇒ updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))).map(_ ⇒ ())
   }
 
   def updateServiceInstances(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceInstances: List[Instance])(implicit ns: Namespace): Future[Unit] = {
-    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
-      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+    VampPersistence().createOrUpdate[Deployment]({
+      val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).get
         .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(instances = serviceInstances) else s)
-      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
-      d.copy(clusters = clusters)
-    })
+      val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      deployment.copy(clusters = clusters)
+    }).flatMap(_ ⇒ updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))).map(_ ⇒ ())
   }
 
   def resetDeploymentService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
-    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
-      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+    VampPersistence().createOrUpdate[Deployment]({
+      val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).get
         .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(
           scale = None,
           instances = List[Instance](),
           environmentVariables = List[EnvironmentVariable](),
           health = None)
         else s)
-      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
-      d.copy(clusters = clusters)
-    })
+      val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      deployment.copy(clusters = clusters)
+    }).flatMap(_ ⇒ updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))).map(_ ⇒ ())
   }
 
   def resetGateway(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
@@ -97,16 +100,39 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
   }
 
   // resetInternalRouteArtifacts
-  def resetInternalRouteArtifacts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Unit = {
+  def resetInternalRouteArtifacts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
     // TODO: check if this is valid
-    deploymentService.breed.ports.foreach { port ⇒
+    Future.sequence(deploymentService.breed.ports.map { port ⇒
       {
         deploymentCluster.gatewayBy(port.name) match {
           case Some(gateway) ⇒ VampPersistence().deleteObject[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
-          case None          ⇒ // no internal gateway
+          case None          ⇒ Future.successful(()) // no internal gateway
         }
       }
-    }
+    }).map(_ ⇒ ())
+  }
+
+  def updateDeploymentAfterInternalsHaveModified(deploymentId: Id[Deployment])(implicit ns: Namespace): Future[UnitPlaceholder] = {
+    for {
+      deployment ← VampPersistence().read[Deployment](deploymentId)
+      hosts = deployment.hosts.filter { host ⇒
+        true
+        (TraitReference.referenceFor(host.name).flatMap(ref ⇒ deployment.clusters.find(_.name == ref.cluster)).isDefined)
+      }
+      ports = deployment.clusters.flatMap { cluster ⇒
+        cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
+          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
+        })
+      } map { p ⇒ p.name → p } toMap
+
+      environmentVariables = (deployment.environmentVariables ++ deployment.clusters.flatMap { cluster ⇒
+        cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
+      }) map { p ⇒ p.name → p } toMap
+
+      _ ← VampPersistence().update[Deployment](deploymentId, _.copy(
+        hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList
+      ))
+    } yield UnitPlaceholder
   }
 
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {

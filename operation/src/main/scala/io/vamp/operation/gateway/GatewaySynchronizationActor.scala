@@ -17,10 +17,9 @@ import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
+import scala.util.{ Failure, Success, Try }
 
 import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
-
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
   def tick() = IoC.actorFor[GatewaySynchronizationActor] ! SynchronizeAll
@@ -186,8 +185,12 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
             }.map { service ⇒
               service.instances.map {
                 instance ⇒
-                  Option {
-                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port))
+                  {
+                    if (!instance.ports.contains(port))
+                      log.error(s"$port does not exist in instance: ${instance.name} host: ${instance.host} ports: ${instance.ports}")
+                    Option {
+                      InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port))
+                    }
                   }
               }
             }.getOrElse(Nil)

@@ -63,10 +63,10 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     for {
-      existing <- readIfAvailable(sSpecifier.idExtractor(obj))
-      _ <- existing match {
-        case None => create(obj)
-        case Some(_) => update(sSpecifier.idExtractor(obj), (_:T) => obj)
+      existing ← readIfAvailable(sSpecifier.idExtractor(obj))
+      _ ← existing match {
+        case None    ⇒ create(obj)
+        case Some(_) ⇒ update(sSpecifier.idExtractor(obj), (_: T) ⇒ obj)
       }
     } yield sSpecifier.idExtractor(obj)
   }
@@ -83,17 +83,29 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     }
   }
 
+  private def readVersioned[T: SerializationSpecifier](objectId: Id[T]): Future[Versioned[T]] = {
+    val sSpecifier = implicitly[SerializationSpecifier[T]]
+    for {
+      getResponse ← esClient.execute {
+        get(objectId.toString) from (indexName, sSpecifier.typeName)
+      }
+    } yield {
+      if (!getResponse.exists || getResponse.isSourceEmpty) throw new InvalidObjectIdException[T](objectId)
+      else Versioned(interpretAsObject(getResponse.sourceAsString), getResponse.version)
+    }
+  }
+
   override def update[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     implicit val jsonEncoder = sSpecifier.encoder
 
     for {
-      currentObject ← read(id)
-      updatedObject = updateFunction(currentObject)
+      currentObject ← readVersioned(id)
+      updatedObject = updateFunction(currentObject.obj)
       _ ← if (sSpecifier.idExtractor(updatedObject) != id) Future.failed(VampPersistenceModificationException(s"Changing id to ${sSpecifier.idExtractor(updatedObject)}", id))
       else Future.successful(())
       _ ← esClient.execute {
-        (indexInto(indexName, sSpecifier.typeName) doc (updatedObject.asJson.noSpaces) id (sSpecifier.idExtractor(updatedObject)))
+        (indexInto(indexName, sSpecifier.typeName) doc (updatedObject.asJson.noSpaces) id (sSpecifier.idExtractor(updatedObject)) version currentObject.version)
       }
     } yield ()
   }
@@ -141,10 +153,12 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
 
   override def readIfAvailable[T: SerializationSpecifier](id: Id[T]): Future[Option[T]] = {
-    read(id).map(x => Some(x)).recover {
-      case e: InvalidObjectIdException[_] => None
+    read(id).map(x ⇒ Some(x)).recover {
+      case e: InvalidObjectIdException[_] ⇒ None
     }
   }
+
+  case class Versioned[T](obj: T, version: Long)
 
   private def replaceSecialIdChars(id: String): String = id.replace('/', '_')
 }

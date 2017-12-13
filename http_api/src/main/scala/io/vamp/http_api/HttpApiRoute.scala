@@ -171,7 +171,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
               sseRoutes ~ sseLogRoutes ~
                 accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
                   infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes
-                } ~ systemRoutes ~
+                } ~ systemRoutes ~ mesosConfigRoute ~
                 accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
                   crudRoutes
                 } ~ javascriptBreedRoute

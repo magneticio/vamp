@@ -1,6 +1,7 @@
 classes
 conf/application*
 Makefile.local
+local.sh
 target
 */target
 project/project/

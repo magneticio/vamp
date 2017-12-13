@@ -78,6 +78,24 @@ trait SystemRoute extends AbstractRoute with SystemController {
       }
     }
   }
+
+  def mesosConfigRoute(implicit namespace: Namespace) = {
+    pathPrefix("mesosconfig") {
+      get {
+        pathEndOrSingleSlash {
+          onSuccess(Future.successful(io.vamp.common.Config.export(io.vamp.common.Config.Type.applied, true)(namespace))) { result ⇒
+            {
+              val configKeyForMesos = result.get("vamp.container-driver.mesos.url")
+              configKeyForMesos match {
+                case None           ⇒ respondWith(InternalServerError, "Cannot Find Mesos Url")
+                case Some(mesosUrl) ⇒ respondWith(OK, mesosUrl)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 trait SystemController extends AbstractController {
