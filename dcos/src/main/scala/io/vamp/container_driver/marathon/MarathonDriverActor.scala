@@ -173,22 +173,10 @@ class MarathonDriverActor
     httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
       case apps: AppsResponse ⇒ {
         logger.debug(s"apps: for $id => $apps")
-        apps.apps.find(app ⇒ app.id == id).map(app ⇒ fixForCalicoNetwork(app))
+        apps.apps.find(app ⇒ app.id == id)
       }
       case _ ⇒ None
     }
-  }
-
-  private def fixForCalicoNetwork(app: App): App = {
-    app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.map(f ⇒ f.copy(
-      portMappings = f.portMappings.map(portMapping ⇒ portMapping.hostPort match {
-        case Some(portInt) ⇒ if (portInt == 0)
-          portMapping.copy(hostPort = portMapping.containerPort)
-        else
-          portMapping
-        case None ⇒ portMapping.copy(hostPort = portMapping.containerPort)
-        case _    ⇒ portMapping
-      }))))))
   }
 
   private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
