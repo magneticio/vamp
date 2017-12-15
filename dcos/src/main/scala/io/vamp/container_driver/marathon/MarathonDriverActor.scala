@@ -309,7 +309,7 @@ class MarathonDriverActor
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
-    log.info(s"Deploying Workflow and using Arguments:: ${service.arguments}")
+    log.info(s"Deploying Deployment and using Arguments:: ${service.arguments}")
 
     val app = MarathonApp(
       id,
@@ -384,9 +384,16 @@ class MarathonDriverActor
     if (update) {
       httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers).flatMap { appResponse ⇒
         val marathonApp = Extraction.extract[MarathonApp](payload)
+        val app = appResponse.apps.headOption.get
+        log.info(s"marathon App: $marathonApp, $app")
         val changed = appResponse.apps.headOption.map(difference(marathonApp, _)).getOrElse(payload)
 
-        if (changed != JNothing) httpClient.put[Any](s"$url/v2/apps/$id", changed, headers) else Future.successful(false)
+        if (changed != JNothing)
+          httpClient.put[Any](s"$url/v2/apps/$id", changed, headers)
+        else {
+          log.info(s"Nothing has changed in app $id configuration")
+          Future.successful(false)
+        }
       }
     }
     else {
