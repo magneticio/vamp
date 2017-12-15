@@ -494,12 +494,12 @@ class MarathonDriverActor
       portsAndIpForUserNetwork match {
         case None ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.debug(s"Ports for ${task.id} => ${task.ports} network: ${network}")
+          logger.info(s"Ports for ${task.id} => ${task.ports} network: ${network}")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
         }
         case Some(portsAndIp) ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.debug(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
+          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
         }
       }
