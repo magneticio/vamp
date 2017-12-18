@@ -482,6 +482,7 @@ class MarathonDriverActor
   }
 
   private def containers(app: App): Containers = {
+    log.info("[Marathon Driver . containers]")
     val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
     val instances = app.tasks.map(task ⇒ {
       val portsAndIpForUserNetwork = for {
