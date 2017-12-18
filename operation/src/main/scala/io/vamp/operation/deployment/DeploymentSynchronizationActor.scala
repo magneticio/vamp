@@ -50,6 +50,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize() = {
+    log.info("Deployment Synchronization started.")
     forAll(allArtifacts[Deployment], { deployments ⇒
       val deploymentServices = deployments.map { deployment ⇒
         val services = deployment.clusters.flatMap { cluster ⇒
@@ -64,6 +65,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
+    log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
     actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
       case Some(deployment: Deployment) ⇒ self ! (deployment → containerService)
       case _                            ⇒
