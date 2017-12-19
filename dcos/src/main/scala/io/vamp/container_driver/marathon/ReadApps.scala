@@ -15,7 +15,7 @@ case class App(
   tasks:        List[Task],
   healthChecks: List[MarathonHealthCheck],
   taskStats:    Option[MarathonTaskStats]
-  // , networks:     List[AppNetwork]
+// , networks:     List[AppNetwork]
 )
 
 case class AppContainer(docker: Option[DockerAppContainer], portMappings: List[DockerAppContainerPort])

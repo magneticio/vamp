@@ -173,24 +173,25 @@ class MarathonDriverActor
   private def get(id: String): Future[Option[App]] = {
     httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
       .recover {
-        case t: Throwable => {
+        case t: Throwable ⇒ {
           log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
           None
         }
         case _ ⇒ {
           log.warning(s"Unknown errow while getting app id: $id")
           None
-      } }
+        }
+      }
       .map {
-      case apps: AppsResponse ⇒ {
-        logger.debug(s"apps: for $id => $apps")
-        apps.apps.find(app ⇒ app.id == id)
+        case apps: AppsResponse ⇒ {
+          logger.debug(s"apps: for $id => $apps")
+          apps.apps.find(app ⇒ app.id == id)
+        }
+        case _ ⇒ {
+          logger.info(s"no app: for $id")
+          None
+        }
       }
-      case _ ⇒ {
-        logger.info(s"no app: for $id")
-        None
-      }
-    }
   }
 
   private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
