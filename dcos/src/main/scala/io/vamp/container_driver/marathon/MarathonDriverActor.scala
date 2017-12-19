@@ -506,10 +506,10 @@ class MarathonDriverActor
         networkName ← Option(docker.network.getOrElse("")) // This is a hack to support 1.4 and 1.5 at the same time
         ipAddressToUse ← task.ipAddresses.headOption
         if (networkName == "USER"
-          || app.networks.getOrElse(List[AppNetwork]()).map(_.mode).contains("container")
-          || app.networks.getOrElse(List[AppNetwork]()).map(_.mode).contains("container/bridge") )
+          || app.networks.map(_.mode).contains("container")
+          || app.networks.map(_.mode).contains("container/bridge") )
       } yield (ipAddressToUse.ipAddress,
-        docker.portMappings.getOrElse(List[DockerAppContainerPort]()).map(_.containerPort).flatten ++ container.portMappings.getOrElse(List[DockerAppContainerPort]()).map(_.containerPort).flatten)
+        docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
       portsAndIpForUserNetwork match {
         case None ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
