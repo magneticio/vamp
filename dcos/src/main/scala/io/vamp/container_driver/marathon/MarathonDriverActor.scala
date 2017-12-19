@@ -171,7 +171,17 @@ class MarathonDriverActor
   }
 
   private def get(id: String): Future[Option[App]] = {
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
+      .recover {
+        case t: Throwable => {
+          log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
+          None
+        }
+        case _ ⇒ {
+          log.warning(s"Unknown errow while getting app id: $id")
+          None
+      } }
+      .map {
       case apps: AppsResponse ⇒ {
         logger.debug(s"apps: for $id => $apps")
         apps.apps.find(app ⇒ app.id == id)
@@ -494,7 +504,7 @@ class MarathonDriverActor
         docker ← container.docker
         networkName ← Option(docker.network.getOrElse("")) // This is a hack to support 1.4 and 1.5 at the same time
         ipAddressToUse ← task.ipAddresses.headOption
-        if (networkName == "USER" || app.networks.map(_.mode).contains("container") || app.networks.map(_.mode).contains("container/bridge"))
+        if (networkName == "USER" /* || app.networks.map(_.mode).contains("container") || app.networks.map(_.mode).contains("container/bridge") */ )
       } yield (ipAddressToUse.ipAddress, docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
       portsAndIpForUserNetwork match {
         case None ⇒ {
