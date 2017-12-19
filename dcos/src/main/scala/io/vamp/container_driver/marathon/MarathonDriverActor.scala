@@ -137,6 +137,7 @@ class MarathonDriverActor
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
+    log.info("getting deployment services")
     val replyTo = sender()
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
       case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
@@ -175,7 +176,10 @@ class MarathonDriverActor
         logger.debug(s"apps: for $id => $apps")
         apps.apps.find(app ⇒ app.id == id)
       }
-      case _ ⇒ None
+      case _ ⇒ {
+        logger.info(s"no app: for $id")
+        None
+      }
     }
   }
 
