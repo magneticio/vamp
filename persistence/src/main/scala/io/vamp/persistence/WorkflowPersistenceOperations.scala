@@ -76,7 +76,7 @@ trait WorkflowPersistenceOperations {
         self ? PersistenceActor.Update(message, Option(status.describe))
       }
       else {
-        log.info("Workflow Status did changed, not writing to db")
+        log.info("Workflow Status hasn't changed, not writing to db")
       }
       case _ ⇒ {
         log.info("Workflow Status does not exist, writing to db")
@@ -106,7 +106,27 @@ trait WorkflowPersistenceOperations {
   }
 
   private def updateWorkflowHealth(workflow: Workflow, health: Option[Health]) = reply {
-    self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
+    health match {
+      case Some(h: Health) ⇒
+        // TODO: change log info to debug level
+        checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(workflow.name, classOf[WorkflowHealth])) map {
+          case Some(currentHealth: WorkflowHealth) ⇒ if (!currentHealth.health.contains(h)) {
+            log.info("Workflow Health changed, writing to db")
+            self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
+          }
+          else {
+            log.info("Workflow Health hasn't changed, not writing to db")
+          }
+          case _ ⇒ {
+            log.info("Workflow Health does not exist, writing to db")
+            self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
+          }
+        }
+      case None ⇒ {
+        log.warning("Updating health with None")
+        self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
+      }
+    }
   }
 
   private def resetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean) = reply {

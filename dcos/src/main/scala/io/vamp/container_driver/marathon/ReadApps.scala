@@ -18,9 +18,9 @@ case class App(
   networks:     List[AppNetwork]
 )
 
-case class AppContainer(docker: Option[DockerAppContainer], portMappings: List[DockerAppContainerPort] )
+case class AppContainer(docker: Option[DockerAppContainer], portMappings: List[DockerAppContainerPort])
 
-case class DockerAppContainer(image: String, network: Option[String], portMappings: List[DockerAppContainerPort] )
+case class DockerAppContainer(image: String, network: Option[String], portMappings: List[DockerAppContainerPort])
 
 case class DockerAppContainerPort(containerPort: Option[Int], hostPort: Option[Int], servicePort: Option[Int])
 
