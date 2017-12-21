@@ -105,16 +105,8 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(UnitPlaceholder)
     case (t, _) if t == classOf[Gateway]    ⇒ (actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly)).map(_ ⇒ UnitPlaceholder)
-    case (t, _) if t == classOf[Workflow] ⇒ {
-      for {
-        existingWorkflow ← VampPersistence().readIfAvailable[Workflow](Id[Workflow](name))
-        _ ← existingWorkflow match {
-          case None           ⇒ Future.successful(())
-          case Some(workflow) ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Stopping))
-        }
-      } yield UnitPlaceholder
-    }
-    case (t, _) ⇒ delete(t, name, validateOnly)
+    case (t, _) if t == classOf[Workflow]   ⇒ VampPersistence().read[Workflow](Id[Workflow](name)).flatMap(w ⇒ deleteWorkflow(w).map(_ ⇒ UnitPlaceholder))
+    case (t, _)                             ⇒ delete(t, name, validateOnly)
   }
 
   protected def crud(kind: String)(implicit namespace: Namespace): Boolean = `type`(kind) match {

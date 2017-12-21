@@ -51,11 +51,15 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats {
     }*/
   }
 
-  protected def workflowStatus(name: String)(implicit namespace: Namespace, timeout: Timeout): Future[String] = {
+  def deleteWorkflow(workflow: Workflow)(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Stopping))
+  }
+
+  protected def workflowStatus(name: String)(implicit namespace: Namespace): Future[String] = {
     VampPersistence().read(Id[Workflow](name)).map(_.status.toString)
   }
 
-  def workflowStatusUpdate(name: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[UnitPlaceholder] = {
+  def workflowStatusUpdate(name: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace): Future[UnitPlaceholder] = {
     val newStatus = WorkflowStatusReader.status(request)
     if (validateOnly) Future.successful(UnitPlaceholder)
     else VampPersistence().update[Workflow](Id[Workflow](name), _.copy(status = newStatus)).map(_ ⇒ UnitPlaceholder)

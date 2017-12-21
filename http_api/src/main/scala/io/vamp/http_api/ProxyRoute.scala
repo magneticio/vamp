@@ -20,12 +20,7 @@ trait ProxyRoute extends AbstractRoute with ProxyController {
 
   def proxyRoute(implicit namespace: Namespace, timeout: Timeout): Route =
     path("host" / Segment / "port" / Segment / RemainingPath) {
-      (host, port, path) ⇒ {
-        println("Here!!!")
-        println("Inside ProxyPortRoute")
-        println("Here!!!")
-        Try(handle(hostPortProxy(host, port.toInt, path))).getOrElse(complete(BadGateway))
-      }
+      (host, port, path) ⇒ Try(handle(hostPortProxy(host, port.toInt, path))).getOrElse(complete(BadGateway))
     } ~ path(Gateway.kind / Segment / Segment / Segment / RemainingPath) {
       (name1, name2, name3, path) ⇒ handle(gatewayProxy(s"$name1/$name2/$name3", path, skip = true))
     } ~ path(Gateway.kind / Segment / Segment / RemainingPath) {

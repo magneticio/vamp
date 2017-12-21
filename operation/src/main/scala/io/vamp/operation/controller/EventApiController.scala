@@ -66,12 +66,12 @@ trait EventApiController extends AbstractController {
   def closeEventStream(to: ActorRef)(implicit namespace: Namespace): Unit =
     actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
 
-  private def parseQuery(parameters: Map[String, List[String]], request: String) = {
+  protected def parseQuery(parameters: Map[String, List[String]], request: String) = {
     if (request.isEmpty) EventQuery(tags = parameters.getOrElse(tagParameter, Nil).toSet, `type` = parameters.get(typeParameter).map(_.head), timestamp = None, aggregator = None)
     else EventQueryReader.read(request)
   }
 
-  private def filterSse(event: Event)(implicit namespace: Namespace, timeout: Timeout): Future[Boolean] = Future.successful(true)
+  protected def filterSse(event: Event)(implicit namespace: Namespace, timeout: Timeout): Future[Boolean] = Future.successful(true)
 
   private def percolator(channel: ActorRef) = s"stream://${channel.path.elements.mkString("/")}"
 }

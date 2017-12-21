@@ -5,7 +5,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmVitals }
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -19,6 +19,16 @@ import io.vamp.workflow_driver.WorkflowDriverActor
 import scala.concurrent.Future
 import scala.language.postfixOps
 
+trait AbstractInfoMessage extends JvmInfoMessage {
+  def message: String
+
+  def version: String
+
+  def uuid: String
+
+  def runningSince: String
+}
+
 case class InfoMessage(
   message:         String,
   version:         String,
@@ -31,7 +41,7 @@ case class InfoMessage(
   gatewayDriver:   Option[Any],
   containerDriver: Option[Any],
   workflowDriver:  Option[Any]
-)
+) extends AbstractInfoMessage
 
 trait InfoController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 
@@ -39,7 +49,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
 
   protected val dataRetrievalTimeout: ConfigMagnet[Timeout] = Config.timeout("vamp.operation.info.timeout")
 
-  def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(InfoMessage, Boolean)] = {
+  def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(AbstractInfoMessage, Boolean)] = {
     retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
       InfoMessage(
         message = infoMessage(),
@@ -57,7 +67,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
     }
   }
 
-  private def infoActors(on: Set[String]): List[Class[Actor]] = {
+  protected def infoActors(on: Set[String]): List[Class[Actor]] = {
     val list = if (on.isEmpty) {
       List(
         classOf[KeyValueStoreActor],
