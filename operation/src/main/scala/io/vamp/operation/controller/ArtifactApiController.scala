@@ -36,7 +36,7 @@ trait ArtifactApiController
     ArtifactResponseEnvelope(
       response = searchResponse.response,
       total = searchResponse.total,
-      page = searchResponse.from / searchResponse.size, perPage = searchResponse.size)
+      page = if(searchResponse.size > 0) (searchResponse.from / searchResponse.size) else 1, perPage = searchResponse.size)
   }
 
   def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {

@@ -158,6 +158,10 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     }
   }
 
+  def init(): Future[Unit] = {
+    esClient.execute(indexExists("inexistent_index")).map(_ ⇒ ())
+  }
+
   case class Versioned[T](obj: T, version: Long)
 
   private def replaceSecialIdChars(id: String): String = id.replace('/', '_')

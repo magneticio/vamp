@@ -29,6 +29,8 @@ trait SimpleArtifactPersistenceDao {
   // These methods MUST NOT be called from anywhere other than test classes. The private[persistence] method protects against external access
   private[persistence] def afterTestCleanup(): Unit
 
+  def init(): Future[Unit]
+
   def info: String
 }
 
