@@ -18,9 +18,9 @@ class SQLitePersistenceActor extends SqlPersistenceActor with SqlStatementProvid
     db ← dbInfo("sqlite")
   } yield state ++ db
 
-  def insertStatement(): String = s"INSERT INTO $table (Record) values (?);"
+  def insertStatement(): String = s"""INSERT INTO "$table" ("Record") values (?);"""
 
-  def selectStatement(lastId: Long): String = s"SELECT ID, Record FROM $table WHERE ID > $lastId ORDER BY ID ASC;"
+  def selectStatement(lastId: Long): String = s"""SELECT "ID", "Record" FROM "$table" WHERE "ID" > $lastId ORDER BY "ID" ASC;"""
 
   override val statementMinValue: Int = 0
 }

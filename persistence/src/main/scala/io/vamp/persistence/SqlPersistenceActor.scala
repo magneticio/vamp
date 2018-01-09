@@ -28,16 +28,16 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
     Future.successful(Map("type" → `type`) + ("url" → url))
   }
 
-  protected lazy val url: String = resolveWithNamespace(SqlPersistenceActor.url())
+  protected lazy val url: String = resolveWithOptionalNamespace(SqlPersistenceActor.url())._1
   protected lazy val user: String = SqlPersistenceActor.user()
   protected lazy val password: String = SqlPersistenceActor.password()
-  protected lazy val table: String = SqlPersistenceActor.table()
+  protected lazy val table: String = resolveWithOptionalNamespace(SqlPersistenceActor.table())._1
 
   override protected lazy val synchronization: FiniteDuration = SqlPersistenceActor.synchronizationPeriod()
   override protected lazy val delay: FiniteDuration = SqlPersistenceActor.delay()
 
   override protected def read(): Long = {
-    log.debug(s"SQL read for table ${table} with url ${url} ")
+    log.debug(s"SQL read for table $table with url $url ")
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement(
@@ -70,7 +70,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   }
 
   override protected def insert(record: PersistenceRecord): Try[Option[Long]] = Try {
-    log.debug(s"SQL insert for table ${table} with url ${url}")
+    log.debug(s"SQL insert for table $table with url $url")
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val query = insertStatement()
@@ -94,7 +94,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   }
 
   private def ping(): Unit = {
-    log.debug(s"SQL ping for table ${table} with url ${url}")
+    log.debug(s"SQL ping for table $table with url $url")
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement("SELECT 1")
