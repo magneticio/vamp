@@ -5,16 +5,17 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals, StatsRequest }
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.vitals.{JmxVitalsProvider, JvmVitals, StatsRequest}
+import io.vamp.common.{Config, Namespace}
 import io.vamp.operation.controller.AbstractController
 import io.vamp.operation.metrics.KamonMetricsActor
 import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.api.PersistenceInfo
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
 
-case class StatsMessage(jvm: JvmVitals, system: Any, persistence: String, pulse: Any)
+case class StatsMessage(jvm: JvmVitals, system: Any, persistence: Option[PersistenceInfo], pulse: Any)
 
 trait StatsController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 

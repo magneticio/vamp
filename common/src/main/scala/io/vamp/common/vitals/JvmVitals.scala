@@ -21,9 +21,12 @@ trait JmxVitalsProvider {
   private lazy val runtime = ManagementFactory.getRuntimeMXBean
   private lazy val operatingSystem = ManagementFactory.getOperatingSystemMXBean
 
+  private lazy val vmName: String = runtime.getVmName
+  private lazy val name = runtime.getName
+
   def jvmVitals(): JvmVitals = JvmVitals(
     OperatingSystemVitals(operatingSystem.getName, operatingSystem.getArch, operatingSystem.getVersion, operatingSystem.getAvailableProcessors, operatingSystem.getSystemLoadAverage),
-    RuntimeVitals(runtime.getName, runtime.getVmName, runtime.getVmVendor, runtime.getVmVersion, runtime.getStartTime, runtime.getUptime),
+    RuntimeVitals(name, vmName, runtime.getVmVendor, runtime.getVmVersion, runtime.getStartTime, runtime.getUptime),
     MemoryVitals(
       MemoryUsageVitals(memory.getHeapMemoryUsage.getInit, memory.getHeapMemoryUsage.getMax, memory.getHeapMemoryUsage.getCommitted, memory.getHeapMemoryUsage.getUsed),
       MemoryUsageVitals(memory.getNonHeapMemoryUsage.getInit, memory.getNonHeapMemoryUsage.getMax, memory.getNonHeapMemoryUsage.getCommitted, memory.getNonHeapMemoryUsage.getUsed)

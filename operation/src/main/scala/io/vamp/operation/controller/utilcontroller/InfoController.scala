@@ -5,14 +5,15 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
-import io.vamp.common.{ Config, ConfigMagnet, Namespace }
+import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals}
+import io.vamp.common.{Config, ConfigMagnet, Namespace}
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
 import io.vamp.operation.controller.AbstractController
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.api.PersistenceInfo
 import io.vamp.pulse.PulseActor
 import io.vamp.workflow_driver.WorkflowDriverActor
 
@@ -35,7 +36,7 @@ case class InfoMessage(
   uuid:            String,
   runningSince:    String,
   jvm:             Option[JvmVitals],
-  persistence:     String,
+  persistence:     Option[PersistenceInfo],
   keyValue:        Option[Any],
   pulse:           Option[Any],
   gatewayDriver:   Option[Any],

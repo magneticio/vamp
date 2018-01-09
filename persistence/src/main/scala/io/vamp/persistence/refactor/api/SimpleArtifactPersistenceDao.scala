@@ -31,8 +31,12 @@ trait SimpleArtifactPersistenceDao {
 
   def init(): Future[Unit]
 
-  def info: String
+  def info: Option[PersistenceInfo]
 }
+
+case class PersistenceInfo(info: String, database: PersistenceDatabase)
+
+case class PersistenceDatabase(`type`: String, connection: String)
 
 case class SearchResponse[T](response: List[T], from: Int, size: Int, total: Int)
 

@@ -1,19 +1,20 @@
 package io.vamp.persistence.refactor.dao
 
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ ElasticsearchClientUri, IndexAndType, TcpClient }
+import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import io.vamp.common.{ Config, Id, Namespace }
-import io.vamp.persistence.refactor.api.{ SearchResponse, SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory }
-import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
+import io.vamp.common.{Config, Id, Namespace}
+import io.vamp.persistence.refactor.api._
+import io.vamp.persistence.refactor.exceptions.{DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException}
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by mihai on 11/10/17.
@@ -148,7 +149,10 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     }
   }
 
-  override def info: String = s"ElasticSearch: ${elasticSearchHostAndPort}"
+  override def info: Option[PersistenceInfo] = Try(esClient) match {
+    case Success(_) => Some(PersistenceInfo(s"ElasticSearch: ${elasticSearchHostAndPort}", PersistenceDatabase(`type` = "elasticsearch", connection = elasticSearchHostAndPort)))
+    case Failure(_) => None
+  }
 
   private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
 
@@ -159,7 +163,11 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   }
 
   def init(): Future[Unit] = {
-    esClient.execute(indexExists("inexistent_index")).map(_ ⇒ ())
+    for {
+      _ <- Future.fromTry(Try(esClient))
+      _ <- esClient.execute(indexExists("inexistent_index")).map(_ ⇒ ())
+    } yield ()
+
   }
 
   case class Versioned[T](obj: T, version: Long)

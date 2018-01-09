@@ -1,11 +1,14 @@
 package io.vamp.persistence
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.util.Timeout
-import io.vamp.common.akka.ActorBootstrap
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.akka.{ActorBootstrap, IoC}
+import io.vamp.common.{Config, Namespace}
+import io.vamp.persistence.refactor.VampPersistence
+import akka.pattern.ask
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 object PersistenceBootstrap {
 
@@ -19,9 +22,22 @@ class PersistenceBootstrap extends ActorBootstrap {
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
     for {
-      //storage ← new PersistenceStorageBootstrap().createActors
       keyValue ← new KeyValueBootstrap().createActors
+      _ ← initializePersistence
     } yield keyValue
+  }
+
+  private def initializePersistence(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+    (for {
+      persistenceObject <- Future.fromTry(Try(VampPersistence()))
+      _ <- persistenceObject.init()
+    } yield ()).recover {
+      case e => {
+        logger.error(s"Caught exception upon initialization of persistence.\n ${e.toString}")
+        ()
+      }
+    }
   }
 }
 

@@ -54,7 +54,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
         case blueprint: BlueprintReference ⇒ triggerCreateOperation(userDefinedOverrides(blueprint)).map(x ⇒ List(x))
         case blueprint: DefaultBlueprint if (!validateOnly) ⇒
           for {
-            breedCreationResult ← Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { VampPersistence().create[Breed](_).flatMap(VampPersistence().read[Breed](_)) })
+            breedCreationResult ← Future.sequence(userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { VampPersistence().createOrUpdate[Breed](_).flatMap(VampPersistence().read[Breed](_)) })
             result ← triggerCreateOperation(userDefinedOverrides(blueprint))
           } yield breedCreationResult :+ result
         case blueprint: DefaultBlueprint if (validateOnly) ⇒ triggerCreateOperation(userDefinedOverrides(blueprint)).map(x ⇒ List(x))
