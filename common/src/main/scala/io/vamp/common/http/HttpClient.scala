@@ -14,28 +14,28 @@ import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 import akka.util.{ ByteString, Timeout }
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.util.TextUtil
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor, Future }
 import scala.reflect._
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 case class HttpClientException(statusCode: Option[Int], message: String) extends RuntimeException(message) {}
 
 object HttpClient {
 
-  val tlsCheck = Config.boolean("vamp.common.http.client.tls-check")
+  val tlsCheck: ConfigMagnet[Boolean] = Config.boolean("vamp.common.http.client.tls-check")
 
   val acceptEncodingIdentity: (String, String) = "accept-encoding" → "identity"
 
   val jsonHeaders: List[(String, String)] = List("Accept" → "application/json")
 
-  val jsonContentType = ContentTypes.`application/json`
+  val jsonContentType: ContentType = ContentTypes.`application/json`
 
   def basicAuthorization(user: String, password: String, headers: List[(String, String)] = jsonHeaders): List[(String, String)] = {
     if (!user.isEmpty && !password.isEmpty) {
@@ -54,18 +54,18 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  implicit val executionContext = system.dispatcher
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
 
   private lazy val noCheckHttpsConnectionContext = new HttpsConnectionContext({
 
     object NoCheckX509TrustManager extends X509TrustManager {
-      override def checkClientTrusted(chain: Array[X509Certificate], authType: String) = ()
+      override def checkClientTrusted(chain: Array[X509Certificate], authType: String): Unit = ()
 
-      override def checkServerTrusted(chain: Array[X509Certificate], authType: String) = ()
+      override def checkServerTrusted(chain: Array[X509Certificate], authType: String): Unit = ()
 
-      override def getAcceptedIssuers = Array[X509Certificate]()
+      override def getAcceptedIssuers: Array[X509Certificate] = Array[X509Certificate]()
     }
 
     val context = SSLContext.getInstance("TLS")
@@ -85,7 +85,7 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
     http[A](HttpMethods.PUT, url, body, headers, jsonContentType, logError)
   }
 
-  def delete(url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext) = {
+  def delete(url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext): Future[Any] = {
     http[Any](HttpMethods.DELETE, url, None, headers, jsonContentType, logError)
   }
 
@@ -130,11 +130,11 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
 
     def decode(entity: ResponseEntity): Future[String] = entity.toStrict(timeout.duration).map(_.data.decodeString("UTF-8"))
 
-    Source.single(requestWithEntity)
-      .via(outgoingConnection(requestUri))
+    Source.single(requestWithEntity → 1)
+      .via(pool(requestUri))
       .recover(recoverWith)
-      .mapAsync(1)({
-        case HttpResponse(status, _, entity, _) ⇒ status.intValue() match {
+      .runWith(Sink.head).flatMap {
+        case (Success(HttpResponse(status, _, entity, _)), _) ⇒ status.intValue() match {
 
           case code if code / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
             decode(entity).map { body ⇒
@@ -158,24 +158,23 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
             }
         }
 
-        case other: AnyRef ⇒ throw new RuntimeException(other.toString)
-
-      }).runWith(Sink.head)
+        case (Failure(f), _) ⇒ throw new RuntimeException(f.getMessage)
+      }
   }
 
-  private def outgoingConnection(uri: Uri) = uri.scheme match {
+  private def pool(uri: Uri) = uri.scheme match {
     case "https" ⇒
       val host = uri.authority.host.address
       val port = if (uri.authority.port > 0) uri.authority.port else 443
       if (tlsCheck)
-        Http().outgoingConnectionHttps(host, port)
+        Http().cachedHostConnectionPoolHttps[Any](host, port)
       else
-        Http().outgoingConnectionHttps(host, port, connectionContext = noCheckHttpsConnectionContext)
+        Http().cachedHostConnectionPoolHttps[Any](host, port, connectionContext = noCheckHttpsConnectionContext)
 
     case _ ⇒
       val host = uri.authority.host.address
       val port = if (uri.authority.port > 0) uri.authority.port else 80
-      Http().outgoingConnection(host, port)
+      Http().cachedHostConnectionPool[Any](host, port)
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
