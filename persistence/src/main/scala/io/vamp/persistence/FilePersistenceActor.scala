@@ -69,9 +69,12 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
     setArtifact(artifact)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = Future.successful {
-    write(PersistenceRecord(name, type2string(`type`)))
-    deleteArtifact(name, type2string(`type`)).isDefined
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = super.readArtifact(name, `type`) match {
+    case Some(_) ⇒ Future.successful {
+      write(PersistenceRecord(name, type2string(`type`)))
+      deleteArtifact(name, type2string(`type`)).isDefined
+    }
+    case _ ⇒ Future.successful(false)
   }
 
   private def write(record: PersistenceRecord): Unit = {

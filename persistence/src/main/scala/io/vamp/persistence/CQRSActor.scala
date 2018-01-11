@@ -67,21 +67,24 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     }.getOrElse(fail(failMessage))
   }
 
-  override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
-    log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    guard()
-    val kind: String = type2string(`type`)
-    lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
+  override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = super.readArtifact(name, `type`) match {
+    case Some(_) ⇒
+      log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
+      guard()
+      val kind: String = type2string(`type`)
+      lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
 
-    insert(PersistenceRecord(name, kind)).collect {
-      case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(true), () ⇒ fail[Boolean](failMessage))
-    } getOrElse fail[Boolean](failMessage)
+      insert(PersistenceRecord(name, kind)).collect {
+        case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(true), () ⇒ fail[Boolean](failMessage))
+      } getOrElse fail[Boolean](failMessage)
+
+    case _ ⇒ Future.successful(false)
   }
 
   private def fail[A](message: String): Future[A] = Future.failed(new RuntimeException(message))
 
   private def readOrFail[T](id: Long, succeed: () ⇒ Future[T], fail: () ⇒ Future[T]): Future[T] = {
-    readWrapper
+    readWrapper()
     if (id <= lastId) succeed() else fail()
   }
 
@@ -94,7 +97,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
         reportException(c)
         validData = false
         lastId
-      case e: Exception ⇒
+      case _: Exception ⇒
         // TODO: log this in a better way stacktrace does not have any additional info
         // e.printStackTrace()
         lastId
