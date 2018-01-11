@@ -55,7 +55,7 @@ trait ContainerBuffer {
     case cw: ContainerWorkflow         ⇒ update(cw)
   }
 
-  private def processGet(any: AnyRef, watcher: ActorRef) = {
+  private def processGet(any: AnyRef, watcher: ActorRef): Unit = {
     cleanup()
     (entries andThen update(watcher) andThen reconcile andThen respond(watcher))(any)
   }
@@ -85,7 +85,7 @@ trait ContainerBuffer {
       val now = OffsetDateTime.now()
       deploymentServices.filter(_.isInstanceOf[DeploymentServices]).map(_.asInstanceOf[DeploymentServices]).flatMap { ds ⇒
         ds.services.map { service ⇒
-          appId(ds.deployment, service.breed) → ContainerBufferEntry(now, None, ContainerService(ds.deployment, service, None, equalHealthChecks = true))
+          appId(ds.deployment, service.breed) → ContainerBufferEntry(now, None, ContainerService(ds.deployment, service, None))
         }
       }.toMap
     case workflow: Workflow ⇒ Map(appId(workflow) → ContainerBufferEntry(OffsetDateTime.now(), None, ContainerWorkflow(workflow, None)))
@@ -114,7 +114,7 @@ trait ContainerBuffer {
     }
   }
 
-  private def cleanup() = {
+  private def cleanup(): Unit = {
     val boundary = OffsetDateTime.now().minus(expirationPeriod.toSeconds, ChronoUnit.SECONDS)
     store = store.map {
       case (watcher, entries) ⇒ watcher → entries.filter { case (_, value) ⇒ boundary.isBefore(value.touched) }
@@ -146,7 +146,7 @@ trait ContainerBuffer {
     }
   }
 
-  private def changed(id: String) = {
+  private def changed(id: String): Unit = {
     store.values.flatMap(_.values).map(_.runtime).find {
       case cs: ContainerService  ⇒ appId(cs.deployment, cs.service.breed) == id
       case cw: ContainerWorkflow ⇒ appId(cw.workflow) == id
@@ -158,7 +158,7 @@ trait ContainerBuffer {
     }
   }
 
-  private def update(runtime: ContainerRuntime) = {
+  private def update(runtime: ContainerRuntime): Unit = {
     val now = OffsetDateTime.now()
 
     def notifyAngUpdate(watcher: ActorRef, id: String, entry: ContainerBufferEntry, runtime: Option[ContainerRuntime]) = {
@@ -192,7 +192,7 @@ trait ContainerBuffer {
     }
   }
 
-  private def invalidate(id: String) = {
+  private def invalidate(id: String): Unit = {
     store = store.map {
       case (watcher, entries) ⇒
         watcher → entries.map {
