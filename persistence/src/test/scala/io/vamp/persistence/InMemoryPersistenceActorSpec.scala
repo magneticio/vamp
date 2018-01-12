@@ -62,7 +62,7 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
           "type" → "in-memory [no persistence]"), "archiving" → true)
       testProbe.send(actor, InfoRequest)
       testProbe.expectMsgPF(30.seconds) {
-        case response: Map[String, Any] ⇒
+        case response: Map[_, _] ⇒
           logger.info(response.toString)
           assert(response == expectedResponse)
         case _ ⇒
@@ -80,7 +80,7 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
       val source = "testSource"
       testProbe.send(actor, PersistenceActor.Create(artifact, Option(source)))
       testProbe.expectMsgPF(30.seconds) {
-        case response: List[TestArtifact] ⇒
+        case response: List[_] ⇒
           logger.info(response.toString)
           assert(response === expectedResponse)
         case _ ⇒

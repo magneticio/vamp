@@ -5,11 +5,12 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
 import akka.pattern.ask
-import io.vamp.common.Config
+import akka.util.Timeout
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
-import io.vamp.container_driver.{ ContainerDriverActor, ContainerService }
+import io.vamp.container_driver.{ ContainerDriverActor, ContainerService, ServiceEqualityRequest }
 import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase._
@@ -23,7 +24,7 @@ import scala.concurrent.duration.FiniteDuration
 
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll
+  def tick(): Unit = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll
 }
 
 object DeploymentSynchronizationActor {
@@ -32,15 +33,30 @@ object DeploymentSynchronizationActor {
 
   case class Synchronize(deployment: Deployment)
 
-  val deploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-deployment")
-  val undeploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-undeployment")
+  val deploymentTimeout: ConfigMagnet[FiniteDuration] = Config.duration("vamp.operation.synchronization.timeout.ready-for-deployment")
+
+  val undeploymentTimeout: ConfigMagnet[FiniteDuration] = Config.duration("vamp.operation.synchronization.timeout.ready-for-undeployment")
+
+  val checkDeployable: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.deployable")
+
+  val checkPorts: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.ports")
+
+  val checkEnvironmentVariables: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.environment-variables")
+
+  val checkCpu: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.scale.cpu")
+
+  val checkMemory: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.scale.memory")
+
+  val checkInstances: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.scale.instances")
+
+  val checkHealth: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.health")
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
 
   import DeploymentSynchronizationActor._
 
-  private implicit val timeout = PersistenceActor.timeout()
+  private implicit val timeout: Timeout = PersistenceActor.timeout()
 
   def receive: Receive = {
     case SynchronizeAll                        ⇒ synchronize()
@@ -49,7 +65,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     case _                                     ⇒
   }
 
-  private def synchronize() = {
+  private def synchronize(): Unit = {
     log.info("Deployment Synchronization started.")
     forAll(allArtifacts[Deployment], { deployments ⇒
       val deploymentServices = deployments.map { deployment ⇒
@@ -60,7 +76,15 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         }
         DeploymentServices(deployment, services)
       }
-      actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(deploymentServices)
+      actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(
+        deploymentServices,
+        ServiceEqualityRequest(
+          deployable = checkDeployable(),
+          ports = checkPorts(),
+          environmentVariables = checkEnvironmentVariables(),
+          health = checkHealth()
+        )
+      )
     }: (List[Deployment]) ⇒ Unit)
   }
 
@@ -73,7 +97,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(deployment: Deployment, containerService: ContainerService): Unit = {
-    def sendTo(actor: ActorRef, deployment: Deployment) = {
+    def sendTo(actor: ActorRef, deployment: Deployment): Unit = {
       deployment.service(containerService.service.breed).foreach { service ⇒
         actor ! SingleDeploymentSynchronizationActor.Synchronize(containerService.copy(deployment = deployment, service = service))
       }

@@ -320,7 +320,7 @@ trait DeploymentGatewayOperation {
 trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver {
   this: ReplyActor with DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
-  private val checkBreed = Config.boolean("vamp.operation.synchronization.check.breed")
+  private val refetchBreed = Config.boolean("vamp.operation.synchronization.deployment.refetch-breed-on-update")
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
@@ -409,7 +409,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
           case None ⇒ service
           case Some(bpService) ⇒
 
-            val breed = if (checkBreed()) bpService.breed else service.breed
+            val breed = if (refetchBreed()) bpService.breed else service.breed
             val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
             val state: DeploymentService.Status =
               if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment
@@ -419,8 +419,9 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
             service.copy(
               breed = breed,
+              environmentVariables = bpService.environmentVariables,
               scale = scale,
-              dialects = service.dialects ++ bpService.dialects,
+              dialects = bpService.dialects,
               healthChecks = bpService.healthChecks
             )
         }

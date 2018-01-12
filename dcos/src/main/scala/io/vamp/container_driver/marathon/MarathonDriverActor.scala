@@ -100,7 +100,7 @@ class MarathonDriverActor
 
     case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)                  ⇒ get(services)
+    case Get(services, equality)        ⇒ get(services, equality)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
@@ -137,32 +137,62 @@ class MarathonDriverActor
     }
   }
 
-  private def get(deploymentServices: List[DeploymentServices]): Unit = {
+  private def get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Unit = {
     log.info("getting deployment services")
     val replyTo = sender()
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
       case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
         case Some(app) ⇒
-          val (equalHealth, health) = healthCheck(app, deployment.ports, service.healthChecks.getOrElse(List()))
+          val cluster = deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
+          val equality = ServiceEqualityResponse(
+            deployable = !equalityRequest.deployable || checkDeployable(service, app),
+            ports = !equalityRequest.ports || checkPorts(deployment, cluster, service, app),
+            environmentVariables = !equalityRequest.environmentVariables || checkEnvironmentVariables(deployment, cluster, service, app),
+            health = !equalityRequest.health || checkHealth(deployment, service, app)
+          )
           replyTo ! ContainerService(
             deployment,
             service,
             Option(containers(app)),
-            health,
-            equality = ContainerServiceEquality(health = equalHealth)
+            app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts)),
+            equality = equality
           )
         case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
       }
     }
   }
 
+  private def checkDeployable(service: DeploymentService, app: App): Boolean = {
+    if (CommandDeployableType.matches(service.breed.deployable))
+      service.breed.deployable.definition == app.cmd.getOrElse("")
+    else if (DockerDeployableType.matches(service.breed.deployable))
+      service.breed.deployable.definition == app.container.flatMap(_.docker).map(_.image).getOrElse("")
+    else true
+  }
+
+  private def checkPorts(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
+    val appPorts = app.container.flatMap(_.docker).map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
+    val servicePorts = portMappings(deployment, c, service, "").map(_.containerPort).toSet
+    appPorts == servicePorts
+  }
+
+  private def checkEnvironmentVariables(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
+    app.env == environment(deployment, c, service)
+  }
+
+  private def checkHealth(deployment: Deployment, service: DeploymentService, app: App): Boolean = {
+    MarathonHealthCheck.equalHealthChecks(deployment.ports, service.healthChecks.getOrElse(List()), app.healthChecks)
+  }
+
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"marathon reconcile workflow: ${workflow.name}")
     get(appId(workflow)).foreach {
       case Some(app) if workflow.breed.isInstanceOf[DefaultBreed] ⇒
-        val breed = workflow.breed.asInstanceOf[DefaultBreed]
-        val (equalHealth, health) = healthCheck(app, breed.ports, breed.healthChecks.getOrElse(List()))
-        replyTo ! ContainerWorkflow(workflow, Option(containers(app)), health, ContainerServiceEquality(health = equalHealth))
+        replyTo ! ContainerWorkflow(
+          workflow,
+          Option(containers(app)),
+          app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
+        )
       case Some(app) if workflow.breed.isInstanceOf[BreedReference] ⇒
         val breedReference = workflow.breed.asInstanceOf[BreedReference]
         log.warning(s"marathon reconcile workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
@@ -171,8 +201,9 @@ class MarathonDriverActor
     }
   }
 
-  private def get(id: String): Future[Option[App]] = {
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
+  private def get(id: String, embedTasks: Boolean = true, embedStats: Boolean = true): Future[Option[App]] = {
+    val params = s"${if (embedTasks) "&embed=apps.tasks" else ""}${if (embedStats) "&embed=apps.taskStats" else ""}"
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id$params", headers, logError = false)
       .recover {
         case t: Throwable ⇒
           log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
@@ -189,12 +220,6 @@ class MarathonDriverActor
           logger.info(s"no app: for $id")
           None
       }
-  }
-
-  private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
-    val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(ports, healthChecks, app.healthChecks)
-    val newHealth = app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
-    equalHealthChecks → newHealth
   }
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
@@ -391,12 +416,11 @@ class MarathonDriverActor
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers).flatMap { appResponse ⇒
-        val marathonApp = Extraction.extract[MarathonApp](payload)
-        val app = appResponse.apps.headOption.get
-        log.info(s"marathon App: $marathonApp, $app")
-        val changed = appResponse.apps.headOption.map(difference(marathonApp, _)).getOrElse(payload)
-
+      get(id, embedStats = false).flatMap { response ⇒
+        val changed = Extraction.decompose(response).children.headOption match {
+          case Some(app) ⇒ app.diff(payload).changed
+          case None      ⇒ payload
+        }
         if (changed != JNothing)
           httpClient.put[Any](s"$url/v2/apps/$id", changed, headers)
         else {
@@ -413,27 +437,6 @@ class MarathonDriverActor
           Future.failed(t)
       }
     }
-  }
-
-  /**
-   * Checks the difference between a MarathonApp and an App to convert them two comparable objects (ComparableApp)
-   * If healthCheck is changed it takes the latest array as values from:
-   *
-   * @param marathonApp
-   * If healthCheck deleted it needs to have an empty JSON Array as override value for the put request
-   */
-  private def difference(marathonApp: MarathonApp, app: App): JValue = {
-    val comparableApp: ComparableApp = ComparableApp.fromApp(app)
-    val comparableAppTwo: ComparableApp = ComparableApp.fromMarathonApp(marathonApp)
-    val diff = Extraction.decompose(comparableApp).diff(Extraction.decompose(comparableAppTwo))
-
-    diff.added.merge(diff.changed.mapField {
-      case ("healthChecks", _) ⇒ "healthChecks" → JArray(marathonApp.healthChecks.map(Extraction.decompose))
-      case xs                  ⇒ xs
-    }).merge(diff.deleted.mapField {
-      case ("healthChecks", _) ⇒ "healthChecks" → JArray(List())
-      case xs                  ⇒ xs
-    })
   }
 
   private def container(workflow: Workflow): Option[Container] = {

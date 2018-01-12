@@ -41,7 +41,7 @@ trait ContainerBuffer {
   protected def undeploy(workflow: Workflow): Future[Any]
 
   def receive: Actor.Receive = {
-    case Get(services)                 ⇒ processGet(services, sender())
+    case Get(services, _)              ⇒ processGet(services, sender())
     case d: Deploy                     ⇒ reply(processDeploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                   ⇒ reply(processUndeploy(u.deployment, u.service))
 

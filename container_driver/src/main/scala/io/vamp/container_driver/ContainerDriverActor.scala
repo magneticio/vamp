@@ -23,7 +23,7 @@ object ContainerDriverActor {
 
   sealed trait ContainerDriveMessage
 
-  case class Get(deploymentServices: List[DeploymentServices]) extends ContainerDriveMessage
+  case class Get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest) extends ContainerDriveMessage
 
   case class Deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) extends ContainerDriveMessage
 
@@ -40,38 +40,51 @@ object ContainerDriverActor {
 }
 
 /**
- * Compares the checks (e.g. health) of the container service with the Vamp service,
- * if check is false than service update may be triggered.
+ * Comparison of model (intention) and container (actual) services.
+ * Depending on configuration, any difference may lead to service (runtime) update.
  */
-case class ContainerServiceEquality(
-  breed:     Boolean = true,
-  traits:    Boolean = true,
-  arguments: Boolean = true,
-  health:    Boolean = true,
-  dialect:   Boolean = true
-)
+trait ServiceEquality {
+  def deployable: Boolean
+
+  def ports: Boolean
+
+  def environmentVariables: Boolean
+
+  def health: Boolean
+}
+
+case class ServiceEqualityRequest(
+  deployable:           Boolean,
+  ports:                Boolean,
+  environmentVariables: Boolean,
+  health:               Boolean
+) extends ServiceEquality
+
+case class ServiceEqualityResponse(
+  deployable:           Boolean = true,
+  ports:                Boolean = true,
+  environmentVariables: Boolean = true,
+  health:               Boolean = true
+) extends ServiceEquality
 
 sealed trait ContainerRuntime {
   def containers: Option[Containers]
 
   def health: Option[Health]
-
-  def equality: ContainerServiceEquality
 }
 
 case class ContainerService(
   deployment: Deployment,
   service:    DeploymentService,
   containers: Option[Containers],
-  health:     Option[Health]           = None,
-  equality:   ContainerServiceEquality = ContainerServiceEquality()
+  health:     Option[Health]          = None,
+  equality:   ServiceEqualityResponse = ServiceEqualityResponse()
 ) extends ContainerRuntime
 
 case class ContainerWorkflow(
   workflow:   Workflow,
   containers: Option[Containers],
-  health:     Option[Health]           = None,
-  equality:   ContainerServiceEquality = ContainerServiceEquality()
+  health:     Option[Health]     = None
 ) extends ContainerRuntime
 
 case class Containers(scale: DefaultScale, instances: List[ContainerInstance])

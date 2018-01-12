@@ -1,11 +1,10 @@
 package io.vamp.operation.deployment
 
-import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
-import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Updating }
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
@@ -23,27 +22,13 @@ object SingleDeploymentSynchronizationActor {
 
 class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
 
+  import DeploymentSynchronizationActor._
   import PersistenceActor._
   import PulseEventTags.Deployments._
-  import SingleDeploymentSynchronizationActor._
-
-  private lazy val checkTraits = Config.boolean("vamp.operation.synchronization.check.traits")()
-
-  private lazy val checkArguments = Config.boolean("vamp.operation.synchronization.check.arguments")()
-
-  private lazy val checkCpu = Config.boolean("vamp.operation.synchronization.check.scale.cpu")()
-
-  private lazy val checkMemory = Config.boolean("vamp.operation.synchronization.check.scale.memory")()
-
-  private lazy val checkInstances = Config.boolean("vamp.operation.synchronization.check.scale.instances")()
-
-  private lazy val checkHealth = Config.boolean("vamp.operation.synchronization.check.health")()
-
-  private lazy val checkDialect = Config.boolean("vamp.operation.synchronization.check.dialect")()
 
   def receive: Receive = {
-    case Synchronize(containerService) ⇒ synchronize(containerService)
-    case _                             ⇒
+    case SingleDeploymentSynchronizationActor.Synchronize(containerService) ⇒ synchronize(containerService)
+    case _ ⇒
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
@@ -74,8 +59,11 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       }
 
     case Some(cs) ⇒
-      if (!matchingTraits(containerService) || !matchingArguments(containerService) ||
-        !matchingScale(deploymentService, cs) || !matchingHealth(containerService) || !matchingDialect(containerService))
+      if (!hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService))
+        resolveEnvironmentVariables(deployment, deploymentCluster, deploymentService)
+
+      else if (!matchingDeployable(containerService) || !matchingPorts(containerService) ||
+        !matchingEnvironmentVariables(containerService) || !matchingScale(deploymentService, cs) || !matchingHealth(containerService))
         redeploy(deployment, deploymentCluster, deploymentService, containerService)
 
       else if (!matchingServers(deploymentService, cs))
@@ -107,7 +95,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def redeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService): Unit = {
-    val update = deploymentService.status.isDone
+    val update = !deploymentService.status.phase.isInstanceOf[Initiated]
 
     if (update) publishRedeploy(deployment, deploymentCluster, deploymentService)
 
@@ -116,20 +104,20 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def matchingScale(deploymentService: DeploymentService, containers: Containers) = {
-    val cpu = if (checkCpu) containers.scale.cpu == deploymentService.scale.get.cpu else true
-    val memory = if (checkMemory) containers.scale.memory == deploymentService.scale.get.memory else true
-    val instances = if (checkInstances) containers.instances.size == deploymentService.scale.get.instances else true
+    val cpu = if (checkCpu()) containers.scale.cpu == deploymentService.scale.get.cpu else true
+    val memory = if (checkMemory()) containers.scale.memory == deploymentService.scale.get.memory else true
+    val instances = if (checkInstances()) containers.instances.size == deploymentService.scale.get.instances else true
 
     instances && cpu && memory
   }
 
-  private def matchingTraits(containerService: ContainerService) = !checkTraits || (checkTraits && containerService.equality.traits)
+  private def matchingDeployable(containerService: ContainerService) = !checkDeployable() || containerService.equality.deployable
 
-  private def matchingArguments(containerService: ContainerService) = !checkArguments || (checkArguments && containerService.equality.arguments)
+  private def matchingPorts(containerService: ContainerService) = !checkPorts() || containerService.equality.ports
 
-  private def matchingHealth(containerService: ContainerService) = !checkHealth || (checkHealth && containerService.equality.health)
+  private def matchingEnvironmentVariables(containerService: ContainerService) = !checkEnvironmentVariables() || containerService.equality.environmentVariables
 
-  private def matchingDialect(containerService: ContainerService) = !checkDialect || (checkDialect && containerService.equality.dialect)
+  private def matchingHealth(containerService: ContainerService) = !checkHealth() || containerService.equality.health
 
   private def matchingServers(deploymentService: DeploymentService, containers: Containers) = {
     deploymentService.instances.size == containers.instances.size &&

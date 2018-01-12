@@ -2,20 +2,12 @@ package io.vamp.container_driver.marathon
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ ActorSystem, Props }
-import akka.testkit.{ ImplicitSender, TestActorRef, TestKit, TestProbe }
+import akka.actor.ActorSystem
+import akka.testkit.{ ImplicitSender, TestKit }
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
-import io.vamp.common.akka.IoC
 import io.vamp.common.{ Namespace, NamespaceProvider }
-import io.vamp.container_driver.{ ContainerInstance, Containers }
-import io.vamp.model.artifact.DefaultScale
-import io.vamp.model.reader.{ MegaByte, Quantity }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.util.Try
 
 class MarathonDriverActorTest extends TestKit(ActorSystem("MarathonDriverActor")) with ImplicitSender
     with WordSpecLike with Matchers with BeforeAndAfterAll with NamespaceProvider

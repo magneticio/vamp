@@ -75,7 +75,7 @@ class KubernetesDriverActor
 
     case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)                  ⇒ get(services)
+    case Get(services, _)               ⇒ get(services)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
