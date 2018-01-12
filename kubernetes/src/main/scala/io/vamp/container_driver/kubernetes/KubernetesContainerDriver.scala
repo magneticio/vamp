@@ -6,6 +6,7 @@ import io.vamp.container_driver.ContainerDriver
 import io.vamp.model.artifact._
 
 import scala.concurrent.Future
+import scala.util.matching.Regex
 
 trait KubernetesContainerDriver extends ContainerDriver {
 
@@ -15,7 +16,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
 
   protected val nameDelimiter = "-"
 
-  protected val idMatcher = """^[a-z0-9][a-z0-9-]*$""".r
+  protected val idMatcher: Regex = """^[a-z0-9][a-z0-9-]*$""".r
 
   protected def workflowNamePrefix: String
 

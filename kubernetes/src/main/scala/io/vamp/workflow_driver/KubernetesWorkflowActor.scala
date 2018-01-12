@@ -5,7 +5,7 @@ import akka.pattern.ask
 import io.vamp.common.ClassMapper
 import io.vamp.common.akka.IoC
 import io.vamp.container_driver.kubernetes.{ Job, KubernetesDriverActor }
-import io.vamp.container_driver.{ ContainerDriverValidation, ContainerDriverMapping, DockerDeployableType }
+import io.vamp.container_driver.{ ContainerDriverMapping, ContainerDriverValidation, DeployableType, DockerDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.persistence.PersistenceActor
@@ -21,7 +21,7 @@ class KubernetesWorkflowActorMapper extends ClassMapper {
 
 class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverMapping with ContainerDriverValidation {
 
-  override protected lazy val supportedDeployableTypes = DockerDeployableType :: Nil
+  override protected lazy val supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: Nil
 
   override protected lazy val info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → KubernetesDriverActor.url())))
 
