@@ -350,7 +350,7 @@ trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOpe
 
   def doMerge(deploymentForBlueprint: Deployment, deployment: Deployment, validateOnly: Boolean): Future[Deployment] = {
     for {
-      _ ← validateBlueprint(deployment)
+      _ ← validateBlueprint(deploymentForBlueprint)
       attachment ← resolveProperties(deploymentForBlueprint)
       result ← mergeClusters(deployment, attachment, validateOnly) flatMap { clusters ⇒
         val gateways = mergeGateways(attachment, deployment)
@@ -587,7 +587,6 @@ trait DeploymentSlicer extends DeploymentGatewayOperation {
 
         val services = cluster.services.map { service ⇒
           if (bpc.services.exists(service.breed.name == _.breed.name)) {
-            if (!validateOnly) resetServiceArtifacts(stable, bpc, service, Intention.Undeployment)
             service.copy(status = Intention.Undeployment)
           }
           else service
@@ -614,28 +613,41 @@ trait DeploymentSlicer extends DeploymentGatewayOperation {
     val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.status.intention == Intention.Undeployment))
 
     implicit val timeout = GatewayActor.timeout
-    Future.sequence {
-      deleteRouting.flatMap { cluster ⇒
-        stable.clusters.find(_.name == cluster.name) match {
-          case Some(c) ⇒
-            c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
-              actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = validateOnly, force = true)
+    for {
+      _ <- Future.sequence(stable.clusters.map(cluster ⇒
+        (blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
+          cluster.services.map { service ⇒
+            if (bpc.services.exists(service.breed.name == _.breed.name)) {
+              if (!validateOnly) Some(resetServiceArtifacts(stable, bpc, service, Intention.Undeployment)) else None
             }
-          case None ⇒ List.empty[Future[_]]
-        }
-      } ++ updateRouting.flatMap { cluster ⇒
-        stable.clusters.find(_.name == cluster.name) match {
-          case Some(_) ⇒
-            cluster.gateways.map(updateRoutePaths(stable, cluster, _)).map {
-              gateway ⇒
-                if (gateway.routes.isEmpty)
-                  actorFor[GatewayActor] ? GatewayActor.Delete(gateway.name, validateOnly = validateOnly, force = true)
-                else
-                  actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
-            }
-          case None ⇒ List.empty[Future[_]]
+            else None
+          }.flatten
+        }).getOrElse(Nil)
+      ).flatten)
+
+      _ <- Future.sequence {
+        deleteRouting.flatMap { cluster ⇒
+          stable.clusters.find(_.name == cluster.name) match {
+            case Some(c) ⇒
+              c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
+                actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = validateOnly, force = true)
+              }
+            case None ⇒ List.empty[Future[_]]
+          }
+        } ++ updateRouting.flatMap { cluster ⇒
+          stable.clusters.find(_.name == cluster.name) match {
+            case Some(_) ⇒
+              cluster.gateways.map(updateRoutePaths(stable, cluster, _)).map {
+                gateway ⇒
+                  if (gateway.routes.isEmpty)
+                    actorFor[GatewayActor] ? GatewayActor.Delete(gateway.name, validateOnly = validateOnly, force = true)
+                  else
+                    actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
+              }
+            case None ⇒ List.empty[Future[_]]
+          }
         }
       }
-    } map { _ ⇒ deployment }
+    } yield deployment
   }
 }
