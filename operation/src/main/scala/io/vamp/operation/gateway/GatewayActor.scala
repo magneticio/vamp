@@ -174,21 +174,29 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
     }
   }
 
-  private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
+  private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Gateway] = { gateway ⇒
 
     val virtualHosts = if (virtualHostsEnabled()) defaultVirtualHosts(gateway) ++ gateway.virtualHosts else gateway.virtualHosts
 
-    val g = gateway.copy(virtualHosts = virtualHosts.distinct)
+    val updatedGateway = gateway.copy(virtualHosts = virtualHosts.distinct)
 
-    (g.internal, promote) match {
+    (updatedGateway.internal, promote) match {
 
       case (true, true) ⇒
-        if (create)
-          VampPersistence().create[Gateway](gateway).flatMap(id ⇒ VampPersistence().read[Gateway](id))
-        else
-          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ ⇒ gateway).map(_ ⇒ VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway)))
-
-      case _ ⇒ VampPersistence().create[Gateway](gateway).flatMap(id ⇒ VampPersistence().read[Gateway](id))
+        if (create){
+          VampPersistence().create[Gateway](updatedGateway).flatMap(_ =>
+            VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ => updatedGateway)
+          )
+        }
+        else {
+          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(updatedGateway), _ ⇒ updatedGateway).flatMap(_ ⇒
+            VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ => updatedGateway)).map(_ => updatedGateway)
+        }
+      case _ ⇒ {
+        VampPersistence().createOrUpdate[Gateway](updatedGateway).flatMap(id ⇒ VampPersistence().read[Gateway](id)).flatMap(_ =>
+          VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ => updatedGateway)
+        )
+      }
     }
   }
 
