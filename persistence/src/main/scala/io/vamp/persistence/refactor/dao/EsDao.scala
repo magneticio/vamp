@@ -1,5 +1,6 @@
 package io.vamp.persistence.refactor.dao
 
+import akka.actor.{ActorSystem, Props}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
 import io.circe._
@@ -15,11 +16,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
+import akka.pattern.ask
+import akka.util.Timeout
+import io.vamp.model.artifact.Deployment
+import io.vamp.model.artifact.DeploymentService.Status.Intention
 
 /**
  * Created by mihai on 11/10/17.
  */
-class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String, testingContext: Boolean = false) extends SimpleArtifactPersistenceDao {
+class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String, testingContext: Boolean = false)(implicit actorSystem: ActorSystem) extends SimpleArtifactPersistenceDao {
   implicit val ns: Namespace = namespace
   private[persistence] val indexName = s"vamp_${namespace.name}"
 
@@ -47,12 +52,24 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     client
   }
 
-  override def create[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
+  lazy val lockActor = actorSystem.actorOf(Props[SimpleLock], "eslockactor")
+  implicit val timeOut: Timeout = akka.util.Timeout(6 second)
+
+  import java.util.concurrent.locks.ReentrantLock
+
+
+
+  val lock = new ReentrantLock()
+
+  override def create[T: SerializationSpecifier](obj: T): Future[Id[T]] = executeLocked(createWithoutLock(obj))
+
+  private def createWithoutLock[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     val newObjectId = sSpecifier.idExtractor(obj)
     implicit val jsonEncoder = sSpecifier.encoder
     for {
-      _ ← read(newObjectId).flatMap(_ ⇒ Future.failed(DuplicateObjectIdException(newObjectId))).recover {
+      _ ← read(newObjectId).flatMap(obj ⇒
+        Future.failed(DuplicateObjectIdException(newObjectId))).recover {
         case e: InvalidObjectIdException[_] ⇒ ()
       }
       _ ← esClient.execute {
@@ -61,15 +78,15 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield newObjectId
   }
 
-  override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
+  override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] =  {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
-    for {
+    executeLocked(for {
       existing ← readIfAvailable(sSpecifier.idExtractor(obj))
       _ ← existing match {
-        case None    ⇒ create(obj)
-        case Some(_) ⇒ update(sSpecifier.idExtractor(obj), (_: T) ⇒ obj)
+        case None    ⇒ createWithoutLock(obj)
+        case Some(_) ⇒ updateWithoutLock(sSpecifier.idExtractor(obj), (_: T) ⇒ obj)
       }
-    } yield sSpecifier.idExtractor(obj)
+    } yield sSpecifier.idExtractor(obj))
   }
 
   override def read[T: SerializationSpecifier](objectId: Id[T]): Future[T] = {
@@ -96,7 +113,10 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     }
   }
 
-  override def update[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] = {
+  override def update[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] =
+    executeLocked(updateWithoutLock(id, updateFunction))
+
+  private def updateWithoutLock[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] =  {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     implicit val jsonEncoder = sSpecifier.encoder
 
@@ -111,14 +131,13 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield ()
   }
 
-  override def deleteObject[T: SerializationSpecifier](objectId: Id[T]): Future[Unit] = {
+  override def deleteObject[T: SerializationSpecifier](objectId: Id[T]): Future[Unit] =  {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
-    for {
-      _ ← read(objectId) // Ensure the object exists
+    executeLocked(for {
       _ ← esClient.execute {
         delete(objectId.value) from (IndexAndType(indexName, sSpecifier.typeName))
       }
-    } yield ()
+    } yield ())
   }
 
   def getAll[T: SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]] = {
@@ -173,11 +192,24 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   case class Versioned[T](obj: T, version: Long)
 
   private def replaceSecialIdChars(id: String): String = id.replace('/', '_')
+
+
+  private def executeLocked[T](exec: =>  Future[T]): Future[T] = {
+    esClient // make sure the EsClient is initialized
+    (lockActor ? GetLock).flatMap( _ =>
+      exec.transformWith { result =>
+        (lockActor ? ReleaseLock).flatMap(_ =>
+          Future.fromTry(result)
+        )
+      }
+    )
+  }
 }
 
 class EsDaoFactory extends SimpleArtifactPersistenceDaoFactory {
-  def get(namespace: Namespace) = {
+  def get(namespace: Namespace, actorSystem: ActorSystem) = {
     implicit val ns: Namespace = namespace
+    implicit val as: ActorSystem = actorSystem
     val elasticSearchHostAndPort = Config.string("vamp.persistence.database.elasticsearch.elasticsearch-url")()
     val elasticSearchClusterName = Config.string("vamp.persistence.database.elasticsearch.elasticsearch-cluster-name")()
     val testingContext = Config.boolean("vamp.persistence.database.elasticsearch.elasticsearch-test-cluster")()
