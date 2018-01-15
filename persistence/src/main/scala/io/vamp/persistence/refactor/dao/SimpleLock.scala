@@ -1,10 +1,10 @@
 package io.vamp.persistence.refactor.dao
 
-import akka.actor.{Actor, Props, Stash}
+import akka.actor.{ Actor, Stash }
 import akka.event.Logging
 /**
-  * Created by mihai on 1/12/18.
-  */
+ * Created by mihai on 1/12/18.
+ */
 
 class SimpleLock extends Actor with Stash {
   val log = Logging(context.system, this)
@@ -12,23 +12,23 @@ class SimpleLock extends Actor with Stash {
   def receive = receiveWhenUnlocked
 
   def receiveWhenLocked: Receive = {
-    case ReleaseLock => {
+    case ReleaseLock ⇒ {
       unstashAll()
       context.become(receiveWhenUnlocked)
       sender ! Ack
     }
-    case msg => {
+    case msg ⇒ {
       stash()
     }
   }
 
   def receiveWhenUnlocked: Receive = {
-    case GetLock => {
+    case GetLock ⇒ {
       unstashAll()
       context.become(receiveWhenLocked)
       sender ! Ack
     }
-    case msg => {
+    case msg ⇒ {
       stash()
     }
   }

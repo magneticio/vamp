@@ -614,7 +614,7 @@ trait DeploymentSlicer extends DeploymentGatewayOperation {
 
     implicit val timeout = GatewayActor.timeout
     for {
-      _ <- Future.sequence(stable.clusters.map(cluster ⇒
+      _ ← Future.sequence(stable.clusters.map(cluster ⇒
         (blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
           cluster.services.map { service ⇒
             if (bpc.services.exists(service.breed.name == _.breed.name)) {
@@ -625,7 +625,7 @@ trait DeploymentSlicer extends DeploymentGatewayOperation {
         }).getOrElse(Nil)
       ).flatten)
 
-      _ <- Future.sequence {
+      _ ← Future.sequence {
         deleteRouting.flatMap { cluster ⇒
           stable.clusters.find(_.name == cluster.name) match {
             case Some(c) ⇒

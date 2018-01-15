@@ -1,8 +1,8 @@
 package io.vamp.persistence.refactor
 
 import akka.actor.ActorSystem
-import io.vamp.common.{Config, Namespace}
-import io.vamp.persistence.refactor.api.{SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory}
+import io.vamp.common.{ Config, Namespace }
+import io.vamp.persistence.refactor.api.{ SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory }
 
 import scala.concurrent.ExecutionContext
 import scala.util.Try

@@ -1,21 +1,21 @@
 package io.vamp.persistence.refactor.dao
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ ActorSystem, Props }
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
+import com.sksamuel.elastic4s.{ ElasticsearchClientUri, IndexAndType, TcpClient }
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import io.vamp.common.{Config, Id, Namespace}
+import io.vamp.common.{ Config, Id, Namespace }
 import io.vamp.persistence.refactor.api._
-import io.vamp.persistence.refactor.exceptions.{DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException}
+import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ Await, Future }
+import scala.util.{ Failure, Success, Try }
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.model.artifact.Deployment
@@ -57,8 +57,6 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
 
   import java.util.concurrent.locks.ReentrantLock
 
-
-
   val lock = new ReentrantLock()
 
   override def create[T: SerializationSpecifier](obj: T): Future[Id[T]] = executeLocked(createWithoutLock(obj))
@@ -78,7 +76,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield newObjectId
   }
 
-  override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] =  {
+  override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     executeLocked(for {
       existing ← readIfAvailable(sSpecifier.idExtractor(obj))
@@ -116,7 +114,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   override def update[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] =
     executeLocked(updateWithoutLock(id, updateFunction))
 
-  private def updateWithoutLock[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] =  {
+  private def updateWithoutLock[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     implicit val jsonEncoder = sSpecifier.encoder
 
@@ -131,7 +129,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield ()
   }
 
-  override def deleteObject[T: SerializationSpecifier](objectId: Id[T]): Future[Unit] =  {
+  override def deleteObject[T: SerializationSpecifier](objectId: Id[T]): Future[Unit] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     executeLocked(for {
       _ ← esClient.execute {
@@ -169,8 +167,8 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   }
 
   override def info: Option[PersistenceInfo] = Try(esClient) match {
-    case Success(_) => Some(PersistenceInfo(s"ElasticSearch: ${elasticSearchHostAndPort}", PersistenceDatabase(`type` = "elasticsearch", connection = elasticSearchHostAndPort)))
-    case Failure(_) => None
+    case Success(_) ⇒ Some(PersistenceInfo(s"ElasticSearch: ${elasticSearchHostAndPort}", PersistenceDatabase(`type` = "elasticsearch", connection = elasticSearchHostAndPort)))
+    case Failure(_) ⇒ None
   }
 
   private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
@@ -183,8 +181,8 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
 
   def init(): Future[Unit] = {
     for {
-      _ <- Future.fromTry(Try(esClient))
-      _ <- esClient.execute(indexExists("inexistent_index")).map(_ ⇒ ())
+      _ ← Future.fromTry(Try(esClient))
+      _ ← esClient.execute(indexExists("inexistent_index")).map(_ ⇒ ())
     } yield ()
 
   }
@@ -193,12 +191,11 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
 
   private def replaceSecialIdChars(id: String): String = id.replace('/', '_')
 
-
-  private def executeLocked[T](exec: =>  Future[T]): Future[T] = {
+  private def executeLocked[T](exec: ⇒ Future[T]): Future[T] = {
     esClient // make sure the EsClient is initialized
-    (lockActor ? GetLock).flatMap( _ =>
-      exec.transformWith { result =>
-        (lockActor ? ReleaseLock).flatMap(_ =>
+    (lockActor ? GetLock).flatMap(_ ⇒
+      exec.transformWith { result ⇒
+        (lockActor ? ReleaseLock).flatMap(_ ⇒
           Future.fromTry(result)
         )
       }

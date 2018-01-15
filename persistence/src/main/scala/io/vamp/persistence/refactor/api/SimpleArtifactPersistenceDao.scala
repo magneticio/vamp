@@ -1,11 +1,11 @@
 package io.vamp.persistence.refactor.api
 
 import akka.actor.ActorSystem
-import io.vamp.common.{Id, Namespace}
-import io.vamp.model.artifact.{Deployment, Gateway}
+import io.vamp.common.{ Id, Namespace }
+import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 /**
  * Created by mihai on 11/10/17.
@@ -41,10 +41,11 @@ trait SimpleArtifactPersistenceDao {
   * */
   def updateGatewayForDeployment(gateway: Gateway)(implicit sSpecifier: SerializationSpecifier[Deployment], ec: ExecutionContext): Future[Unit] = {
     for {
-      deployments <- getAll[Deployment]().map(_.response)
+      deployments ← getAll[Deployment]().map(_.response)
       deploymentsThatNeedUpdate = deployments.filter(_.clusters.exists(_.gateways.exists(_.name == gateway.name)))
-      _ <- Future.sequence(deploymentsThatNeedUpdate.map(deployment => update[Deployment](sSpecifier.idExtractor(deployment),
-        d => d.copy(clusters = d.clusters.map(c => c.copy(gateways = c.gateways.map(g => if(g.name == gateway.name) gateway else g))))
+      _ ← Future.sequence(deploymentsThatNeedUpdate.map(deployment ⇒ update[Deployment](
+        sSpecifier.idExtractor(deployment),
+        d ⇒ d.copy(clusters = d.clusters.map(c ⇒ c.copy(gateways = c.gateways.map(g ⇒ if (g.name == gateway.name) gateway else g))))
       )))
     } yield ()
   }

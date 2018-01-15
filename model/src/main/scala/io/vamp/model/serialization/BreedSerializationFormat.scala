@@ -1,7 +1,7 @@
 package io.vamp.model.serialization
 
 import io.vamp.common.json.SerializationFormat
-import io.vamp.common.{Reference, RootAnyMap}
+import io.vamp.common.{ Reference, RootAnyMap }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.FieldSerializer._

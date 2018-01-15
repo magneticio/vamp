@@ -183,18 +183,18 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
     (updatedGateway.internal, promote) match {
 
       case (true, true) ⇒
-        if (create){
-          VampPersistence().create[Gateway](updatedGateway).flatMap(_ =>
-            VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ => updatedGateway)
+        if (create) {
+          VampPersistence().create[Gateway](updatedGateway).flatMap(_ ⇒
+            VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ ⇒ updatedGateway)
           )
         }
         else {
           VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(updatedGateway), _ ⇒ updatedGateway).flatMap(_ ⇒
-            VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ => updatedGateway)).map(_ => updatedGateway)
+            VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ ⇒ updatedGateway)).map(_ ⇒ updatedGateway)
         }
       case _ ⇒ {
-        VampPersistence().createOrUpdate[Gateway](updatedGateway).flatMap(id ⇒ VampPersistence().read[Gateway](id)).flatMap(_ =>
-          VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ => updatedGateway)
+        VampPersistence().createOrUpdate[Gateway](updatedGateway).flatMap(id ⇒ VampPersistence().read[Gateway](id)).flatMap(_ ⇒
+          VampPersistence().updateGatewayForDeployment(updatedGateway).map(_ ⇒ updatedGateway)
         )
       }
     }

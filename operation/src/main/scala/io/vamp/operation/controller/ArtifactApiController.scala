@@ -36,7 +36,7 @@ trait ArtifactApiController
     ArtifactResponseEnvelope(
       response = searchResponse.response,
       total = searchResponse.total,
-      page = if(searchResponse.size > 0) (searchResponse.from / searchResponse.size) else 1, perPage = searchResponse.size)
+      page = if (searchResponse.size > 0) (searchResponse.from / searchResponse.size) else 1, perPage = searchResponse.size)
   }
 
   def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
@@ -150,7 +150,7 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
       throwException(InconsistentArtifactName(name, artifact.name))
     if (validateOnly) Future.successful(UnitPlaceholder) else
       artifact match {
-        case e: Gateway    ⇒ VampPersistence().createOrUpdate[Gateway](e).flatMap(_ => VampPersistence().updateGatewayForDeployment(e).map(_ ⇒ UnitPlaceholder))
+        case e: Gateway    ⇒ VampPersistence().createOrUpdate[Gateway](e).flatMap(_ ⇒ VampPersistence().updateGatewayForDeployment(e).map(_ ⇒ UnitPlaceholder))
         case e: Deployment ⇒ VampPersistence().createOrUpdate[Deployment](e).map(_ ⇒ UnitPlaceholder)
         case e: Breed      ⇒ VampPersistence().createOrUpdate[Breed](e).map(_ ⇒ UnitPlaceholder)
         case e: Sla        ⇒ VampPersistence().createOrUpdate[Sla](e).map(_ ⇒ UnitPlaceholder)

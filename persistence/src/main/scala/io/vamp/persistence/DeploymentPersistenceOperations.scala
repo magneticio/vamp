@@ -133,10 +133,10 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
         hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList
       )
 
-      _ ← VampPersistence().update[Deployment](deploymentId, _ => updatedDeployment)
+      _ ← VampPersistence().update[Deployment](deploymentId, _ ⇒ updatedDeployment)
 
       clustersThatAreStillAlive = updatedDeployment.clusters.flatMap(_.services).filterNot(_.status.isUndeployed)
-      _ <- if(clustersThatAreStillAlive.size > 0) Future.successful() else {
+      _ ← if (clustersThatAreStillAlive.size > 0) Future.successful() else {
         VampPersistence().deleteObject[Deployment](deploymentId)
       }
     } yield UnitPlaceholder

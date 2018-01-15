@@ -1,6 +1,6 @@
 package io.vamp.model.serialization
 
-import io.vamp.common.{RootAnyMap, Type}
+import io.vamp.common.{ RootAnyMap, Type }
 import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
 import org.json4s._
