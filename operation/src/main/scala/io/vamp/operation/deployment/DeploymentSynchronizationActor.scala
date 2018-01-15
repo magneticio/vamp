@@ -43,13 +43,13 @@ object DeploymentSynchronizationActor {
 
   val checkEnvironmentVariables: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.environment-variables")
 
-  val checkCpu: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.scale.cpu")
+  val checkCpu: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.cpu")
 
-  val checkMemory: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.scale.memory")
+  val checkMemory: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.memory")
 
-  val checkInstances: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.scale.instances")
+  val checkInstances: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.instances")
 
-  val checkHealth: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.health")
+  val checkHealth: ConfigMagnet[Boolean] = Config.boolean("vamp.operation.synchronization.check.health-checks")
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
