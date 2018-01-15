@@ -191,9 +191,9 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def matchingScale(deploymentService: DeploymentService, containers: Containers) = {
-    val cpu = if (checkCpu) containers.scale.cpu == deploymentService.scale.get.cpu else true
-    val memory = if (checkMemory) containers.scale.memory == deploymentService.scale.get.memory else true
-    val instances = if (checkInstances) containers.instances.size == deploymentService.scale.get.instances else true
+    val cpu = if (checkCpu) deploymentService.scale.isDefined && containers.scale.cpu == deploymentService.scale.get.cpu else true
+    val memory = if (checkMemory) deploymentService.scale.isDefined && containers.scale.memory == deploymentService.scale.get.memory else true
+    val instances = if (checkInstances) deploymentService.scale.isDefined && containers.instances.size == deploymentService.scale.get.instances else true
 
     instances && cpu && memory
   }
