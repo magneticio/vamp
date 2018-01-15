@@ -378,15 +378,25 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
             }
           case Some(deploymentCluster) ⇒
             mergeServices(stable, Some(deploymentCluster), cluster, validateOnly).flatMap { services ⇒
+              val oldPorts = deploymentCluster.services.flatMap(_.breed.ports).map(port ⇒ port.name).toSet
+              val newPorts = cluster.services.flatMap(_.breed.ports).map(port ⇒ port.name).toSet
+              // in case of breed refetch it is possible that some ports are removed
+              val removedPorts = oldPorts.diff(newPorts)
               val nc = deploymentCluster.copy(
                 services = services,
                 dialects = deploymentCluster.dialects ++ cluster.dialects,
                 gateways = if (cluster.gateways.nonEmpty) cluster.gateways else deploymentCluster.gateways,
                 sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
               )
-              updatedRouting(stable, Some(deploymentCluster), nc, validateOnly) map {
-                routing ⇒ nc.copy(gateways = routing)
-              }
+              implicit val timeout: Timeout = PersistenceActor.timeout()
+              for {
+                _ ← Future.sequence(removedPorts.map { port ⇒
+                  actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(stable.name :: cluster.name :: port :: Nil).normalized, validateOnly = validateOnly, force = true)
+                })
+                gateways ← updatedRouting(stable, Some(deploymentCluster), nc, validateOnly) map {
+                  routing ⇒ nc.copy(gateways = routing)
+                }
+              } yield gateways
             }
         }
       }
