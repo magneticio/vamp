@@ -1,5 +1,6 @@
 package io.vamp.model.serialization
 
+import io.vamp.common.RootAnyMap
 import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -16,7 +17,7 @@ class TemplateSerializer extends ArtifactSerializer[Template] {
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(template.name))
       list += JField("kind", JString(template.kind))
-      list += JField("metadata", Extraction.decompose(template.metadata)(DefaultFormats))
+      list += JField("metadata", RootAnyMap.toJson(template.metadata))
       list += JField("definition", Extraction.decompose(template.definition)(DefaultFormats))
       new JObject(list.toList)
   }

@@ -1,6 +1,7 @@
 package io.vamp.model.serialization
 
-import io.vamp.common.Reference
+import io.vamp.common.json.SerializationFormat
+import io.vamp.common.{Reference, RootAnyMap}
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.FieldSerializer._
@@ -51,7 +52,7 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(breed.name))
       list += JField("kind", JString(breed.kind))
-      list += JField("metadata", Extraction.decompose(breed.metadata)(DefaultFormats))
+      list += JField("metadata", RootAnyMap.toJson(breed.metadata))
       list += JField("deployable", Extraction.decompose(breed.deployable))
       list += JField("ports", traits(breed.ports))
       list += JField("environment_variables", traits(breed.environmentVariables))
@@ -60,7 +61,7 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
 
       val dependencies = breed.dependencies.map {
         case (name, reference: Reference) ⇒ JField(name, JString(reference.name))
-        case (name, dependency)           ⇒ JField(name, Extraction.decompose(dependency))
+        case (name, dependency)           ⇒ JField(name, Extraction.decompose(dependency)((SerializationFormat(CoreSerializationFormat.default))))
       } toList
 
       list += JField("dependencies", new JObject(dependencies))

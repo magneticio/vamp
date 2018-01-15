@@ -2,6 +2,7 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter._
 
+import io.vamp.common.RootAnyMap
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
 import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
@@ -26,7 +27,7 @@ class WorkflowSerializer
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(workflow.name))
       list += JField("kind", JString(workflow.kind))
-      list += JField("metadata", Extraction.decompose(workflow.metadata)(DefaultFormats))
+      list += JField("metadata", RootAnyMap.toJson(workflow.metadata))
       list += JField("breed", new JObject(JField("reference", JString(workflow.breed.name)) :: Nil))
       list += JField("status", JString(workflow.status.toString))
 

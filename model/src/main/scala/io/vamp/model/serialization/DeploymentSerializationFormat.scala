@@ -2,7 +2,8 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter
 
-import io.vamp.common.Lookup
+import io.vamp.common.json.SerializationFormat
+import io.vamp.common.{Lookup, RootAnyMap}
 import io.vamp.model.artifact.DeploymentService.Status.Phase.Failed
 import io.vamp.model.artifact._
 import io.vamp.model.notification.ModelNotificationProvider
@@ -31,9 +32,9 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(deployment.name))
       list += JField("kind", JString(deployment.kind))
-      list += JField("metadata", Extraction.decompose(deployment.metadata)(DefaultFormats))
+      list += JField("metadata", RootAnyMap.toJson(deployment.metadata))
       list += JField(Lookup.entry, JString(deployment.lookupName))
-      list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
+      list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name → cluster).toMap)(SerializationFormat(CoreSerializationFormat.full)))
       list += JField("ports", traits(deployment.ports))
 
       if (full) list += JField("environment_variables", Extraction.decompose(deployment.environmentVariables))

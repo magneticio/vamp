@@ -45,6 +45,7 @@ class ClusterFieldSerializer
 
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("name", _)            ⇒ None
+    case ("metadata", mp)       ⇒ if(mp.isInstanceOf[RootAnyMap])  Some(("metadata", RootAnyMap.toJson(mp.asInstanceOf[RootAnyMap]))) else None
     case ("kind", _)            ⇒ None
     case ("gateways", gateways) ⇒ Some(("gateways", serializeGateways(gateways.asInstanceOf[List[Gateway]])))
     case ("healthChecks", Some(healthChecks)) ⇒
@@ -76,6 +77,7 @@ class ServiceFieldSerializer
 class InstanceFieldSerializer extends ArtifactFieldSerializer[Instance] {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("kind", _) ⇒ None
+    case ("metadata", _) => None
   }
 }
 
@@ -93,7 +95,7 @@ trait BlueprintScaleSerializer extends ReferenceSerialization {
       if (scale.name.nonEmpty && full) {
         list += JField("name", JString(scale.name))
         list += JField("kind", JString(scale.kind))
-        list += JField("metadata", Extraction.decompose(scale.metadata)(DefaultFormats))
+        list += JField("metadata", RootAnyMap.toJson(scale.metadata))
       }
 
       list += JField("cpu", JDouble(scale.cpu.normalized.toDouble))

@@ -1,6 +1,6 @@
 package io.vamp.model.serialization
 
-import io.vamp.common.Lookup
+import io.vamp.common.{Lookup, RootAnyMap}
 import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -41,7 +41,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
         if (gateway.name.nonEmpty) {
           list += JField("name", JString(gateway.name))
           list += JField("kind", JString(gateway.kind))
-          list += JField("metadata", Extraction.decompose(gateway.metadata)(DefaultFormats))
+          list += JField("metadata", RootAnyMap.toJson(gateway.metadata))
         }
 
         list += JField(Lookup.entry, JString(gateway.lookupName))
@@ -98,7 +98,7 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
       if (route.name.nonEmpty) {
         list += JField("name", JString(route.name))
         list += JField("kind", JString(route.kind))
-        list += JField("metadata", Extraction.decompose(route.metadata)(DefaultFormats))
+        list += JField("metadata", RootAnyMap.toJson(route.metadata))
       }
 
       list += JField(Lookup.entry, JString(lookup().getOrElse(route.lookupName)))
@@ -146,7 +146,7 @@ trait ConditionDecomposer extends ReferenceSerialization {
       if (condition.name.nonEmpty && full) {
         list += JField("name", JString(condition.name))
         list += JField("kind", JString(condition.kind))
-        list += JField("metadata", Extraction.decompose(condition.metadata)(DefaultFormats))
+        list += JField("metadata", RootAnyMap.toJson(condition.metadata))
       }
       list += JField("condition", JString(condition.definition))
       new JObject(list.toList)
