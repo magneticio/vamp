@@ -4,7 +4,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
-import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
@@ -53,7 +53,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     case None ⇒
       if (hasDependenciesDeployed(deployment, deploymentCluster, deploymentService)) {
         if (hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService))
-          redeploy(deployment, deploymentCluster, deploymentService, containerService)
+          redeploy(deployment, deploymentCluster, deploymentService, containerService, update = false)
         else
           resolveEnvironmentVariables(deployment, deploymentCluster, deploymentService)
       }
@@ -64,7 +64,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
 
       else if (!matchingDeployable(containerService) || !matchingPorts(containerService) ||
         !matchingEnvironmentVariables(containerService) || !matchingScale(deploymentService, cs) || !matchingHealth(containerService))
-        redeploy(deployment, deploymentCluster, deploymentService, containerService)
+        redeploy(deployment, deploymentCluster, deploymentService, containerService, update = true)
 
       else if (!matchingServers(deploymentService, cs))
         actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert(deploymentService, _)))
@@ -94,9 +94,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     Instance(server.name, server.host, ports.toMap, server.deployed)
   }
 
-  private def redeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService): Unit = {
-    val update = !deploymentService.status.phase.isInstanceOf[Initiated]
-
+  private def redeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService, update: Boolean): Unit = {
     if (update) publishRedeploy(deployment, deploymentCluster, deploymentService)
 
     actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))

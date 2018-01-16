@@ -75,7 +75,7 @@ class KubernetesDriverActor
 
     case InfoRequest                    ⇒ reply(info)
 
-    case Get(services, _)               ⇒ get(services)
+    case Get(services, equality)        ⇒ get(services, equality)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
@@ -102,9 +102,9 @@ class KubernetesDriverActor
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }
 
-  protected def get(deploymentServices: List[DeploymentServices]): Unit = {
+  protected def get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Unit = {
     val replyTo = sender()
-    allContainerServices(deploymentServices).map(_.foreach {
+    allContainerServices(deploymentServices, equalityRequest).map(_.foreach {
       replyTo ! _
     })
   }
