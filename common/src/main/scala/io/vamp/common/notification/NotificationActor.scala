@@ -1,10 +1,6 @@
 package io.vamp.common.notification
 
-import akka.actor.{ AbstractLoggingActor, Actor, Props }
-
-object LoggingNotificationActor {
-  def props: Props = Props[LoggingNotificationActor]
-}
+import akka.actor.Actor
 
 case class Error(notification: Notification, message: String)
 
@@ -20,14 +16,4 @@ trait NotificationActor {
   def error(notification: Notification, message: String)
 
   def info(notification: Notification, message: String)
-}
-
-class LoggingNotificationActor extends AbstractLoggingActor with NotificationActor {
-  override def error(notification: Notification, message: String): Unit = {
-    log.error(message)
-  }
-
-  override def info(notification: Notification, message: String): Unit = {
-    log.info(message)
-  }
 }
