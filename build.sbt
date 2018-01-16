@@ -31,11 +31,11 @@ resolvers in ThisBuild ++= Seq(
 )
 
 // Libraries
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.9" ::
+val akka = "com.typesafe.akka" %% "akka-stream" % "2.5.9" ::
+  "com.typesafe.akka" %% "akka-actor" % "2.5.9" ::
   "com.typesafe.akka" %% "akka-http" % "10.0.11" ::
   "com.typesafe.akka" %% "akka-parsing" % "10.0.11" ::
-  ("de.heikoseeberger" %% "akka-sse" % "2.0.0" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
-  "ch.megard" %% "akka-http-cors" % "0.1.10" ::
+  "ch.megard" %% "akka-http-cors" % "0.2.2" ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.5.9" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::

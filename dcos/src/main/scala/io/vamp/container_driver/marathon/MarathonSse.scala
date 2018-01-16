@@ -4,11 +4,12 @@ import akka.NotUsed
 import akka.actor.Actor
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
+import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.unmarshalling.sse.EventStreamUnmarshalling
 import akka.http.scaladsl.model.{ HttpHeader, HttpRequest, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
-import de.heikoseeberger.akkasse.{ EventStreamUnmarshalling, ServerSentEvent }
 import io.vamp.common.akka.{ CommonActorLogging, ExecutionContextProvider }
 import io.vamp.container_driver.ContainerChangeEvent
 import org.json4s.native.JsonMethods._
@@ -19,15 +20,15 @@ trait MarathonSse {
 
   import EventStreamUnmarshalling._
 
-  private implicit val formats = DefaultFormats
+  private implicit val formats: DefaultFormats = DefaultFormats
 
   def openEventStream(uri: Uri): Unit = {
-    implicit val actorMaterializer = ActorMaterializer()(context)
+    implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()(context)
     Source.single(HttpRequest(uri = "/v2/events", headers = List(HttpHeader.parse("Accept", "text/event-stream").asInstanceOf[ParsingResult.Ok].header)))
       .via(Http()(context.system).outgoingConnection(uri.authority.host.address, uri.authority.port))
       .mapAsync(1)(Unmarshal(_).to[Source[ServerSentEvent, NotUsed]])
       .runForeach(_.runForeach { e ⇒
-        e.`type`.foreach(t ⇒ e.data.foreach(d ⇒ onEvent(t → d)))
+        e.eventType.foreach(t ⇒ onEvent(t → e.data))
       })
   }
 

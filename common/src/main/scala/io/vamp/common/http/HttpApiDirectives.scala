@@ -9,7 +9,9 @@ import akka.http.scaladsl.model.headers.CacheDirectives._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{ HttpEntity, _ }
 import akka.http.scaladsl.server.{ Directive0, Directives, MalformedHeaderRejection, Route }
-import ch.megard.akka.http.cors.{ CorsDirectives, CorsSettings, HttpHeaderRange }
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives
+import ch.megard.akka.http.cors.scaladsl.model.HttpHeaderRange
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import io.vamp.common.json.PrettyJson
 import io.vamp.common.notification.NotificationErrorException
 import org.json4s.Formats

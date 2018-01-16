@@ -1,8 +1,8 @@
 package io.vamp.http_api
 
+import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling
 import akka.http.scaladsl.model.StatusCodes._
 import akka.util.Timeout
-import de.heikoseeberger.akkasse.EventStreamMarshalling
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.{ Config, Namespace }
 import io.vamp.operation.controller.EventApiController
