@@ -19,7 +19,7 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
       value = Some("evVarValue"), interpolated = Some("simpleInterpolatedValue"))
 
     // Create and retrieve; See that the object is there
-    val envVarId = simpleAwait(VampPersistence().create(simpleEnvVar))
+    val envVarId = simpleAwait(VampPersistence().create(simpleEnvVar, false))
     assert(simpleAwait(VampPersistence().read(envVarId)) == simpleEnvVar)
 
     // Cannot create two objects with the same Id
@@ -29,20 +29,20 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
 
     // Cannot modify the id of an object
     the[VampPersistenceModificationException[_]] thrownBy {
-      simpleAwait(VampPersistence().update(envVarId, (e: EnvironmentVariable) ⇒ e.copy(name = "modifiedName")))
+      simpleAwait(VampPersistence().update(envVarId, (e: EnvironmentVariable) ⇒ e.copy(name = "modifiedName"), false))
     }
 
     val modifiedEnvVar = EnvironmentVariable(name = "SimpleEnvVar", alias = Some("modified_envVarAlias"),
       value = Some("modified_evVarValue"), interpolated = Some("modified_simpleInterpolatedValue"))
 
     // Verify modification
-    simpleAwait(VampPersistence().update(envVarId, (e: EnvironmentVariable) ⇒ modifiedEnvVar))
+    simpleAwait(VampPersistence().update(envVarId, ((e: EnvironmentVariable) ⇒ modifiedEnvVar), false))
     assert(simpleAwait(VampPersistence().read(envVarId)) == modifiedEnvVar)
 
     // Verify that we cannot delete, update or retrieve an object that doesn't exist
     the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().read(Id[EnvironmentVariable]("non_existent")))
-    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().deleteObject(Id[EnvironmentVariable]("non_existent")))
-    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().update(Id[EnvironmentVariable]("non_existent"), (e: EnvironmentVariable) ⇒ e.copy()))
+    simpleAwait(VampPersistence().deleteObject(Id[EnvironmentVariable]("non_existent"), false))
+    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().update(Id[EnvironmentVariable]("non_existent"), (e: EnvironmentVariable) ⇒ e.copy(), false))
 
     // Verify Deletion
     simpleAwait(VampPersistence().deleteObject(envVarId))
@@ -62,7 +62,7 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
 
     // Create 100 objects in paralel
     envVarList.grouped(20).toList.map(
-      objectList ⇒ simpleAwait(Future.sequence(objectList.map(eVar ⇒ VampPersistence().create(eVar))))
+      objectList ⇒ simpleAwait(Future.sequence(objectList.map(eVar ⇒ VampPersistence().create(eVar, false))))
     )
 
     // Reindex objects so they are searchable

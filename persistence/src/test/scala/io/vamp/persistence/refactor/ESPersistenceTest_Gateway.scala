@@ -36,7 +36,7 @@ class ESPersistenceTest_Gateway extends fixture.FlatSpec with Matchers with UseE
     val gateway1 = exampleGateway
 
     // Create and retrieve; See that the object is there
-    val gateway1Id = simpleAwait(VampPersistence().create(gateway1))
+    val gateway1Id = simpleAwait(VampPersistence().create(gateway1, false))
     assert(simpleAwait(VampPersistence().read(gateway1Id)) == gateway1)
   }
 

@@ -51,7 +51,7 @@ class ESPersistenceTest_RestrictedAny extends fixture.FlatSpec with Matchers wit
         ))
       )))
 
-    val gateway1Id = simpleAwait(VampPersistence().create(obj1))
+    val gateway1Id = simpleAwait(VampPersistence().create(obj1, false))
     assert(simpleAwait(VampPersistence().read(gateway1Id)) == obj1)
   }
 

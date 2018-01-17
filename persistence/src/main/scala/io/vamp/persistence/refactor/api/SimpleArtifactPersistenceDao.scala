@@ -1,11 +1,11 @@
 package io.vamp.persistence.refactor.api
 
 import akka.actor.ActorSystem
-import io.vamp.common.{ Id, Namespace }
-import io.vamp.model.artifact.{ Deployment, Gateway }
+import io.vamp.common.{Id, Namespace}
+import io.vamp.model.artifact.{Deployment, Gateway}
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Created by mihai on 11/10/17.
@@ -14,17 +14,17 @@ trait SimpleArtifactPersistenceDao {
 
   def namespace: Namespace
 
-  def create[T: SerializationSpecifier](obj: T): Future[Id[T]]
+  def create[T: SerializationSpecifier](obj: T, archive: Boolean = true): Future[Id[T]]
 
-  def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]]
+  def createOrUpdate[T: SerializationSpecifier](obj: T, archive: Boolean = true): Future[Id[T]]
 
   def read[T: SerializationSpecifier](id: Id[T]): Future[T]
 
   def readIfAvailable[T: SerializationSpecifier](id: Id[T]): Future[Option[T]]
 
-  def update[T: SerializationSpecifier](id: Id[T], udateFunction: T ⇒ T): Future[Unit]
+  def update[T: SerializationSpecifier](id: Id[T], udateFunction: T ⇒ T, archive: Boolean = true): Future[Unit]
 
-  def deleteObject[T: SerializationSpecifier](id: Id[T]): Future[Unit]
+  def deleteObject[T: SerializationSpecifier](id: Id[T], archive: Boolean = true): Future[Unit]
 
   def getAll[T: SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]]
 

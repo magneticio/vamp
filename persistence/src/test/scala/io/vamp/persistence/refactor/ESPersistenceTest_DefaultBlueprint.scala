@@ -2,7 +2,7 @@ package io.vamp.persistence.refactor
 
 import io.vamp.common.{Namespace, RootAnyMap}
 import io.vamp.model.artifact._
-import io.vamp.persistence.refactor.serialization.{SerializationSpecifier, VampJsonFormats}
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import org.scalatest.{BeforeAndAfterEach, Matchers, fixture}
 
 /**
@@ -19,12 +19,12 @@ class ESPersistenceTest_DefaultBlueprint extends fixture.FlatSpec with Matchers 
     dialects = RootAnyMap.empty)
 
     // Create and retrieve; See that the object is there
-    val blueprint1Id = simpleAwait(VampPersistence().create(blueprint1.asInstanceOf[Blueprint]))
+    val blueprint1Id = simpleAwait(VampPersistence().create(blueprint1.asInstanceOf[Blueprint], false))
     assert(simpleAwait(VampPersistence().read(blueprint1Id)) == blueprint1)
 
     val blueprint2: Blueprint = blueprint1.copy(name = "blueprint002")
     // Create and retrieve; See that the object is there
-    val blueprint2Id = simpleAwait(VampPersistence().create[Blueprint](blueprint2))
+    val blueprint2Id = simpleAwait(VampPersistence().create[Blueprint](blueprint2, false))
     assert(simpleAwait(VampPersistence().read(blueprint2Id)) == blueprint2)
   }
 

@@ -1,30 +1,29 @@
 package io.vamp.persistence.refactor.dao
 
-import akka.actor.{ ActorSystem, Props }
+import akka.actor.{ActorSystem, Props}
+import akka.util.{Timeout}
+import akka.pattern.ask
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ ElasticsearchClientUri, IndexAndType, TcpClient }
+import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import io.vamp.common.{ Config, Id, Namespace }
+import io.vamp.common._
 import io.vamp.persistence.refactor.api._
-import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
+import io.vamp.persistence.refactor.exceptions.{DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException}
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
-import scala.util.{ Failure, Success, Try }
-import akka.pattern.ask
-import akka.util.Timeout
-import io.vamp.model.artifact.Deployment
-import io.vamp.model.artifact.DeploymentService.Status.Intention
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by mihai on 11/10/17.
  */
-class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String, testingContext: Boolean = false)(implicit actorSystem: ActorSystem) extends SimpleArtifactPersistenceDao {
+class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String, testingContext: Boolean = false)(implicit actorSystem: ActorSystem)
+    extends SimpleArtifactPersistenceDao with PersistToArchive {
   implicit val ns: Namespace = namespace
   private[persistence] val indexName = s"vamp_${namespace.name}"
 
@@ -52,16 +51,16 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     client
   }
 
-  lazy val lockActor = actorSystem.actorOf(Props[SimpleLock], "eslockactor")
-  implicit val timeOut: Timeout = akka.util.Timeout(6 second)
+  lazy val lockActor = actorSystem.actorOf(Props[SimpleLock], s"${namespace.name}_eslockactor")
+  implicit val timeOut: Timeout = Timeout(6.second)
 
   import java.util.concurrent.locks.ReentrantLock
 
   val lock = new ReentrantLock()
 
-  override def create[T: SerializationSpecifier](obj: T): Future[Id[T]] = executeLocked(createWithoutLock(obj))
+  override def create[T: SerializationSpecifier](obj: T, archive: Boolean = true): Future[Id[T]] = executeLocked(createWithoutLock(obj, archive))
 
-  private def createWithoutLock[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
+  private def createWithoutLock[T: SerializationSpecifier](obj: T, archive: Boolean = true): Future[Id[T]] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     val newObjectId = sSpecifier.idExtractor(obj)
     implicit val jsonEncoder = sSpecifier.encoder
@@ -73,16 +72,17 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       _ ← esClient.execute {
         (indexInto(indexName, sSpecifier.typeName) doc (obj.asJson.noSpaces) id (newObjectId)).copy(createOnly = Some(true))
       }
+      _ <- if(archive) archiveCreate(name = newObjectId.value, artifact = obj, sourceAsString = (obj.asJson.noSpaces)) else Future.successful(UnitPlaceholder)
     } yield newObjectId
   }
 
-  override def createOrUpdate[T: SerializationSpecifier](obj: T): Future[Id[T]] = {
+  override def createOrUpdate[T: SerializationSpecifier](obj: T, archive: Boolean = true): Future[Id[T]] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     executeLocked(for {
       existing ← readIfAvailable(sSpecifier.idExtractor(obj))
       _ ← existing match {
-        case None    ⇒ createWithoutLock(obj)
-        case Some(_) ⇒ updateWithoutLock(sSpecifier.idExtractor(obj), (_: T) ⇒ obj)
+        case None    ⇒ createWithoutLock(obj, archive)
+        case Some(_) ⇒ updateWithoutLock(sSpecifier.idExtractor(obj), (_: T) ⇒ obj, archive)
       }
     } yield sSpecifier.idExtractor(obj))
   }
@@ -111,10 +111,10 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     }
   }
 
-  override def update[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] =
-    executeLocked(updateWithoutLock(id, updateFunction))
+  override def update[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T, archive: Boolean = true): Future[Unit] =
+    executeLocked(updateWithoutLock(id, updateFunction, archive))
 
-  private def updateWithoutLock[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T): Future[Unit] = {
+  private def updateWithoutLock[T: SerializationSpecifier](id: Id[T], updateFunction: T ⇒ T, archive: Boolean = true): Future[Unit] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     implicit val jsonEncoder = sSpecifier.encoder
 
@@ -123,18 +123,28 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       updatedObject = updateFunction(currentObject.obj)
       _ ← if (sSpecifier.idExtractor(updatedObject) != id) Future.failed(VampPersistenceModificationException(s"Changing id to ${sSpecifier.idExtractor(updatedObject)}", id))
       else Future.successful(())
-      _ ← esClient.execute {
-        (indexInto(indexName, sSpecifier.typeName) doc (updatedObject.asJson.noSpaces) id (sSpecifier.idExtractor(updatedObject)) version currentObject.version)
+      _ <- if(currentObject.obj != updatedObject) {
+        val objectAsString = updatedObject.asJson.noSpaces
+        esClient.execute {
+            (indexInto(indexName, sSpecifier.typeName) doc objectAsString id (sSpecifier.idExtractor(updatedObject)) version currentObject.version)
+          }.flatMap(_ => if(archive) archiveUpdate(id.value, updatedObject, objectAsString) else Future.successful(UnitPlaceholder))
       }
+        else Future.successful()
     } yield ()
   }
 
-  override def deleteObject[T: SerializationSpecifier](objectId: Id[T]): Future[Unit] = {
+  override def deleteObject[T: SerializationSpecifier](objectId: Id[T], archive: Boolean = true): Future[Unit] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     executeLocked(for {
+      obj <- readIfAvailable(objectId)
       _ ← esClient.execute {
         delete(objectId.value) from (IndexAndType(indexName, sSpecifier.typeName))
       }
+      _ <- obj match {
+        case Some(o) if(archive) => archiveDelete(objectId.value, o)
+        case _ => Future.successful(UnitPlaceholder)
+      }
+
     } yield ())
   }
 

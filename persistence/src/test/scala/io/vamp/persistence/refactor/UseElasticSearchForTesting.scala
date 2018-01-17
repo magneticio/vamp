@@ -34,7 +34,7 @@ trait UseElasticSearchForTesting {
         "type" → "elasticsearch",
         "class-name" → "io.vamp.persistence.refactor.dao.EsDaoFactory",
         "elasticsearch.elasticsearch-url" → "elasticsearch://localhost:9300",
-        "elasticsearch.elasticsearch-cluster-name" → "vamp",
+        "elasticsearch.elasticsearch-cluster-name" → "elasticsearch",
         "elasticsearch.elasticsearch-test-cluster" → true
       ))
       Config.load(Config.unmarshall(Config.marshall(persistenceConfig), flatten = true))

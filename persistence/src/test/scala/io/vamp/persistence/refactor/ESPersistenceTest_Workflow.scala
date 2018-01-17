@@ -66,7 +66,7 @@ class ESPersistenceTest_Workflow extends fixture.FlatSpec with Matchers with Use
       ))
 
     // Create and retrieve; See that the object is there
-    val workflow1Id = simpleAwait(VampPersistence().create(workflow1))
+    val workflow1Id = simpleAwait(VampPersistence().create(workflow1, false))
     assert(simpleAwait(VampPersistence().read(workflow1Id)) == workflow1)
   }
 
@@ -87,14 +87,14 @@ class ESPersistenceTest_Workflow extends fixture.FlatSpec with Matchers with Use
     val obj7 = WorkflowStatusWrapper("7", Workflow.Status.Restarting(Some(Workflow.Status.RestartingPhase.Stopping)))
     val obj8 = WorkflowStatusWrapper("8", Workflow.Status.Restarting(None))
 
-    simpleAwait(VampPersistence().create(obj1))
-    simpleAwait(VampPersistence().create(obj2))
-    simpleAwait(VampPersistence().create(obj3))
-    simpleAwait(VampPersistence().create(obj4))
-    simpleAwait(VampPersistence().create(obj5))
-    simpleAwait(VampPersistence().create(obj6))
-    simpleAwait(VampPersistence().create(obj7))
-    simpleAwait(VampPersistence().create(obj8))
+    simpleAwait(VampPersistence().create(obj1, false))
+    simpleAwait(VampPersistence().create(obj2, false))
+    simpleAwait(VampPersistence().create(obj3, false))
+    simpleAwait(VampPersistence().create(obj4, false))
+    simpleAwait(VampPersistence().create(obj5, false))
+    simpleAwait(VampPersistence().create(obj6, false))
+    simpleAwait(VampPersistence().create(obj7, false))
+    simpleAwait(VampPersistence().create(obj8, false))
 
     assert(obj1 == simpleAwait(VampPersistence().read(statusWrapperSerilizationSpecifier.idExtractor(obj1))))
     assert(obj2 == simpleAwait(VampPersistence().read(statusWrapperSerilizationSpecifier.idExtractor(obj2))))
