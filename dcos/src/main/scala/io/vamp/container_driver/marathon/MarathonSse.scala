@@ -11,7 +11,6 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import io.vamp.common.akka.{ CommonActorLogging, ExecutionContextProvider }
-import io.vamp.container_driver.ContainerChangeEvent
 import org.json4s.native.JsonMethods._
 import org.json4s.{ DefaultFormats, StringInput }
 
@@ -37,7 +36,7 @@ trait MarathonSse {
       val ids = (parse(StringInput(data), useBigDecimalForDouble = true) \ "plan" \ "steps" \\ "actions" \ "app").extract[List[String]]
       ids.foreach { id ⇒
         log.info(s"marathon deployment event for: '$id'")
-        self ! ContainerChangeEvent(id)
+        // self ! ContainerChangeEvent(id)
       }
   }
 }

@@ -68,6 +68,8 @@ val fp = Seq(
   "org.typelevel" %% "cats" % "0.9.0",
   "com.chuusai"  %% "shapeless" % "2.3.2")
 
+val caching = Seq("com.github.cb372" %% "scalacache-caffeine" % "0.22.0")
+
 val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
 
 val configlbs = Seq("com.typesafe"  % "config" % "1.3.1")
@@ -184,7 +186,7 @@ lazy val container_driver = project.settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
-  libraryDependencies ++= testing,
+  libraryDependencies ++= caching ++ testing,
   bintrayRepository := "vamp"
 ).dependsOn(model, persistence, pulse)
 

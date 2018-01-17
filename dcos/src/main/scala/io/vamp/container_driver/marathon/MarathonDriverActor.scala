@@ -27,26 +27,26 @@ class MarathonDriverActorMapper extends ClassMapper {
 object MarathonDriverActor {
 
   private val config = "vamp.container-driver"
+  private val marathonConfig = "vamp.container-driver.marathon"
 
   val mesosUrl: ConfigMagnet[String] = Config.string(s"$config.mesos.url")
-  val marathonUrl: ConfigMagnet[String] = Config.string(s"$config.marathon.url")
+  val marathonUrl: ConfigMagnet[String] = Config.string(s"$marathonConfig.url")
 
-  val apiUser: ConfigMagnet[String] = Config.string(s"$config.marathon.user")
-  val apiPassword: ConfigMagnet[String] = Config.string(s"$config.marathon.password")
+  val apiUser: ConfigMagnet[String] = Config.string(s"$marathonConfig.user")
+  val apiPassword: ConfigMagnet[String] = Config.string(s"$marathonConfig.password")
+  val apiToken: ConfigMagnet[String] = Config.string(s"$marathonConfig.token")
 
-  val apiToken: ConfigMagnet[String] = Config.string(s"$config.marathon.token")
+  val sse: ConfigMagnet[Boolean] = Config.boolean(s"$marathonConfig.sse")
 
-  val sse: ConfigMagnet[Boolean] = Config.boolean(s"$config.marathon.sse")
-  val expirationPeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$config.marathon.expiration-period")
-  val reconciliationPeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$config.marathon.reconciliation-period")
+  val readTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.read-time-to-live")
+  val writeTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.write-time-to-live")
 
-  val namespaceConstraint: ConfigMagnet[List[String]] = Config.stringList(s"$config.marathon.namespace-constraint")
+  val namespaceConstraint: ConfigMagnet[List[String]] = Config.stringList(s"$marathonConfig.namespace-constraint")
 
-  val tenantIdOverride: ConfigMagnet[String] = Config.string(s"$config.marathon.tenant-id-override")
+  val tenantIdOverride: ConfigMagnet[String] = Config.string(s"$marathonConfig.tenant-id-override")
+  val tenantIdWorkflowOverride: ConfigMagnet[String] = Config.string(s"$marathonConfig.tenant-id-workflow-override")
 
-  val tenantIdWorkflowOverride: ConfigMagnet[String] = Config.string(s"$config.marathon.tenant-id-workflow-override")
-
-  val useBreedNameForServiceName: ConfigMagnet[Boolean] = Config.boolean(s"$config.marathon.use-breed-name-for-service-name")
+  val useBreedNameForServiceName: ConfigMagnet[Boolean] = Config.boolean(s"$marathonConfig.use-breed-name-for-service-name")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -63,11 +63,11 @@ case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
 class MarathonDriverActor
     extends ContainerDriverActor
-    with MarathonSse
     with MarathonNamespace
     with ActorExecutionContextProvider
     with ContainerDriver
     with HealthCheckMerger
+    with ContainerDriverCache
     with NamespaceValueResolver {
 
   import ContainerDriverActor._
@@ -78,9 +78,8 @@ class MarathonDriverActor
 
   lazy val useBreedNameForServiceName: Option[Boolean] = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
 
-  protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
-
-  protected val reconciliationPeriod = MarathonDriverActor.reconciliationPeriod()
+  lazy val readTimeToLivePeriod: FiniteDuration = MarathonDriverActor.readTimeToLivePeriod()
+  lazy val writeTimeToLivePeriod: FiniteDuration = MarathonDriverActor.writeTimeToLivePeriod()
 
   private val url = MarathonDriverActor.marathonUrl()
 
@@ -201,26 +200,26 @@ class MarathonDriverActor
     }
   }
 
-  private def get(id: String, embedTasks: Boolean = true, embedStats: Boolean = true): Future[Option[App]] = {
-    val params = s"${if (embedTasks) "&embed=apps.tasks" else ""}${if (embedStats) "&embed=apps.taskStats" else ""}"
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id$params", headers, logError = false)
+  private def get(id: String): Future[Option[App]] = getOrPutIfAbsent(s"r$id", () ⇒ {
+    log.info(s"marathon sending request: $id")
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
       .recover {
         case t: Throwable ⇒
           log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
           None
         case _ ⇒
-          log.warning(s"Unknown errow while getting app id: $id")
+          log.warning(s"Unknown error while getting app id: $id")
           None
       }
       .map {
         case apps: AppsResponse ⇒
-          logger.debug(s"apps: for $id => $apps")
+          log.debug(s"apps: for $id => $apps")
           apps.apps.find(app ⇒ app.id == id)
         case _ ⇒
-          logger.info(s"no app: for $id")
+          log.info(s"no app: for $id")
           None
       }
-  }
+  })(readTimeToLivePeriod)
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
 
@@ -416,13 +415,12 @@ class MarathonDriverActor
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      get(id, embedStats = false).flatMap { response ⇒
+      get(id).flatMap { response ⇒
         val changed = Extraction.decompose(response).children.headOption match {
           case Some(app) ⇒ app.diff(payload).changed
           case None      ⇒ payload
         }
-        if (changed != JNothing)
-          httpClient.put[Any](s"$url/v2/apps/$id", changed, headers)
+        if (changed != JNothing) getOrPutIfAbsent(s"w$id", () ⇒ httpClient.put[Any](s"$url/v2/apps/$id", changed, headers))(writeTimeToLivePeriod)
         else {
           log.info(s"Nothing has changed in app $id configuration")
           Future.successful(false)
@@ -430,12 +428,14 @@ class MarathonDriverActor
       }
     }
     else {
-      httpClient.post[Any](s"$url/v2/apps", payload, headers, logError = false).recover {
-        case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
-        case t ⇒
-          log.error(t, t.getMessage)
-          Future.failed(t)
-      }
+      getOrPutIfAbsent(s"w$id", () ⇒ {
+        httpClient.post[Any](s"$url/v2/apps", payload, headers, logError = false).recover {
+          case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
+          case t ⇒
+            log.error(t, t.getMessage)
+            Future.failed(t)
+        }
+      })(writeTimeToLivePeriod)
     }
   }
 
@@ -497,13 +497,13 @@ class MarathonDriverActor
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
+    getOrPutIfAbsent(s"w$id", () ⇒ httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None })(writeTimeToLivePeriod)
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
+    getOrPutIfAbsent(s"w$id", () ⇒ httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None })(writeTimeToLivePeriod)
   }
 
   private def containers(app: App): Containers = {
@@ -522,11 +522,11 @@ class MarathonDriverActor
       portsAndIpForUserNetwork match {
         case None ⇒
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports for ${task.id} => ${task.ports} network: $network")
+          log.info(s"Ports for ${task.id} => ${task.ports} network: $network")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
         case Some(portsAndIp) ⇒
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
+          log.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
       }
     })
