@@ -11,14 +11,16 @@ import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.WorkflowValueResolver
-import io.vamp.persistence.ArtifactSupport
+import io.vamp.persistence.{ ArtifactSupport, KeyValueStoreActor }
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 import io.vamp.common.Id
+import io.vamp.common.akka.IoC.actorFor
 import io.vamp.persistence.refactor.exceptions.PersistenceTypeError
+import akka.pattern.ask
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -108,6 +110,7 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
             )
           )
           afterUpdateWorkflow ← VampPersistence().read[Workflow](workflowSerilizationSpecifier.idExtractor(workflow))
+          _ ← actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(defaultBreed.deployable.definition))
         } yield afterUpdateWorkflow
       }
     }
