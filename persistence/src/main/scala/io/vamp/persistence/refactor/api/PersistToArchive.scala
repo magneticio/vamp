@@ -1,23 +1,23 @@
 package io.vamp.persistence.refactor.api
 
 import akka.actor.ActorSystem
-import io.vamp.common.{Namespace, UnitPlaceholder}
+import io.vamp.common.{ Namespace, UnitPlaceholder }
 import io.vamp.common.akka.IoC
 import io.vamp.model.event.Event
-import io.vamp.persistence.PersistenceArchive.{archiveCreateTag, archiveDeleteTag, archiveUpdateTag, eventType}
+import io.vamp.persistence.PersistenceArchive.{ archiveCreateTag, archiveDeleteTag, archiveUpdateTag, eventType }
 import io.vamp.pulse.PulseActor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.model.artifact._
-import io.vamp.persistence.{DeploymentServiceScale, WorkflowStatus}
+import io.vamp.persistence.{ DeploymentServiceScale, WorkflowStatus }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * Created by mihai on 1/16/18.
-  */
+ * Created by mihai on 1/16/18.
+ */
 trait PersistToArchive {
 
   implicit def timeout: Timeout = Timeout(5.seconds)
@@ -35,7 +35,7 @@ trait PersistToArchive {
     tagFor(name, `type`) match {
       case Some(artifactTag) ⇒
         val event = Event(Set(artifactTag, archiveTag), sourceAsString.map(_.filterNot(_ == '\"')), `type` = eventType)
-        (IoC.actorFor[PulseActor] ? PulseActor.Publish(event)).map(_ => UnitPlaceholder)
+        (IoC.actorFor[PulseActor] ? PulseActor.Publish(event)).map(_ ⇒ UnitPlaceholder)
       case _ ⇒ Future.successful(UnitPlaceholder)
     }
   }

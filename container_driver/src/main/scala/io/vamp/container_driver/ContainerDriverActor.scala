@@ -1,15 +1,14 @@
 package io.vamp.container_driver
 
 import akka.actor.ActorRef
-import io.vamp.common.Config
+import io.vamp.common.{Config, Id, UnitPlaceholder}
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
-import io.vamp.model.artifact.{ Deployment, _ }
+import io.vamp.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError}
+import io.vamp.model.artifact.{Deployment, _}
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.common.Id
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
@@ -89,9 +88,14 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
   }
 
   protected def setGatewayService(gateway: Gateway, host: String, port: Int) = {
-    VampPersistence().update(Id[Gateway](gateway.name), (g: Gateway) ⇒ g.copy(
-      service = Some(GatewayService(host, gateway.port.copy(number = port) match { case p ⇒ p.copy(value = Option(p.toValue)) }))
-    ))
+    for {
+     _ <-  VampPersistence().update[Gateway](Id[Gateway](gateway.name), (g: Gateway) ⇒ g.copy(
+        service = Some(GatewayService(host, gateway.port.copy(number = port) match { case p ⇒ p.copy(value = Option(p.toValue)) }))
+      ))
+     finalGateway ← VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
+     _ ← VampPersistence().updateGatewayForDeployment(finalGateway)
+    }yield UnitPlaceholder
+
   }
 
   override def errorNotificationClass = classOf[ContainerResponseError]

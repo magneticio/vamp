@@ -133,37 +133,35 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   this: CommonProvider with VampJsonFormats ⇒
 
   def deploymentForBlueprint(blueprint: Blueprint): Future[Deployment] = {
-    VampPersistence().read[Blueprint](Id[Blueprint](blueprint.name)) flatMap { blueprint ⇒
-      val bp = if (blueprint.isInstanceOf[DefaultBlueprint]) blueprint.asInstanceOf[DefaultBlueprint]
-      else throw PersistenceTypeError(objectId = Id[Blueprint](blueprint.name), objectTypeName = blueprint.getClass.getName, desiredTypeName = "DefaultBlueprint")
-      val clusters = bp.clusters.map { cluster ⇒
-        for {
-          services ← Future.traverse(cluster.services)({ service ⇒
-            for {
-              breed ← VampPersistence().read[Breed](Id[Breed](service.breed.name))
-              defaultBreed = if (breed.isInstanceOf[DefaultBreed]) breed.asInstanceOf[DefaultBreed] else throw PersistenceTypeError(Id[Breed](breed.name), breed.getClass.getName, "DefaultBreed")
-              defaultScale = service.scale match {
-                case None ⇒ None
-                case Some(s) ⇒ if (s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale])
-                else throw GeneralPersistenceError(Id[DefaultBlueprint](bp.name), s"The internal scale object ${service.scale} is of type ${service.scale.getClass} instead of the expected DefaultScale")
-              }
-            } yield {
-              DeploymentService(Intention.Deployment, defaultBreed, service.environmentVariables, defaultScale, Nil, arguments(defaultBreed, service), service.healthChecks, service.network, Map(), service.dialects)
-            }
-          })
-          gateways ← expandGateways(cluster.gateways)
-
-        } yield {
-          DeploymentCluster(cluster.name, cluster.metadata, services, processAnonymousInternalGateways(services, gateways), cluster.healthChecks, cluster.network, cluster.sla, cluster.dialects)
-        }
-      }
-
+    val bp = if (blueprint.isInstanceOf[DefaultBlueprint]) blueprint.asInstanceOf[DefaultBlueprint]
+    else throw PersistenceTypeError(objectId = Id[Blueprint](blueprint.name), objectTypeName = blueprint.getClass.getName, desiredTypeName = "DefaultBlueprint")
+    val clusters = bp.clusters.map { cluster ⇒
       for {
-        c ← Future.sequence(clusters)
-        g ← expandGateways(bp.gateways)
+        services ← Future.traverse(cluster.services)({ service ⇒
+          for {
+            breed ← VampPersistence().read[Breed](Id[Breed](service.breed.name))
+            defaultBreed = if (breed.isInstanceOf[DefaultBreed]) breed.asInstanceOf[DefaultBreed] else throw PersistenceTypeError(Id[Breed](breed.name), breed.getClass.getName, "DefaultBreed")
+            defaultScale = service.scale match {
+              case None ⇒ None
+              case Some(s) ⇒ if (s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale])
+              else throw GeneralPersistenceError(Id[DefaultBlueprint](bp.name), s"The internal scale object ${service.scale} is of type ${service.scale.getClass} instead of the expected DefaultScale")
+            }
+          } yield {
+            DeploymentService(Intention.Deployment, defaultBreed, service.environmentVariables, defaultScale, Nil, arguments(defaultBreed, service), service.healthChecks, service.network, Map(), service.dialects)
+          }
+        })
+        gateways ← expandGateways(cluster.gateways)
+
       } yield {
-        Deployment(blueprint.name, blueprint.metadata, c, g, Nil, bp.environmentVariables, Nil, bp.dialects)
+        DeploymentCluster(cluster.name, cluster.metadata, services, processAnonymousInternalGateways(services, gateways), cluster.healthChecks, cluster.network, cluster.sla, cluster.dialects)
       }
+    }
+
+    for {
+      c ← Future.sequence(clusters)
+      g ← expandGateways(bp.gateways)
+    } yield {
+      Deployment(blueprint.name, blueprint.metadata, c, g, Nil, bp.environmentVariables, Nil, bp.dialects)
     }
   }
 
@@ -569,12 +567,13 @@ trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOpe
 trait DeploymentSlicer extends DeploymentGatewayOperation {
   this: DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
-  def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster ⇒
-    blueprint.clusters.find(_.name == cluster.name).foreach { bpc ⇒
-      val services = cluster.services.filterNot(service ⇒ bpc.services.exists(_.breed.name == service.breed.name))
-      services.flatMap(_.breed.ports).map(_.name).toSet[String].foreach { port ⇒
-        val weight = weightOf(cluster, services, port)
-        if (weight != 100 && !(weight == 0 && services.isEmpty)) throwException(InvalidRouteWeight(deployment, cluster, port, weight))
+  def validateRoutingWeightOfServicesForRemoval(actualDeployment: Deployment, deploymentForBlueprint: Deployment) = actualDeployment.clusters.foreach { actualCluster ⇒
+    deploymentForBlueprint.clusters.find(_.name == actualCluster.name).foreach { bpc ⇒
+      val servicesNotFound = actualCluster.services.filterNot(service ⇒ bpc.services.exists(_.breed.name == service.breed.name))
+      servicesNotFound.flatMap(_.breed.ports).map(_.name).toSet[String].foreach { port ⇒
+        val weight = weightOf(actualCluster, servicesNotFound, port)
+        if (weight != 100 && !(weight == 0 && servicesNotFound.isEmpty))
+          throwException(InvalidRouteWeight(actualDeployment, actualCluster, port, weight))
       }
     }
   }

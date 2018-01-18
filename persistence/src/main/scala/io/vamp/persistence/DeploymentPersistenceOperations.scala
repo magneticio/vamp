@@ -129,13 +129,16 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
         cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
       }) map { p ⇒ p.name → p } toMap
 
+      clustersThatAreStillAlive = deployment.clusters.map(c => c.copy(services = c.services.filterNot(_.status.isUndeployed))).filter(_.services.size > 0)
+
       updatedDeployment = deployment.copy(
+        clusters = clustersThatAreStillAlive,
         hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList
       )
 
       _ ← VampPersistence().update[Deployment](deploymentId, _ ⇒ updatedDeployment)
 
-      clustersThatAreStillAlive = updatedDeployment.clusters.flatMap(_.services).filterNot(_.status.isUndeployed)
+
       _ ← if (clustersThatAreStillAlive.size > 0) Future.successful() else {
         VampPersistence().deleteObject[Deployment](deploymentId)
       }

@@ -1,7 +1,7 @@
 package io.vamp.persistence.refactor.dao
 
 import akka.actor.{ActorSystem, Props}
-import akka.util.{Timeout}
+import akka.util.Timeout
 import akka.pattern.ask
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}

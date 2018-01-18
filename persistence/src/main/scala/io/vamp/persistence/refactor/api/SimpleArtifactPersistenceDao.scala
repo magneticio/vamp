@@ -1,11 +1,11 @@
 package io.vamp.persistence.refactor.api
 
 import akka.actor.ActorSystem
-import io.vamp.common.{Id, Namespace}
-import io.vamp.model.artifact.{Deployment, Gateway}
+import io.vamp.common.{ Id, Namespace }
+import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 /**
  * Created by mihai on 11/10/17.
@@ -45,7 +45,21 @@ trait SimpleArtifactPersistenceDao {
       deploymentsThatNeedUpdate = deployments.filter(_.clusters.exists(_.gateways.exists(_.name == gateway.name)))
       _ ← Future.sequence(deploymentsThatNeedUpdate.map(deployment ⇒ update[Deployment](
         sSpecifier.idExtractor(deployment),
-        d ⇒ d.copy(clusters = d.clusters.map(c ⇒ c.copy(gateways = c.gateways.map(g ⇒ if (g.name == gateway.name) gateway else g))))
+        d ⇒ d.copy(clusters = d.clusters.map(c ⇒ c.copy(gateways = c.gateways.map(g ⇒ if (g.name == gateway.name)
+        // This is a hack because internal-gateway-port-names are not allowed to modify. It corresponds to the PersistenceMultiplexer ->
+          /*gateways ← Future.sequence {
+              cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
+                val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
+                get(name, classOf[InternalGateway]).flatMap {
+                  case Some(InternalGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
+                  case _                        ⇒ Future.successful(gateway)
+                } map { g ⇒
+                  g.copy(name = name, port = g.port.copy(name = gateway.port.name)) !!! THIS LINE!!!!!
+                }
+              }
+            }*/
+        gateway.copy(port = gateway.port.copy(name = g.port.name))
+        else g))))
       )))
     } yield ()
   }
