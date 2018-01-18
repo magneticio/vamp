@@ -1,6 +1,7 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.{ Actor, ActorRef }
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
@@ -64,10 +65,11 @@ case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 class MarathonDriverActor
     extends ContainerDriverActor
     with MarathonNamespace
+    with MarathonCache
+    with MarathonSse
     with ActorExecutionContextProvider
     with ContainerDriver
     with HealthCheckMerger
-    with ContainerDriverCache
     with NamespaceValueResolver {
 
   import ContainerDriverActor._
@@ -78,12 +80,13 @@ class MarathonDriverActor
 
   lazy val useBreedNameForServiceName: Option[Boolean] = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
 
-  lazy val readTimeToLivePeriod: FiniteDuration = MarathonDriverActor.readTimeToLivePeriod()
-  lazy val writeTimeToLivePeriod: FiniteDuration = MarathonDriverActor.writeTimeToLivePeriod()
+  private val sse: Boolean = MarathonDriverActor.sse()
 
   private val url = MarathonDriverActor.marathonUrl()
 
-  private implicit val formats: Formats = DefaultFormats
+  private val infoUrl = s"$url/v2/info"
+  private val appsUrl = s"$url/v2/apps"
+  private val eventsUrl = s"$url/v2/events"
 
   private val headers: List[(String, String)] = {
     val token = MarathonDriverActor.apiToken()
@@ -92,6 +95,8 @@ class MarathonDriverActor
     else
       List("Authorization" → s"token=$token")
   }
+
+  private implicit val formats: Formats = DefaultFormats
 
   override protected def supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: CommandDeployableType :: Nil
 
@@ -108,8 +113,13 @@ class MarathonDriverActor
     case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
+    case event: ServerSentEvent         ⇒ process(event)
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
+
+  override def preStart(): Unit = if (sse) openSseStream(eventsUrl, headers, tlsCheck = httpClient.tlsCheck)
+
+  override def postStop(): Unit = if (sse) closeSseStream()
 
   private def info: Future[Any] = {
 
@@ -122,7 +132,7 @@ class MarathonDriverActor
     for {
       slaves ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/slaves", headers)
       frameworks ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/frameworks", headers)
-      marathon ← httpClient.get[Any](s"$url/v2/info", headers)
+      marathon ← httpClient.get[Any](infoUrl, headers)
     } yield {
 
       val s: Any = slaves match {
@@ -200,9 +210,9 @@ class MarathonDriverActor
     }
   }
 
-  private def get(id: String): Future[Option[App]] = getOrPutIfAbsent(s"r$id", () ⇒ {
+  private def get(id: String): Future[Option[App]] = readCached(id, () ⇒ {
     log.info(s"marathon sending request: $id")
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
+    httpClient.get[AppsResponse](s"$appsUrl?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
       .recover {
         case t: Throwable ⇒
           log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
@@ -219,7 +229,7 @@ class MarathonDriverActor
           log.info(s"no app: for $id")
           None
       }
-  })(readTimeToLivePeriod)
+  })
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
 
@@ -420,7 +430,7 @@ class MarathonDriverActor
           case Some(app) ⇒ app.diff(payload).changed
           case None      ⇒ payload
         }
-        if (changed != JNothing) getOrPutIfAbsent(s"w$id", () ⇒ httpClient.put[Any](s"$url/v2/apps/$id", changed, headers))(writeTimeToLivePeriod)
+        if (changed != JNothing) writeCached(id, () ⇒ httpClient.put[Any](s"$appsUrl/$id", changed, headers))
         else {
           log.info(s"Nothing has changed in app $id configuration")
           Future.successful(false)
@@ -428,14 +438,14 @@ class MarathonDriverActor
       }
     }
     else {
-      getOrPutIfAbsent(s"w$id", () ⇒ {
-        httpClient.post[Any](s"$url/v2/apps", payload, headers, logError = false).recover {
+      writeCached(id, () ⇒ {
+        httpClient.post[Any](appsUrl, payload, headers, logError = false).recover {
           case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
           case t ⇒
             log.error(t, t.getMessage)
             Future.failed(t)
         }
-      })(writeTimeToLivePeriod)
+      })
     }
   }
 
@@ -497,13 +507,13 @@ class MarathonDriverActor
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    getOrPutIfAbsent(s"w$id", () ⇒ httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None })(writeTimeToLivePeriod)
+    writeCached(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover { case _ ⇒ None })
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    getOrPutIfAbsent(s"w$id", () ⇒ httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None })(writeTimeToLivePeriod)
+    writeCached(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover { case _ ⇒ None })
   }
 
   private def containers(app: App): Containers = {

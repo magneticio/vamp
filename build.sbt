@@ -36,6 +36,7 @@ val akka = "com.typesafe.akka" %% "akka-stream" % "2.5.9" ::
   "com.typesafe.akka" %% "akka-http" % "10.0.11" ::
   "com.typesafe.akka" %% "akka-parsing" % "10.0.11" ::
   "ch.megard" %% "akka-http-cors" % "0.2.2" ::
+  "com.lightbend.akka" %% "akka-stream-alpakka-sse" % "0.16" ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.5.9" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
@@ -186,7 +187,7 @@ lazy val container_driver = project.settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
-  libraryDependencies ++= caching ++ testing,
+  libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(model, persistence, pulse)
 
@@ -218,7 +219,7 @@ lazy val common = project.settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing,
+  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ caching ++ testing,
   bintrayRepository := "vamp"
 )
 

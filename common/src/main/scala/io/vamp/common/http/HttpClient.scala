@@ -6,10 +6,11 @@ import javax.net.ssl.{ KeyManager, SSLContext, X509TrustManager }
 
 import akka.actor.ActorSystem
 import akka.http.javadsl.model.RequestEntity
+import akka.http.scaladsl.Http.HostConnectionPool
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.{ Http, HttpsConnectionContext }
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 import akka.util.{ ByteString, Timeout }
 import com.typesafe.scalalogging.Logger
@@ -44,19 +45,23 @@ object HttpClient {
     }
     else headers
   }
-}
 
-class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val namespace: Namespace, formats: Formats = DefaultFormats) {
+  def pool[T](uri: Uri, tlsCheck: Boolean)(implicit system: ActorSystem): Flow[(HttpRequest, T), (Try[HttpResponse], T), HostConnectionPool] = {
+    uri.scheme match {
+      case "https" ⇒
+        val host = uri.authority.host.address
+        val port = if (uri.authority.port > 0) uri.authority.port else 443
+        if (tlsCheck)
+          Http().cachedHostConnectionPoolHttps[T](host, port)
+        else
+          Http().cachedHostConnectionPoolHttps[T](host, port, connectionContext = noCheckHttpsConnectionContext)
 
-  import HttpClient._
-
-  private val tlsCheck = HttpClient.tlsCheck()
-
-  private val logger = Logger(LoggerFactory.getLogger(getClass))
-
-  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-
-  implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
+      case _ ⇒
+        val host = uri.authority.host.address
+        val port = if (uri.authority.port > 0) uri.authority.port else 80
+        Http().cachedHostConnectionPool[T](host, port)
+    }
+  }
 
   private lazy val noCheckHttpsConnectionContext = new HttpsConnectionContext({
 
@@ -72,6 +77,19 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
     context.init(Array[KeyManager](), Array(NoCheckX509TrustManager), null)
     context
   })
+}
+
+class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val namespace: Namespace, formats: Formats = DefaultFormats) {
+
+  import HttpClient._
+
+  val tlsCheck = HttpClient.tlsCheck()
+
+  private val logger = Logger(LoggerFactory.getLogger(getClass))
+
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+  implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
 
   def get[A](url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](HttpMethods.GET, url, None, headers, jsonContentType, logError)
@@ -131,7 +149,7 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
     def decode(entity: ResponseEntity): Future[String] = entity.toStrict(timeout.duration).map(_.data.decodeString("UTF-8"))
 
     Source.single(requestWithEntity → 1)
-      .via(pool(requestUri))
+      .via(pool[Any](requestUri, tlsCheck))
       .recover(recoverWith)
       .runWith(Sink.head).flatMap {
         case (Success(HttpResponse(status, _, entity, _)), _) ⇒ status.intValue() match {
@@ -160,21 +178,6 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
 
         case (Failure(f), _) ⇒ throw new RuntimeException(f.getMessage)
       }
-  }
-
-  private def pool(uri: Uri) = uri.scheme match {
-    case "https" ⇒
-      val host = uri.authority.host.address
-      val port = if (uri.authority.port > 0) uri.authority.port else 443
-      if (tlsCheck)
-        Http().cachedHostConnectionPoolHttps[Any](host, port)
-      else
-        Http().cachedHostConnectionPoolHttps[Any](host, port, connectionContext = noCheckHttpsConnectionContext)
-
-    case _ ⇒
-      val host = uri.authority.host.address
-      val port = if (uri.authority.port > 0) uri.authority.port else 80
-      Http().cachedHostConnectionPool[Any](host, port)
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
