@@ -46,7 +46,7 @@ trait SimpleArtifactPersistenceDao {
       _ ← Future.sequence(deploymentsThatNeedUpdate.map(deployment ⇒ update[Deployment](
         sSpecifier.idExtractor(deployment),
         d ⇒ d.copy(clusters = d.clusters.map(c ⇒ c.copy(gateways = c.gateways.map(g ⇒ if (g.name == gateway.name)
-        // This is a hack because internal-gateway-port-names are not allowed to modify. It corresponds to the PersistenceMultiplexer ->
+          // This is a hack because internal-gateway-port-names are not allowed to modify. It corresponds to the PersistenceMultiplexer -> combine(deployment: Deployment)
           /*gateways ← Future.sequence {
               cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
                 val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
@@ -58,7 +58,7 @@ trait SimpleArtifactPersistenceDao {
                 }
               }
             }*/
-        gateway.copy(port = gateway.port.copy(name = g.port.name))
+          gateway.copy(port = gateway.port.copy(name = g.port.name))
         else g))))
       )))
     } yield ()

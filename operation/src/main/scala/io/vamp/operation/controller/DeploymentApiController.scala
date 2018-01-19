@@ -2,7 +2,7 @@ package io.vamp.operation.controller
 
 import akka.util.Timeout
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.common.{Artifact, Id, Namespace, UnitPlaceholder}
+import io.vamp.common.{ Artifact, Id, Namespace, UnitPlaceholder }
 import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion
 import io.vamp.model.conversion.DeploymentConversion._
@@ -11,7 +11,7 @@ import io.vamp.operation.deployment.DeploymentActor
 import io.vamp.operation.notification.UnsupportedDeploymentRequest
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
+import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage }
 
 import scala.concurrent.Future
 import scala.util.Try

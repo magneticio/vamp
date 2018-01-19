@@ -1,23 +1,23 @@
 package io.vamp.persistence.refactor.dao
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ ActorSystem, Props }
 import akka.util.Timeout
 import akka.pattern.ask
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
+import com.sksamuel.elastic4s.{ ElasticsearchClientUri, IndexAndType, TcpClient }
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
 import io.vamp.common._
 import io.vamp.persistence.refactor.api._
-import io.vamp.persistence.refactor.exceptions.{DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException}
+import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ Await, Future }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Created by mihai on 11/10/17.
@@ -72,7 +72,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       _ ← esClient.execute {
         (indexInto(indexName, sSpecifier.typeName) doc (obj.asJson.noSpaces) id (newObjectId)).copy(createOnly = Some(true))
       }
-      _ <- if(archive) archiveCreate(name = newObjectId.value, artifact = obj, sourceAsString = (obj.asJson.noSpaces)) else Future.successful(UnitPlaceholder)
+      _ ← if (archive) archiveCreate(name = newObjectId.value, artifact = obj, sourceAsString = (obj.asJson.noSpaces)) else Future.successful(UnitPlaceholder)
     } yield newObjectId
   }
 
@@ -123,26 +123,26 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       updatedObject = updateFunction(currentObject.obj)
       _ ← if (sSpecifier.idExtractor(updatedObject) != id) Future.failed(VampPersistenceModificationException(s"Changing id to ${sSpecifier.idExtractor(updatedObject)}", id))
       else Future.successful(())
-      _ <- if(currentObject.obj != updatedObject) {
+      _ ← if (currentObject.obj != updatedObject) {
         val objectAsString = updatedObject.asJson.noSpaces
         esClient.execute {
-            (indexInto(indexName, sSpecifier.typeName) doc objectAsString id (sSpecifier.idExtractor(updatedObject)) version currentObject.version)
-          }.flatMap(_ => if(archive) archiveUpdate(id.value, updatedObject, objectAsString) else Future.successful(UnitPlaceholder))
+          (indexInto(indexName, sSpecifier.typeName) doc objectAsString id (sSpecifier.idExtractor(updatedObject)) version currentObject.version)
+        }.flatMap(_ ⇒ if (archive) archiveUpdate(id.value, updatedObject, objectAsString) else Future.successful(UnitPlaceholder))
       }
-        else Future.successful()
+      else Future.successful()
     } yield ()
   }
 
   override def deleteObject[T: SerializationSpecifier](objectId: Id[T], archive: Boolean = true): Future[Unit] = {
     val sSpecifier = implicitly[SerializationSpecifier[T]]
     executeLocked(for {
-      obj <- readIfAvailable(objectId)
+      obj ← readIfAvailable(objectId)
       _ ← esClient.execute {
         delete(objectId.value) from (IndexAndType(indexName, sSpecifier.typeName))
       }
-      _ <- obj match {
-        case Some(o) if(archive) => archiveDelete(objectId.value, o)
-        case _ => Future.successful(UnitPlaceholder)
+      _ ← obj match {
+        case Some(o) if (archive) ⇒ archiveDelete(objectId.value, o)
+        case _                    ⇒ Future.successful(UnitPlaceholder)
       }
 
     } yield ())
