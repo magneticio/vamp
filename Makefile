@@ -30,7 +30,7 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
-	docker pull $(BUILD_SERVER)
+	test "$(DEPS_OK)" = "true" || docker pull $(BUILD_SERVER)
 	docker run \
 		--rm \
 		--volume "$(CURDIR)":/srv/src \
@@ -44,7 +44,7 @@ default:
 .PHONY: pack
 pack:
 	docker volume create $(PACKER)
-	docker pull $(BUILD_SERVER)
+	test "$(DEPS_OK)" = "true" || docker pull $(BUILD_SERVER)
 
 	docker run \
 		--rm \
@@ -78,7 +78,7 @@ pack-local:
 	find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar" -exec mv {} $(TARGET)/$(PROJECT)-$(VERSION)/ \;
 
 	docker volume create $(PACKER)
-	docker pull $(BUILD_SERVER)
+	test "$(DEPS_OK)" = "true" || docker pull $(BUILD_SERVER)
 	docker run \
 		--rm \
 		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
