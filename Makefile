@@ -8,8 +8,8 @@ SHELL             := bash
 # Constants, these can be overwritten in your Makefile.local
 PACKER       ?= packer
 BUILD_SERVER := magneticio/buildserver
-DIR_SBT	     := $(HOME)/.sbt/boot
-DIR_IVY	     := $(HOME)/.ivy2
+DIR_SBT	     := "$(HOME)"/.sbt/boot
+DIR_IVY	     := "$(HOME)"/.ivy2
 
 # if Makefile.local exists, include it.
 ifneq ("$(wildcard Makefile.local)", "")
@@ -18,7 +18,7 @@ endif
 
 # Don't change these
 PROJECT   := vamp
-TARGET    := $(CURDIR)/bootstrap/target
+TARGET    := "$(CURDIR)"/bootstrap/target
 VERSION   := $(shell git describe --tags)
 BUILD_CMD := sbt clean test 'project bootstrap' pack
 PACK_CMD  := VAMP_VERSION=katana sbt publish-local && VAMP_VERSION=$(VERSION) sbt 'project bootstrap' pack
@@ -33,7 +33,7 @@ default:
 	docker pull $(BUILD_SERVER)
 	docker run \
 		--rm \
-		--volume $(CURDIR):/srv/src \
+		--volume "$(CURDIR)":/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
 		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--workdir=/srv/src \
@@ -48,7 +48,7 @@ pack:
 
 	docker run \
 		--rm \
-		--volume $(CURDIR):/srv/src \
+		--volume "$(CURDIR)":/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
 		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--workdir=/srv/src \
@@ -59,7 +59,7 @@ pack:
 	rm -rf $(TARGET)/$(PROJECT)-*
 	mkdir -p $(TARGET)/$(PROJECT)-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
-	mv $$(find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar") $(TARGET)/$(PROJECT)-$(VERSION)/
+	find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar" -exec mv {} $(TARGET)/$(PROJECT)-$(VERSION)/ \;
 
 	docker run \
 		--rm \
@@ -75,7 +75,7 @@ pack-local:
 	rm -rf $(TARGET)/$(PROJECT)-*
 	mkdir -p $(TARGET)/$(PROJECT)-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
-	mv $$(find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar") $(TARGET)/$(PROJECT)-$(VERSION)/
+	find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar" -exec mv {} $(TARGET)/$(PROJECT)-$(VERSION)/ \;
 
 	docker volume create $(PACKER)
 	docker pull $(BUILD_SERVER)
