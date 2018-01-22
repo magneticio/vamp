@@ -106,7 +106,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
           _ ← allSchedules.traverse[Future, Any] { scheduleId ⇒
             httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId/schedules/$scheduleId")
           }
-          _ ← httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId")
+          _ ← httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId?stopCurrentJobRuns=true")
         } yield ()
       }
       else Future.successful(()) // Do nothing. The job is not registered
