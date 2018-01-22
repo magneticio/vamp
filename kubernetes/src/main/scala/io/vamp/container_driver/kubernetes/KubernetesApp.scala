@@ -32,7 +32,7 @@ case class KubernetesApp(
       "resources" → Map[String, Any](
         "requests" → Map[String, Any](
           "cpu" → cpu,
-          "memory" → s"${mem}Mi"
+          "memory" → s"${mem}M"
         )
       ),
       "securityContext" → Map[String, Any]("privileged" → privileged)
