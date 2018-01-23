@@ -1,11 +1,12 @@
 package io.vamp.persistence.refactor.api
 
 import akka.actor.ActorSystem
-import io.vamp.common.{ Id, Namespace }
-import io.vamp.model.artifact.{ Deployment, Gateway }
+import io.vamp.common.{Artifact, Id, Namespace}
+import io.vamp.model.artifact.{Deployment, Gateway}
+import io.vamp.persistence.ArtifactResponseEnvelope
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Created by mihai on 11/10/17.
@@ -62,6 +63,14 @@ trait SimpleArtifactPersistenceDao {
         else g))))
       )))
     } yield ()
+  }
+
+
+  def toResponseEnvelope[T <: Artifact](sResponse: SearchResponse[T]): ArtifactResponseEnvelope = {
+    ArtifactResponseEnvelope(
+      response = sResponse.response,
+      total = sResponse.total,
+      page = if (sResponse.size > 0) (sResponse.from / sResponse.size) else 1, perPage = sResponse.size)
   }
 }
 

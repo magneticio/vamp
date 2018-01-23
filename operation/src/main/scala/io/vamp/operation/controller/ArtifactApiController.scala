@@ -32,30 +32,23 @@ trait ArtifactApiController
 
   def background(artifact: String)(implicit namespace: Namespace): Boolean = !crud(artifact)
 
-  private def searchResponseToArtifactResponseEnvelope[T <: Artifact](searchResponse: SearchResponse[T], fromAndSize: Option[(Int, Int)]): ArtifactResponseEnvelope = {
-    ArtifactResponseEnvelope(
-      response = searchResponse.response,
-      total = searchResponse.total,
-      page = if (searchResponse.size > 0) (searchResponse.from / searchResponse.size) else 1, perPage = searchResponse.size)
-  }
-
   def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     val actualPage = if (page < 1) 0 else page - 1
     val fromAndSize = if (perPage > 0) Some((perPage * actualPage, perPage)) else None
     `type`(kind) match {
       /* Deployments are retrieved from the DeploymentController; This case should never be taken */
       case (t, _) if t == classOf[Deployment] ⇒ Future.successful(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
-      case (t, _) if t == classOf[Breed]      ⇒ VampPersistence().getAll[Breed](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Sla]        ⇒ VampPersistence().getAll[Sla](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Escalation] ⇒ VampPersistence().getAll[Escalation](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Route]      ⇒ VampPersistence().getAll[Route](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Condition]  ⇒ VampPersistence().getAll[Condition](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Rewrite]    ⇒ VampPersistence().getAll[Rewrite](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Workflow]   ⇒ VampPersistence().getAll[Workflow](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Gateway]    ⇒ VampPersistence().getAll[Gateway](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Template]   ⇒ VampPersistence().getAll[Template](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Scale]      ⇒ VampPersistence().getAll[Scale](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
-      case (t, _) if t == classOf[Blueprint]  ⇒ VampPersistence().getAll[Blueprint](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
+      case (t, _) if t == classOf[Breed]      ⇒ VampPersistence().getAll[Breed](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Sla]        ⇒ VampPersistence().getAll[Sla](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Escalation] ⇒ VampPersistence().getAll[Escalation](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Route]      ⇒ VampPersistence().getAll[Route](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Condition]  ⇒ VampPersistence().getAll[Condition](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Rewrite]    ⇒ VampPersistence().getAll[Rewrite](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Workflow]   ⇒ VampPersistence().getAll[Workflow](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Gateway]    ⇒ VampPersistence().getAll[Gateway](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Template]   ⇒ VampPersistence().getAll[Template](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Scale]      ⇒ VampPersistence().getAll[Scale](fromAndSize).map(VampPersistence().toResponseEnvelope)
+      case (t, _) if t == classOf[Blueprint]  ⇒ VampPersistence().getAll[Blueprint](fromAndSize).map(VampPersistence().toResponseEnvelope)
       case other                              ⇒ throwException(PersistenceOperationFailure(other))
     }
   }
