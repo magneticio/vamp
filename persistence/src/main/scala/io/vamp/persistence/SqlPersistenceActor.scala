@@ -2,7 +2,7 @@ package io.vamp.persistence
 
 import java.sql.{ ResultSet, Statement }
 
-import io.vamp.common.{ Config, ConfigMagnet }
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
@@ -28,10 +28,10 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
     Future.successful(Map("type" → `type`) + ("url" → url))
   }
 
-  protected lazy val url: String = resolveWithOptionalNamespace(SqlPersistenceActor.url())._1
+  protected lazy val url: String = resolveWithVariables(SqlPersistenceActor.url(), connectionVariables())._1
   protected lazy val user: String = SqlPersistenceActor.user()
   protected lazy val password: String = SqlPersistenceActor.password()
-  protected lazy val table: String = resolveWithOptionalNamespace(SqlPersistenceActor.table())._1
+  protected lazy val table: String = resolveWithVariables(SqlPersistenceActor.table(), connectionVariables())._1
 
   override protected lazy val synchronization: FiniteDuration = SqlPersistenceActor.synchronizationPeriod()
   override protected lazy val delay: FiniteDuration = SqlPersistenceActor.delay()
@@ -112,4 +112,6 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
       connection.close()
     }
   }
+
+  protected def connectionVariables()(implicit namespace: Namespace): Map[String, String] = Map("namespace" → namespace.name)
 }
