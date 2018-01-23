@@ -52,7 +52,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
           |         "resources": {
           |           "requests": {
           |             "cpu": 1.0,
-          |             "memory": "1024Mi"
+          |             "memory": "1024M"
           |           }
           |         },
           |         "securityContext": {
@@ -137,7 +137,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
           |         "resources": {
           |           "requests": {
           |             "cpu": 1.0,
-          |             "memory": "1024Mi"
+          |             "memory": "1024M"
           |           }
           |         },
           |         "securityContext": {
@@ -228,7 +228,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
           |         "resources": {
           |           "requests": {
           |             "cpu": 1.0,
-          |             "memory": "1024Mi"
+          |             "memory": "1024M"
           |           }
           |         },
           |         "securityContext": {
@@ -306,7 +306,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
         |         "resources": {
         |           "requests": {
         |             "cpu": 1.0,
-        |             "memory": "1024Mi"
+        |             "memory": "1024M"
         |           }
         |         },
         |         "securityContext": {
