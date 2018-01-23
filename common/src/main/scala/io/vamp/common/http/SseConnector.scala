@@ -34,6 +34,7 @@ object SseConnector {
     connections.getOrElseUpdate(config, {
       log(s"Opening SSE connection: $url")
       EventSource(Uri(url), send(config), None, retryDelay).takeWhile { event ⇒
+        event.eventType.foreach(t ⇒ log(s"SSE: $t"))
         val actors = listeners.getOrElse(config, Set())
         actors.foreach(_ ! event)
         val continue = actors.nonEmpty
