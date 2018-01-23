@@ -5,9 +5,8 @@ import akka.actor.{ ActorRef, ActorSystem }
 import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import akka.http.scaladsl.model.{ HttpHeader, HttpRequest, HttpResponse, Uri }
 import akka.stream.ActorMaterializer
-import akka.stream.alpakka.sse.scaladsl.EventSource
-import akka.stream.alpakka.sse.scaladsl.EventSource.EventSource
 import akka.stream.scaladsl.{ Sink, Source }
+import io.vamp.common.http.EventSource.EventSource
 
 import scala.collection.mutable
 import scala.concurrent.Future
