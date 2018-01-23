@@ -66,7 +66,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         !matchingEnvironmentVariables(containerService) || !matchingScale(deploymentService, cs) || !matchingHealth(containerService))
         redeploy(deployment, deploymentCluster, deploymentService, containerService, update = true)
 
-      else if (!matchingServers(deploymentService, cs))
+      else if (!matchingServers(deployment, deploymentService, cs))
         actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert(deploymentService, _)))
 
       else if (!matchingServiceHealth(deploymentService.health, containerService.health)) {
@@ -109,22 +109,40 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     instances && cpu && memory
   }
 
-  private def matchingDeployable(containerService: ContainerService) = !checkDeployable() || containerService.equality.deployable
+  private def matchingDeployable(containerService: ContainerService): Boolean = {
+    val matches = !checkDeployable() || containerService.equality.deployable
+    if (!matches) log.info(s"[${containerService.deployment.name}/${containerService.service.breed.name}] matching deployable: false")
+    matches
+  }
 
-  private def matchingPorts(containerService: ContainerService) = !checkPorts() || containerService.equality.ports
+  private def matchingPorts(containerService: ContainerService): Boolean = {
+    val matches = !checkPorts() || containerService.equality.ports
+    if (!matches) log.info(s"[${containerService.deployment.name}/${containerService.service.breed.name}] matching ports: false")
+    matches
+  }
 
-  private def matchingEnvironmentVariables(containerService: ContainerService) = !checkEnvironmentVariables() || containerService.equality.environmentVariables
+  private def matchingEnvironmentVariables(containerService: ContainerService): Boolean = {
+    val matches = !checkEnvironmentVariables() || containerService.equality.environmentVariables
+    if (!matches) log.info(s"[${containerService.deployment.name}/${containerService.service.breed.name}] matching environment variables: false")
+    matches
+  }
 
-  private def matchingHealth(containerService: ContainerService) = !checkHealth() || containerService.equality.health
+  private def matchingHealth(containerService: ContainerService): Boolean = {
+    val matches = !checkHealth() || containerService.equality.health
+    if (!matches) log.info(s"[${containerService.deployment.name}/${containerService.service.breed.name}] matching health: false")
+    matches
+  }
 
-  private def matchingServers(deploymentService: DeploymentService, containers: Containers) = {
-    deploymentService.instances.size == containers.instances.size &&
+  private def matchingServers(deployment: Deployment, deploymentService: DeploymentService, containers: Containers): Boolean = {
+    val matches = deploymentService.instances.size == containers.instances.size &&
       deploymentService.instances.forall { server ⇒
         server.deployed && (containers.instances.find(_.name == server.name) match {
           case None                  ⇒ false
           case Some(containerServer) ⇒ server.ports.size == containerServer.ports.size && server.ports.values.forall(port ⇒ containerServer.ports.contains(port))
         })
       }
+    if (!matches) log.info(s"[${deployment.name}/${deploymentService.breed.name}] matching servers: false")
+    matches
   }
 
   private def matchingServiceHealth(deploymentHealth: Option[Health], serviceHealth: Option[Health]): Boolean = {

@@ -180,9 +180,11 @@ class MarathonDriverActor
   }
 
   private def checkPorts(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
-    val appPorts = app.container.flatMap(_.docker).map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
+    val appPorts = app.container.map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
+    val containerPorts = app.container.flatMap(_.docker).map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
     val servicePorts = portMappings(deployment, c, service, "").map(_.containerPort).toSet
-    appPorts == servicePorts
+    // due to changes in Marathon 1.5.x, both container (docker) and app port mapping should be chacked
+    appPorts == servicePorts || containerPorts == servicePorts
   }
 
   private def checkEnvironmentVariables(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
