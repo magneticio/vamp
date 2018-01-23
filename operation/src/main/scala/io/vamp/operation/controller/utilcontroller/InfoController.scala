@@ -5,8 +5,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
-import io.vamp.common.{ Config, ConfigMagnet, Namespace }
+import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals}
+import io.vamp.common.{Config, ConfigMagnet, Namespace}
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
@@ -19,6 +19,7 @@ import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.Try
 
 trait AbstractInfoMessage extends JvmInfoMessage {
   def message: String
@@ -58,7 +59,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
         uuid = Model.uuid,
         runningSince = Model.runningSince,
         jvm = if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
-        persistence = VampPersistence().info,
+        persistence = Try(VampPersistence().info).toOption.flatten,
         keyValue = result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
         pulse = result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
         gatewayDriver = result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
