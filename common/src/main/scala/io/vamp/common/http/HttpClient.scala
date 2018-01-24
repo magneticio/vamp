@@ -148,7 +148,7 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
 
     def decode(entity: ResponseEntity): Future[String] = entity.toStrict(timeout.duration).map(_.data.decodeString("UTF-8"))
 
-    Source.single(requestWithEntity → 1)
+    try Source.single(requestWithEntity → 1)
       .via(pool[Any](requestUri, tlsCheck))
       .recover(recoverWith)
       .runWith(Sink.head).flatMap {
@@ -177,7 +177,11 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val nam
         }
 
         case (Failure(f), _) ⇒ throw new RuntimeException(f.getMessage)
-      }
+      } catch {
+      case e: Throwable ⇒
+        if (logError) logger.error(e.getMessage)
+        Future.failed(e)
+    }
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
