@@ -78,7 +78,7 @@ class MarathonDriverActorTest extends TestKit(ActorSystem("MarathonDriverActor")
             Some("2017-12-07T19:08:42.878Z"))),
         List(),
         Some(MarathonTaskStats(MarathonSummary(MarathonStats(MarathonCounts(0,1,0,0))))),
-        List(AppNetwork("container","test")))))
+        List(AppNetwork("container",Some("test"))))))
 
       // Due to actor creation problems, the method is copied from MarathonDriverActor directly
       val extractedContainers = containers(appResponse.apps.head)
