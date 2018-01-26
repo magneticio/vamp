@@ -75,8 +75,6 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       Instance(server.name, server.host, ports.toMap, server.deployed)
     }
 
-    println(s"Inside deploy method for ${deployment.name}, cluster: ${deploymentCluster}, service ${deploymentService}, containerService ${containerService}")
-
     if (deploymentService.status.phase.isInstanceOf[Initiated])
       DeploymentPersistenceOperations.updateServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
 
