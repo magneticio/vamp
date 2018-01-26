@@ -71,6 +71,7 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
   }
 
   def updateServiceInstances(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceInstances: List[Instance])(implicit ns: Namespace): Future[Unit] = {
+    if(serviceInstances.size > 0) println(s"Updating with ServiceInstances ${serviceInstances}")
     VampPersistence().createOrUpdate[Deployment]({
       val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).get
         .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(instances = serviceInstances) else s)
