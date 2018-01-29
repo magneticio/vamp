@@ -4,23 +4,28 @@ import io.vamp.container_driver.Docker
 import io.vamp.model.artifact.{ HealthCheck, Port }
 
 case class MarathonApp(
-  id:           String,
-  container:    Option[Container],
-  ipAddress:    Option[MarathonAppIpAddress],
-  instances:    Int,
-  cpus:         Double,
-  mem:          Int,
-  env:          Map[String, String],
-  cmd:          Option[String],
-  healthChecks: List[MarathonHealthCheck]    = Nil,
-  args:         List[String]                 = Nil,
-  labels:       Map[String, String]          = Map(),
-  constraints:  List[List[String]]           = Nil,
-  fetch:        Option[List[UriObject]]
+  id:              String,
+  container:       Option[Container],
+  ipAddress:       Option[MarathonAppIpAddress],
+  instances:       Int,
+  cpus:            Double,
+  mem:             Int,
+  env:             Map[String, String],
+  cmd:             Option[String],
+  healthChecks:    List[MarathonHealthCheck]    = Nil,
+  args:            List[String]                 = Nil,
+  labels:          Map[String, String]          = Map(),
+  constraints:     List[List[String]]           = Nil,
+  upgradeStrategy: Option[UpgradeStrategy]      = Some(UpgradeStrategy()),
+  fetch:           Option[List[UriObject]]
 )
 
 case class UriObject(uri: String, extract: Boolean = true)
 case class Container(docker: Docker, `type`: String = "DOCKER")
+
+// About rolling Restarts: https://mesosphere.github.io/marathon/docs/deployments.html#rolling-restarts
+// TODO: make them configurable
+case class UpgradeStrategy(maximumOverCapacity: Double = 1.0, minimumHealthCapacity: Double = 1.0)
 
 case class MarathonAppIpAddress(networkName: String)
 

@@ -130,7 +130,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       else ()
       updatedGateway
     } partition { gateway ⇒
-      gateway.routes.forall {
+      gateway.routes.exists {
         case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
         case _ ⇒ false
       } || !gateway.internal

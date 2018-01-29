@@ -137,6 +137,7 @@ class MarathonDriverActor
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
+    log.info("getting deployment services")
     val replyTo = sender()
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
       case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
@@ -170,25 +171,27 @@ class MarathonDriverActor
   }
 
   private def get(id: String): Future[Option[App]] = {
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
-      case apps: AppsResponse ⇒ {
-        logger.debug(s"apps: for $id => $apps")
-        apps.apps.find(app ⇒ app.id == id).map(app ⇒ fixForCalicoNetwork(app))
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
+      .recover {
+        case t: Throwable ⇒ {
+          log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
+          None
+        }
+        case _ ⇒ {
+          log.warning(s"Unknown errow while getting app id: $id")
+          None
+        }
       }
-      case _ ⇒ None
-    }
-  }
-
-  private def fixForCalicoNetwork(app: App): App = {
-    app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.map(f ⇒ f.copy(
-      portMappings = f.portMappings.map(portMapping ⇒ portMapping.hostPort match {
-        case Some(portInt) ⇒ if (portInt == 0)
-          portMapping.copy(hostPort = portMapping.containerPort)
-        else
-          portMapping
-        case None ⇒ portMapping.copy(hostPort = portMapping.containerPort)
-        case _    ⇒ portMapping
-      }))))))
+      .map {
+        case apps: AppsResponse ⇒ {
+          logger.debug(s"apps: for $id => $apps")
+          apps.apps.find(app ⇒ app.id == id)
+        }
+        case _ ⇒ {
+          logger.info(s"no app: for $id")
+          None
+        }
+      }
   }
 
   private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
@@ -310,7 +313,7 @@ class MarathonDriverActor
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
-    log.info(s"Deploying Workflow and using Arguments:: ${service.arguments}")
+    log.info(s"Deploying Deployment and using Arguments:: ${service.arguments}")
 
     val scale = service.scale.getOrElse(DefaultScale(name = "defaultScale", metadata = RootAnyMap.empty, cpu = Quantity(0.1), memory = MegaByte(128), instances = 1))
 
@@ -390,9 +393,16 @@ class MarathonDriverActor
     if (update) {
       httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers).flatMap { appResponse ⇒
         val marathonApp = Extraction.extract[MarathonApp](payload)
+        val app = appResponse.apps.headOption.get
+        log.info(s"marathon App: $marathonApp, $app")
         val changed = appResponse.apps.headOption.map(difference(marathonApp, _)).getOrElse(payload)
 
-        if (changed != JNothing) httpClient.put[Any](s"$url/v2/apps/$id", changed, headers) else Future.successful(false)
+        if (changed != JNothing)
+          httpClient.put[Any](s"$url/v2/apps/$id", changed, headers)
+        else {
+          log.info(s"Nothing has changed in app $id configuration")
+          Future.successful(false)
+        }
       }
     }
     else {
@@ -493,6 +503,7 @@ class MarathonDriverActor
   }
 
   private def containers(app: App): Containers = {
+    log.info("[Marathon Driver . containers]")
     val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
     val instances = app.tasks.map(task ⇒ {
       val portsAndIpForUserNetwork = for {
@@ -500,17 +511,19 @@ class MarathonDriverActor
         docker ← container.docker
         networkName ← Option(docker.network.getOrElse("")) // This is a hack to support 1.4 and 1.5 at the same time
         ipAddressToUse ← task.ipAddresses.headOption
-        if (networkName == "USER" || app.networks.map(_.mode).contains("container"))
-      } yield (ipAddressToUse.ipAddress, docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
+        if (networkName == "USER"
+          || app.networks.map(_.mode).contains("container"))
+      } yield (ipAddressToUse.ipAddress,
+        docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
       portsAndIpForUserNetwork match {
         case None ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.debug(s"Ports for ${task.id} => ${task.ports} network: ${network}")
+          logger.info(s"Ports for ${task.id} => ${task.ports} network: ${network}")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
         }
         case Some(portsAndIp) ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.debug(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
+          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
         }
       }
