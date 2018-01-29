@@ -104,8 +104,25 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
     // TODO: check if this is valid
     Future.sequence(deploymentService.breed.ports.map { port ⇒
       {
+        // For every port of the gateway, update all routes-of-gateways according to the discipline:
+        // if the normalized-path corresponds to the deployment-cluster-breed-port combination, the route points to nothing (target is Nil)
+        // This is a mimicking of the discipline in the old persistence layer.
+        // To understand, look at PersistenceMultiplexer and GatewayPersistenceOperations, versions of code before Nov2017.
         deploymentCluster.gatewayBy(port.name) match {
-          case Some(gateway) ⇒ VampPersistence().deleteObject[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
+          case Some(gateway) ⇒ {
+            for {
+              _ <- VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), gw => gw.copy(
+                routes = gw.routes.map( _ match
+                 {
+                   case rt: DefaultRoute => if(GatewayPath(deployment.name :: deploymentCluster.name :: deploymentService.breed.name :: port.name :: Nil).normalized == rt.path.normalized) rt.copy(targets = Nil) else rt
+                   case r => r
+                 }
+                )
+              ))
+              gatewayAfterUpdate <- VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
+              _ <- VampPersistence().updateGatewayForDeployment(gatewayAfterUpdate)
+            } yield ()
+          }
           case None          ⇒ Future.successful(()) // no internal gateway
         }
       }
