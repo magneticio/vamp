@@ -54,7 +54,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   }
 
   private def synchronize() = {
-    log.info("Deployment Synchronization started.")
+    log.debug("Deployment Synchronization started.")
     VampPersistence().getAll[Deployment]().map(_.response).map { deployments ⇒
       val deploymentServices = deployments.map { deployment ⇒
         val services = deployment.clusters.flatMap { cluster ⇒
@@ -69,7 +69,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
-    log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
+    log.debug(s"[DeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
     VampPersistence().read[Deployment](Id[Deployment](containerService.deployment.name)) map {
       deployment ⇒ self ! (deployment → containerService)
     }

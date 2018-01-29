@@ -41,7 +41,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def synchronize(containerService: ContainerService) = {
-    log.info(s"[SingleDeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
+    log.debug(s"[SingleDeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
     containerService.deployment.clusters.find { cluster ⇒ cluster.services.exists(_.breed.name == containerService.service.breed.name) } match {
       case Some(cluster) ⇒
 

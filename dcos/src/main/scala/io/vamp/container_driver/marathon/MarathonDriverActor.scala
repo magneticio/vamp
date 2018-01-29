@@ -137,7 +137,7 @@ class MarathonDriverActor
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
-    log.info("getting deployment services")
+    log.debug("getting deployment services")
     val replyTo = sender()
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
       case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
@@ -503,7 +503,7 @@ class MarathonDriverActor
   }
 
   private def containers(app: App): Containers = {
-    log.info("[Marathon Driver . containers]")
+    log.debug("[Marathon Driver . containers]")
     val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
     val instances = app.tasks.map(task ⇒ {
       val portsAndIpForUserNetwork = for {
@@ -518,12 +518,12 @@ class MarathonDriverActor
       portsAndIpForUserNetwork match {
         case None ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports for ${task.id} => ${task.ports} network: ${network}")
+          logger.debug(s"Ports for ${task.id} => ${task.ports} network: ${network}")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
         }
         case Some(portsAndIp) ⇒ {
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
+          logger.debug(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
         }
       }
