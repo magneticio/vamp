@@ -69,19 +69,17 @@ trait WorkflowPersistenceOperations {
       case Workflow.Status.Restarting(phase) ⇒ WorkflowStatus(workflow.name, status.toString, phase.map(_.toString))
       case _                                 ⇒ WorkflowStatus(workflow.name, status.toString, None)
     }
-    // TODO: change log info to debug level
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(message.name, classOf[WorkflowStatus])) map {
-      case Some(currentStatus: WorkflowStatus) ⇒ if (currentStatus != message) {
-        log.info("Workflow Status changed, writing to db")
+      case Some(currentStatus: WorkflowStatus) ⇒
+        if (currentStatus != message) {
+          log.debug("Workflow Status changed, writing to db")
+          self ? PersistenceActor.Update(message, Option(status.describe))
+        }
+        else log.debug("Workflow Status hasn't changed, not writing to db")
+
+      case _ ⇒
+        log.debug("Workflow Status does not exist, writing to db")
         self ? PersistenceActor.Update(message, Option(status.describe))
-      }
-      else {
-        log.info("Workflow Status hasn't changed, not writing to db")
-      }
-      case _ ⇒ {
-        log.info("Workflow Status does not exist, writing to db")
-        self ? PersistenceActor.Update(message, Option(status.describe))
-      }
     }
   }
 
@@ -108,24 +106,20 @@ trait WorkflowPersistenceOperations {
   private def updateWorkflowHealth(workflow: Workflow, health: Option[Health]) = reply {
     health match {
       case Some(h: Health) ⇒
-        // TODO: change log info to debug level
         checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(workflow.name, classOf[WorkflowHealth])) map {
-          case Some(currentHealth: WorkflowHealth) ⇒ if (!currentHealth.health.contains(h)) {
-            log.info("Workflow Health changed, writing to db")
+          case Some(currentHealth: WorkflowHealth) ⇒
+            if (!currentHealth.health.contains(h)) {
+              log.debug("Workflow Health changed, writing to db")
+              self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
+            }
+            else log.debug("Workflow Health hasn't changed, not writing to db")
+          case _ ⇒
+            log.debug("Workflow Health does not exist, writing to db")
             self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
-          }
-          else {
-            log.info("Workflow Health hasn't changed, not writing to db")
-          }
-          case _ ⇒ {
-            log.info("Workflow Health does not exist, writing to db")
-            self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
-          }
         }
-      case None ⇒ {
-        log.warning("Updating health with None")
+      case None ⇒
+        log.debug("Updating health with None")
         self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
-      }
     }
   }
 
@@ -140,9 +134,13 @@ trait WorkflowPersistenceOperations {
     }
     else Nil
 
-    val runtimeArtifacts = if (runtime) PersistenceActor.Delete(workflow.name, classOf[WorkflowBreed]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowHealth]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil
+    val runtimeArtifacts = if (runtime) {
+      val breedReset = PersistenceActor.Delete(workflow.name, classOf[WorkflowBreed]) :: Nil
+      val healthReset = workflow.health.map(_ ⇒ PersistenceActor.Delete(workflow.name, classOf[WorkflowHealth]) :: Nil).getOrElse(Nil)
+      val instancesReset = if (workflow.instances.nonEmpty) PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil else Nil
+
+      breedReset ++ healthReset ++ instancesReset
+    }
     else Nil
 
     Future.sequence((attributeArtifacts ++ runtimeArtifacts).map(self ? _))

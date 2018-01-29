@@ -2,20 +2,20 @@ package io.vamp.container_driver.docker
 
 import akka.actor.ActorRef
 import com.spotify.docker.client.DefaultDockerClient
-import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
-import io.vamp.common.{ ClassMapper, Config }
+import com.spotify.docker.client.messages.{Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _}
+import io.vamp.common.{ClassMapper, Config}
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.{ Map ⇒ MutableMap }
+import scala.collection.mutable.{Map ⇒ MutableMap}
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.Try
@@ -50,7 +50,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
       val authConfig = AuthConfig.builder().email(email).username(username).password(password).serverAddress(serverAddress).build()
       DefaultDockerClient.fromEnv().authConfig(authConfig).build()
 
-    } else DefaultDockerClient.fromEnv().build()
+    }
+    else DefaultDockerClient.fromEnv().build()
   }
 
   private val vampLabel = "deployment-service"
@@ -63,7 +64,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)                  ⇒ get(services)
+    case Get(services, _)               ⇒ get(services)
     case d: Deploy                      ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
     case u: Undeploy                    ⇒ reply(Future(undeploy(u.deployment, u.service)))
     case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
@@ -178,14 +179,16 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     if (Try(docker.inspectImage(image)).isFailure) {
       log.info(s"docker pull image: $image")
       docker.pull(image)
-    } else {
+    }
+    else {
 
       val exists = find(deployment, service).isDefined
 
       if (!exists && !update) {
         log.info(s"docker create container: $id")
         run()
-      } else if (exists && update) {
+      }
+      else if (exists && update) {
         log.info(s"docker update container: $id")
         undeploy(deployment, service)
         run()
@@ -236,7 +239,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
         else
           hostConfig.portBindings(portBindings).networkMode(docker.network)
       }
-    } else {
+    }
+    else {
       hostConfig.portBindings(portBindings).networkMode(docker.network)
     }
 
@@ -286,7 +290,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     if (!exists && !update) {
       log.info(s"docker create workflow: ${workflow.name}")
       run()
-    } else if (exists && update) {
+    }
+    else if (exists && update) {
       log.info(s"docker update workflow: ${workflow.name}")
       undeploy(workflow)
       run()

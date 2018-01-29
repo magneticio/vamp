@@ -1,8 +1,8 @@
 package io.vamp.http_api
 
+import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
-import de.heikoseeberger.akkasse.EventStreamMarshalling
 import io.vamp.common.{ ConfigMagnet, Namespace }
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.SearchController

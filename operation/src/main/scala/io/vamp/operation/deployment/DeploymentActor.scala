@@ -143,11 +143,13 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 
   private def arguments(breed: DefaultBreed, service: Service): List[Argument] = {
+    // FIXME dead code!
     val all = DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
 
     val (privileged, others) = all.partition(_.privileged)
 
     privileged.lastOption.map(_ :: others).getOrElse(others)
+    //
     DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
   }
 }
@@ -318,6 +320,8 @@ trait DeploymentGatewayOperation {
 trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver {
   this: ReplyActor with DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
+  private val refetchBreed = Config.boolean("vamp.operation.synchronization.deployment.refetch-breed-on-update")
+
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
   def resolveProperties = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
@@ -337,7 +341,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
           validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)) flatMap {
             deployment ⇒
-              implicit val timeout = GatewayActor.timeout()
+              implicit val timeout: Timeout = GatewayActor.timeout()
               Future.sequence {
                 gateways.map { gateway ⇒
                   if (deployment.gateways.exists(_.name == gateway.name))
@@ -374,15 +378,25 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
             }
           case Some(deploymentCluster) ⇒
             mergeServices(stable, Some(deploymentCluster), cluster, validateOnly).flatMap { services ⇒
+              val oldPorts = deploymentCluster.services.flatMap(_.breed.ports).map(port ⇒ port.name).toSet
+              val newPorts = cluster.services.flatMap(_.breed.ports).map(port ⇒ port.name).toSet
+              // in case of breed refetch it is possible that some ports are removed
+              val removedPorts = oldPorts.diff(newPorts)
               val nc = deploymentCluster.copy(
                 services = services,
                 dialects = deploymentCluster.dialects ++ cluster.dialects,
                 gateways = if (cluster.gateways.nonEmpty) cluster.gateways else deploymentCluster.gateways,
                 sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
               )
-              updatedRouting(stable, Some(deploymentCluster), nc, validateOnly) map {
-                routing ⇒ nc.copy(gateways = routing)
-              }
+              implicit val timeout: Timeout = PersistenceActor.timeout()
+              for {
+                _ ← Future.sequence(removedPorts.map { port ⇒
+                  actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(stable.name :: cluster.name :: port :: Nil).normalized, validateOnly = validateOnly, force = true)
+                })
+                gateways ← updatedRouting(stable, Some(deploymentCluster), nc, validateOnly) map {
+                  routing ⇒ nc.copy(gateways = routing)
+                }
+              } yield gateways
             }
         }
       }
@@ -400,11 +414,12 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
   def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster, validateOnly: Boolean): List[Future[DeploymentService]] = stableCluster match {
     case None ⇒ Nil
     case Some(sc) ⇒ sc.services.map { service ⇒
-      Future {
+      Future.successful {
         blueprintCluster.services.find(_.breed.name == service.breed.name) match {
           case None ⇒ service
           case Some(bpService) ⇒
 
+            val breed = if (refetchBreed()) bpService.breed else service.breed
             val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
             val state: DeploymentService.Status =
               if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment
@@ -413,8 +428,10 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
             if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service, state)
 
             service.copy(
+              breed = breed,
+              environmentVariables = bpService.environmentVariables,
               scale = scale,
-              dialects = service.dialects ++ bpService.dialects,
+              dialects = bpService.dialects,
               healthChecks = bpService.healthChecks
             )
         }

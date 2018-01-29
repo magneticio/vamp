@@ -15,7 +15,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
   protected def driverActor: ActorRef
 
   override def receive = super.receive orElse {
-    case ContainerWorkflow(workflow, containers, health, _) ⇒
+    case ContainerWorkflow(workflow, containers, health) ⇒
       workflow.breed match {
         case breed: DefaultBreed ⇒
           if (workflow.health != health) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowHealth(workflow, health)

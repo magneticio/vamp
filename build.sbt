@@ -31,12 +31,12 @@ resolvers in ThisBuild ++= Seq(
 )
 
 // Libraries
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
-  "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
-  "com.typesafe.akka" %% "akka-parsing" % "10.0.3" ::
-  ("de.heikoseeberger" %% "akka-sse" % "2.0.0" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
-  "ch.megard" %% "akka-http-cors" % "0.1.10" ::
-  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.16" exclude("org.slf4j", "slf4j-api")) :: Nil
+val akka = "com.typesafe.akka" %% "akka-stream" % "2.5.9" ::
+  "com.typesafe.akka" %% "akka-actor" % "2.5.9" ::
+  "com.typesafe.akka" %% "akka-http" % "10.0.11" ::
+  "com.typesafe.akka" %% "akka-parsing" % "10.0.11" ::
+  "ch.megard" %% "akka-http-cors" % "0.2.2" ::
+  ("com.typesafe.akka" %% "akka-slf4j" % "2.5.9" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
   "org.json4s" %% "json4s-core" % "3.5.0" ::
@@ -54,7 +54,7 @@ val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test" ::
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.14" % "test" :: Nil
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.9" % "test" :: Nil
 
 val templating = Seq("org.jtwig" % "jtwig-core" % "5.65")
 
@@ -67,6 +67,8 @@ val sql = Seq(
 val fp = Seq(
   "org.typelevel" %% "cats" % "0.9.0",
   "com.chuusai"  %% "shapeless" % "2.3.2")
+
+val caching = Seq("com.github.cb372" %% "scalacache-caffeine" % "0.22.0")
 
 val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
 
@@ -216,7 +218,7 @@ lazy val common = project.settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing,
+  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ caching ++ testing,
   bintrayRepository := "vamp"
 )
 

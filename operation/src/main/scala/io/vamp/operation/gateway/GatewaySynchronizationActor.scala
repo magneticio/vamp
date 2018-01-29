@@ -15,7 +15,7 @@ import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, Persist
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 

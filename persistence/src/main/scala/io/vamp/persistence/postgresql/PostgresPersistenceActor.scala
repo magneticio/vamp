@@ -23,9 +23,9 @@ class PostgresPersistenceActor extends SqlPersistenceActor with SqlStatementProv
     db ← dbInfo("postgres")
   } yield state ++ db
 
-  def insertStatement(): String = s"insert into $table (Record) values (?)"
+  def insertStatement(): String = s"""insert into "$table" ("Record") values (?)"""
 
-  def selectStatement(lastId: Long): String = s"SELECT ID, Record FROM $table WHERE ID > $lastId ORDER BY ID ASC"
+  def selectStatement(lastId: Long): String = s"""SELECT "ID", "Record" FROM "$table" WHERE "ID" > $lastId ORDER BY "ID" ASC"""
 
   // In Postgres the minvalue of a select statement fetch is 0
   val statementMinValue: Int = 0

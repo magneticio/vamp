@@ -36,10 +36,10 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def replicas(id: String, value: String) = s"$replicaSetUrl?${labelSelector(labels(id, value))}"
 
-  protected def allContainerServices(deploymentServices: List[DeploymentServices]): Future[List[ContainerService]] = {
+  protected def allContainerServices(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
     httpClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
-      containerServices(deploymentServices, deployments)
+      containerServices(equalityRequest, deploymentServices, deployments)
     }
   }
 
@@ -55,19 +55,48 @@ trait KubernetesDeployment extends KubernetesArtifact {
     }
   }
 
-  private def containerServices(deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = {
+  private def containerServices(equalityRequest: ServiceEqualityRequest, deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = {
     val deployed = response.items.map(item ⇒ item.metadata.name → item).toMap
+    val k8sContainers = response.items.flatMap(_.spec.template).flatMap(_.spec.containers).map(c ⇒ c.name → c).toMap
     Future.sequence {
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
         case (deployment, service) ⇒
 
           val id = appId(deployment, service.breed)
           deployed.get(id) match {
-            case Some(item) ⇒ containers(id, item, deploymentServiceIdLabel).map(ContainerService(deployment, service, _))
-            case None       ⇒ Future.successful(ContainerService(deployment, service, None))
+            case Some(item) ⇒
+              containers(id, item, deploymentServiceIdLabel).map {
+                case Some(cs) ⇒
+                  val k8sContainer = k8sContainers.get(id)
+                  val cluster = deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
+                  val processClusterEquality = k8sContainer.isDefined && cluster.isDefined
+
+                  val equality = ServiceEqualityResponse(
+                    deployable = !equalityRequest.deployable || (k8sContainer.isDefined && checkDeployable(service, k8sContainer.get)),
+                    ports = !equalityRequest.ports || (processClusterEquality && checkPorts(deployment, cluster.get, service, k8sContainer.get)),
+                    environmentVariables = !equalityRequest.environmentVariables || (processClusterEquality && checkEnvironmentVariables(deployment, cluster.get, service, k8sContainer.get))
+                  )
+
+                  ContainerService(deployment, service, Option(cs), None, equality)
+
+                case None ⇒ ContainerService(deployment, service, None)
+              }
+            case None ⇒ Future.successful(ContainerService(deployment, service, None))
           }
       }
     }
+  }
+
+  private def checkDeployable(service: DeploymentService, container: KubernetesContainer): Boolean = {
+    service.breed.deployable.definition == container.image
+  }
+
+  private def checkPorts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: KubernetesContainer): Boolean = {
+    container.ports.map(_.containerPort).toSet == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
+  }
+
+  private def checkEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: KubernetesContainer): Boolean = {
+    container.env.map(e ⇒ e.name → e.value).toMap == environment(deployment, cluster, service)
   }
 
   private def containers(id: String, item: KubernetesItem, selector: String): Future[Option[Containers]] = {
@@ -88,7 +117,6 @@ trait KubernetesDeployment extends KubernetesArtifact {
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
-
     validateDeployable(service.breed.deployable)
 
     val id = appId(deployment, service.breed)

@@ -9,7 +9,7 @@ import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
-import de.heikoseeberger.akkasse.ServerSentEvent
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import io.vamp.common.Namespace
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._

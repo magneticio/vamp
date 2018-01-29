@@ -1,11 +1,12 @@
 package io.vamp.container_driver.marathon
 
-import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config }
+import akka.actor.{ Actor, ActorRef }
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.common.{ ClassMapper, Config, ConfigMagnet }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
@@ -16,6 +17,7 @@ import org.json4s.JsonAST.JObject
 import org.json4s._
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 class MarathonDriverActorMapper extends ClassMapper {
@@ -26,26 +28,26 @@ class MarathonDriverActorMapper extends ClassMapper {
 object MarathonDriverActor {
 
   private val config = "vamp.container-driver"
+  private val marathonConfig = "vamp.container-driver.marathon"
 
-  val mesosUrl = Config.string(s"$config.mesos.url")
-  val marathonUrl = Config.string(s"$config.marathon.url")
+  val mesosUrl: ConfigMagnet[String] = Config.string(s"$config.mesos.url")
+  val marathonUrl: ConfigMagnet[String] = Config.string(s"$marathonConfig.url")
 
-  val apiUser = Config.string(s"$config.marathon.user")
-  val apiPassword = Config.string(s"$config.marathon.password")
+  val apiUser: ConfigMagnet[String] = Config.string(s"$marathonConfig.user")
+  val apiPassword: ConfigMagnet[String] = Config.string(s"$marathonConfig.password")
+  val apiToken: ConfigMagnet[String] = Config.string(s"$marathonConfig.token")
 
-  val apiToken = Config.string(s"$config.marathon.token")
+  val sse: ConfigMagnet[Boolean] = Config.boolean(s"$marathonConfig.sse")
 
-  val sse = Config.boolean(s"$config.marathon.sse")
-  val expirationPeriod = Config.duration(s"$config.marathon.expiration-period")
-  val reconciliationPeriod = Config.duration(s"$config.marathon.reconciliation-period")
+  val readTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.read-time-to-live")
+  val writeTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.write-time-to-live")
 
-  val namespaceConstraint = Config.stringList(s"$config.marathon.namespace-constraint")
+  val namespaceConstraint: ConfigMagnet[List[String]] = Config.stringList(s"$marathonConfig.namespace-constraint")
 
-  val tenantIdOverride = Config.string(s"$config.marathon.tenant-id-override")
+  val tenantIdOverride: ConfigMagnet[String] = Config.string(s"$marathonConfig.tenant-id-override")
+  val tenantIdWorkflowOverride: ConfigMagnet[String] = Config.string(s"$marathonConfig.tenant-id-workflow-override")
 
-  val tenantIdWorkflowOverride = Config.string(s"$config.marathon.tenant-id-workflow-override")
-
-  val useBreedNameForServiceName = Config.boolean(s"$config.marathon.use-breed-name-for-service-name")
+  val useBreedNameForServiceName: ConfigMagnet[Boolean] = Config.boolean(s"$marathonConfig.use-breed-name-for-service-name")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -62,8 +64,9 @@ case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
 class MarathonDriverActor
     extends ContainerDriverActor
-    with MarathonSse
     with MarathonNamespace
+    with MarathonCache
+    with MarathonSse
     with ActorExecutionContextProvider
     with ContainerDriver
     with HealthCheckMerger
@@ -71,19 +74,19 @@ class MarathonDriverActor
 
   import ContainerDriverActor._
 
-  lazy val tenantIdOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
+  lazy val tenantIdOverride: Option[String] = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
 
-  lazy val tenantIdWorkflowOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdWorkflowOverride()))).getOrElse(None)
+  lazy val tenantIdWorkflowOverride: Option[String] = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdWorkflowOverride()))).getOrElse(None)
 
-  lazy val useBreedNameForServiceName = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
+  lazy val useBreedNameForServiceName: Option[Boolean] = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
 
-  protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
-
-  protected val reconciliationPeriod = MarathonDriverActor.reconciliationPeriod()
+  private val sse: Boolean = MarathonDriverActor.sse()
 
   private val url = MarathonDriverActor.marathonUrl()
 
-  private implicit val formats: Formats = DefaultFormats
+  private val infoUrl = s"$url/v2/info"
+  private val appsUrl = s"$url/v2/apps"
+  private val eventsUrl = s"$url/v2/events"
 
   private val headers: List[(String, String)] = {
     val token = MarathonDriverActor.apiToken()
@@ -93,13 +96,15 @@ class MarathonDriverActor
       List("Authorization" → s"token=$token")
   }
 
-  override protected def supportedDeployableTypes = DockerDeployableType :: CommandDeployableType :: Nil
+  private implicit val formats: Formats = DefaultFormats
 
-  override def receive = {
+  override protected def supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: CommandDeployableType :: Nil
+
+  override def receive: Actor.Receive = {
 
     case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)                  ⇒ get(services)
+    case Get(services, equality)        ⇒ get(services, equality)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
@@ -108,8 +113,13 @@ class MarathonDriverActor
     case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
+    case event: ServerSentEvent         ⇒ process(event)
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
+
+  override def preStart(): Unit = if (sse) openSseStream(eventsUrl, headers, tlsCheck = httpClient.tlsCheck)
+
+  override def postStop(): Unit = if (sse) closeSseStream()
 
   private def info: Future[Any] = {
 
@@ -122,7 +132,7 @@ class MarathonDriverActor
     for {
       slaves ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/slaves", headers)
       frameworks ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/frameworks", headers)
-      marathon ← httpClient.get[Any](s"$url/v2/info", headers)
+      marathon ← httpClient.get[Any](infoUrl, headers)
     } yield {
 
       val s: Any = slaves match {
@@ -136,32 +146,64 @@ class MarathonDriverActor
     }
   }
 
-  private def get(deploymentServices: List[DeploymentServices]): Unit = {
+  private def get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Unit = {
     log.info("getting deployment services")
     val replyTo = sender()
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
       case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
         case Some(app) ⇒
-          val (equalHealthChecks, health) = healthCheck(app, deployment.ports, service.healthChecks.getOrElse(List()))
+          val cluster = deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
+          val equality = ServiceEqualityResponse(
+            deployable = !equalityRequest.deployable || checkDeployable(service, app),
+            ports = !equalityRequest.ports || checkPorts(deployment, cluster, service, app),
+            environmentVariables = !equalityRequest.environmentVariables || checkEnvironmentVariables(deployment, cluster, service, app),
+            health = !equalityRequest.health || checkHealth(deployment, service, app)
+          )
           replyTo ! ContainerService(
             deployment,
             service,
             Option(containers(app)),
-            health,
-            equalHealthChecks = equalHealthChecks
+            app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts)),
+            equality = equality
           )
         case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
       }
     }
   }
 
+  private def checkDeployable(service: DeploymentService, app: App): Boolean = {
+    if (CommandDeployableType.matches(service.breed.deployable))
+      service.breed.deployable.definition == app.cmd.getOrElse("")
+    else if (DockerDeployableType.matches(service.breed.deployable))
+      service.breed.deployable.definition == app.container.flatMap(_.docker).map(_.image).getOrElse("")
+    else true
+  }
+
+  private def checkPorts(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
+    val appPorts = app.container.map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
+    val containerPorts = app.container.flatMap(_.docker).map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
+    val servicePorts = portMappings(deployment, c, service, "").map(_.containerPort).toSet
+    // due to changes in Marathon 1.5.x, both container (docker) and app port mapping should be chacked
+    appPorts == servicePorts || containerPorts == servicePorts
+  }
+
+  private def checkEnvironmentVariables(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
+    app.env == environment(deployment, c, service)
+  }
+
+  private def checkHealth(deployment: Deployment, service: DeploymentService, app: App): Boolean = {
+    MarathonHealthCheck.equalHealthChecks(deployment.ports, service.healthChecks.getOrElse(List()), app.healthChecks)
+  }
+
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"marathon reconcile workflow: ${workflow.name}")
     get(appId(workflow)).foreach {
       case Some(app) if workflow.breed.isInstanceOf[DefaultBreed] ⇒
-        val breed = workflow.breed.asInstanceOf[DefaultBreed]
-        val (equalHealthChecks, health) = healthCheck(app, breed.ports, breed.healthChecks.getOrElse(List()))
-        replyTo ! ContainerWorkflow(workflow, Option(containers(app)), health, equalHealthChecks)
+        replyTo ! ContainerWorkflow(
+          workflow,
+          Option(containers(app)),
+          app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
+        )
       case Some(app) if workflow.breed.isInstanceOf[BreedReference] ⇒
         val breedReference = workflow.breed.asInstanceOf[BreedReference]
         log.warning(s"marathon reconcile workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
@@ -170,137 +212,139 @@ class MarathonDriverActor
     }
   }
 
-  private def get(id: String): Future[Option[App]] = {
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
+  private def get(id: String): Future[Option[App]] = readCached(id, () ⇒ {
+    log.info(s"marathon sending request: $id")
+    httpClient.get[AppsResponse](s"$appsUrl?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
       .recover {
-        case t: Throwable ⇒ {
+        case t: Throwable ⇒
           log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
           None
-        }
-        case _ ⇒ {
-          log.warning(s"Unknown errow while getting app id: $id")
+        case _ ⇒
+          log.warning(s"Unknown error while getting app id: $id")
           None
-        }
       }
       .map {
-        case apps: AppsResponse ⇒ {
-          logger.debug(s"apps: for $id => $apps")
+        case apps: AppsResponse ⇒
+          log.debug(s"apps: for $id => $apps")
           apps.apps.find(app ⇒ app.id == id)
-        }
-        case _ ⇒ {
-          logger.info(s"no app: for $id")
+        case _ ⇒
+          log.info(s"no app: for $id")
           None
-        }
       }
-  }
-
-  private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
-    val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(ports, healthChecks, app.healthChecks)
-    val newHealth = app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
-    equalHealthChecks → newHealth
-  }
+  })
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
 
   private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
-    case arg @ Argument("override.workflow.docker.network", networkOverrideValue) ⇒ { app ⇒
-      if (workflowDeployment)
-        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
-          network = networkOverrideValue,
-          portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
-            case "USER" ⇒ portMapping.copy(hostPort = None)
-            case _      ⇒ portMapping
-          })))))
-      else app
-    }
-    case arg @ Argument("override.deployment.docker.network", networkOverrideValue) ⇒ { app ⇒
-      if (!workflowDeployment)
-        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
-          network = networkOverrideValue,
-          portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
-            case "USER" ⇒ portMapping.copy(hostPort = None)
-            case _      ⇒ portMapping
-          })))))
-      else app
-    }
-    case arg @ Argument("override.workflow.docker.privileged", runPriviledged) ⇒ { app ⇒
-      if (workflowDeployment)
-        Try(runPriviledged.toBoolean).map(
-          priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
-        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
-      else app
-    }
-    case arg @ Argument("override.deployment.docker.privileged", runPriviledged) ⇒ { app ⇒
-      if (!workflowDeployment)
-        Try(runPriviledged.toBoolean).map(
-          priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
-        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
-      else app
-    }
-    case arg @ Argument("override.workflow.ipAddress.networkName", networkName) ⇒ { app ⇒
-      if (workflowDeployment)
-        app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
-      else app
-    }
-    case arg @ Argument("override.deployment.ipAddress.networkName", networkName) ⇒ { app ⇒
-      if (!workflowDeployment)
-        app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
-      else app
-    }
-    case arg @ Argument("override.workflow.fetch.uri", uriValue) ⇒ { app ⇒
-      if (workflowDeployment)
-        app.copy(fetch =
-          app.fetch match {
-            case None    ⇒ Some(List(UriObject(uriValue)))
-            case Some(l) ⇒ Some(UriObject(uriValue) :: l)
-          }
-        )
-      else app
-    }
-    case arg @ Argument("override.deployment.fetch.uri", uriValue) ⇒ { app ⇒
-      if (!workflowDeployment)
-        app.copy(fetch =
-          app.fetch match {
-            case None    ⇒ Some(List(UriObject(uriValue)))
-            case Some(l) ⇒ Some(UriObject(uriValue) :: l)
-          }
-        )
-      else app
-    }
-    case arg @ Argument("override.workflow.noHealthChecks", noHealthChecks) ⇒ { app ⇒
-      if (workflowDeployment)
-        Try(noHealthChecks.toBoolean).map(
-          noHealthChecks ⇒ if (noHealthChecks) {
-            app.copy(healthChecks = Nil)
-          }
-          else app
-        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
-      else app
-    }
-    case arg @ Argument("override.deployment.noHealthChecks", noHealthChecks) ⇒ { app ⇒
-      if (!workflowDeployment)
-        Try(noHealthChecks.toBoolean).map(
-          noHealthChecks ⇒ if (noHealthChecks) {
-            app.copy(healthChecks = Nil)
-          }
-          else app
-        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
-      else app
-    }
-    case arg @ Argument(argName, argValue) if (argName.startsWith("override.workflow.labels.")) ⇒ { app ⇒
-      if (workflowDeployment) {
-        val labelName = argName.drop("override.workflow.labels.".length)
-        app.copy(labels = (app.labels + (labelName → argValue)))
-      }
-      else app
-    }
-    case arg @ Argument(argName, argValue) if (argName.startsWith("override.deployment.labels.")) ⇒ { app ⇒
-      if (!workflowDeployment) {
-        val labelName = argName.drop("override.deployment.labels.".length)
-        app.copy(labels = (app.labels + (labelName → argValue)))
-      }
-      else app
-    }
+    case Argument("override.workflow.docker.network", networkOverrideValue) ⇒
+      app ⇒
+        if (workflowDeployment)
+          app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
+            network = networkOverrideValue,
+            portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
+              case "USER" ⇒ portMapping.copy(hostPort = None)
+              case _      ⇒ portMapping
+            })
+          ))))
+        else app
+
+    case Argument("override.deployment.docker.network", networkOverrideValue) ⇒
+      app ⇒
+        if (!workflowDeployment)
+          app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
+            network = networkOverrideValue,
+            portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
+              case "USER" ⇒ portMapping.copy(hostPort = None)
+              case _      ⇒ portMapping
+            })
+          ))))
+        else app
+
+    case arg @ Argument("override.workflow.docker.privileged", runPrivileged) ⇒
+      app ⇒
+        if (workflowDeployment)
+          Try(runPrivileged.toBoolean).map(
+            privileged ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = privileged))))
+          ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+        else app
+
+    case arg @ Argument("override.deployment.docker.privileged", runPrivileged) ⇒
+      app ⇒
+        if (!workflowDeployment)
+          Try(runPrivileged.toBoolean).map(
+            privileged ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = privileged))))
+          ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+        else app
+
+    case Argument("override.workflow.ipAddress.networkName", networkName) ⇒
+      app ⇒
+        if (workflowDeployment)
+          app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
+        else app
+
+    case Argument("override.deployment.ipAddress.networkName", networkName) ⇒
+      app ⇒
+        if (!workflowDeployment)
+          app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
+        else app
+
+    case Argument("override.workflow.fetch.uri", uriValue) ⇒
+      app ⇒
+        if (workflowDeployment)
+          app.copy(fetch =
+            app.fetch match {
+              case None    ⇒ Some(List(UriObject(uriValue)))
+              case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+            })
+        else app
+
+    case Argument("override.deployment.fetch.uri", uriValue) ⇒
+      app ⇒
+        if (!workflowDeployment)
+          app.copy(fetch =
+            app.fetch match {
+              case None    ⇒ Some(List(UriObject(uriValue)))
+              case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+            })
+        else app
+
+    case arg @ Argument("override.workflow.noHealthChecks", noHealthChecks) ⇒
+      app ⇒
+        if (workflowDeployment)
+          Try(noHealthChecks.toBoolean).map(
+            noHealthChecks ⇒ if (noHealthChecks) {
+              app.copy(healthChecks = Nil)
+            }
+            else app
+          ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+        else app
+
+    case arg @ Argument("override.deployment.noHealthChecks", noHealthChecks) ⇒
+      app ⇒
+        if (!workflowDeployment)
+          Try(noHealthChecks.toBoolean).map(
+            noHealthChecks ⇒ if (noHealthChecks) {
+              app.copy(healthChecks = Nil)
+            }
+            else app
+          ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+        else app
+
+    case Argument(argName, argValue) if argName.startsWith("override.workflow.labels.") ⇒
+      app ⇒
+        if (workflowDeployment) {
+          val labelName = argName.drop("override.workflow.labels.".length)
+          app.copy(labels = app.labels + (labelName → argValue))
+        }
+        else app
+
+    case Argument(argName, argValue) if argName.startsWith("override.deployment.labels.") ⇒
+      app ⇒
+        if (!workflowDeployment) {
+          val labelName = argName.drop("override.deployment.labels.".length)
+          app.copy(labels = app.labels + (labelName → argValue))
+        }
+        else app
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
@@ -331,12 +375,11 @@ class MarathonDriverActor
 
     // Iterate through all Argument objects and if they represent an override, apply them
     val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
-      applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app)
-    )
+      applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app))
 
     val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
 
-    log.info(s"Deploying ${asd}")
+    log.info(s"Deploying $asd")
     sendRequest(update, id, asd)
   }
 
@@ -370,8 +413,7 @@ class MarathonDriverActor
 
     // Iterate through all Argument objects and if they represent an override, apply them
     val marathonAppWithGlobalOverrides = workflow.arguments.foldLeft(marathonApp)((app, argument) ⇒
-      applyGlobalOverride(true).applyOrElse(argument, noGlobalOverride)(app)
-    )
+      applyGlobalOverride(true).applyOrElse(argument, noGlobalOverride)(app))
 
     val toDeploy = requestPayload(workflow, purge(marathonAppWithGlobalOverrides))
     log.info(s"Deploying ${workflow.name} with id $id")
@@ -385,14 +427,12 @@ class MarathonDriverActor
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers).flatMap { appResponse ⇒
-        val marathonApp = Extraction.extract[MarathonApp](payload)
-        val app = appResponse.apps.headOption.get
-        log.info(s"marathon App: $marathonApp, $app")
-        val changed = appResponse.apps.headOption.map(difference(marathonApp, _)).getOrElse(payload)
-
-        if (changed != JNothing)
-          httpClient.put[Any](s"$url/v2/apps/$id", changed, headers)
+      get(id).flatMap { response ⇒
+        val changed = Extraction.decompose(response).children.headOption match {
+          case Some(app) ⇒ app.diff(payload).changed
+          case None      ⇒ payload
+        }
+        if (changed != JNothing) writeCached(id, () ⇒ httpClient.put[Any](s"$appsUrl/$id", changed, headers))
         else {
           log.info(s"Nothing has changed in app $id configuration")
           Future.successful(false)
@@ -400,33 +440,15 @@ class MarathonDriverActor
       }
     }
     else {
-      httpClient.post[Any](s"$url/v2/apps", payload, headers, logError = false).recover {
-        case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
-        case t ⇒
-          log.error(t, t.getMessage)
-          Future.failed(t)
-      }
+      writeCached(id, () ⇒ {
+        httpClient.post[Any](appsUrl, payload, headers, logError = false).recover {
+          case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
+          case t ⇒
+            log.error(t, t.getMessage)
+            Future.failed(t)
+        }
+      })
     }
-  }
-
-  /**
-   * Checks the difference between a MarathonApp and an App to convert them two comparable objects (ComparableApp)
-   * If healthCheck is changed it takes the latest array as values from:
-   * @param marathonApp
-   * If healthCheck deleted it needs to have an empty JSON Array as override value for the put request
-   */
-  private def difference(marathonApp: MarathonApp, app: App): JValue = {
-    val comparableApp: ComparableApp = ComparableApp.fromApp(app)
-    val comparableAppTwo: ComparableApp = ComparableApp.fromMarathonApp(marathonApp)
-    val diff = Extraction.decompose(comparableApp).diff(Extraction.decompose(comparableAppTwo))
-
-    diff.added.merge(diff.changed.mapField {
-      case ("healthChecks", _) ⇒ "healthChecks" → JArray(marathonApp.healthChecks.map(Extraction.decompose))
-      case xs                  ⇒ xs
-    }).merge(diff.deleted.mapField {
-      case ("healthChecks", _) ⇒ "healthChecks" → JArray(List())
-      case xs                  ⇒ xs
-    })
   }
 
   private def container(workflow: Workflow): Option[Container] = {
@@ -487,13 +509,13 @@ class MarathonDriverActor
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
+    writeCached(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover { case _ ⇒ None })
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
+    writeCached(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover { case _ ⇒ None })
   }
 
   private def containers(app: App): Containers = {
@@ -508,18 +530,16 @@ class MarathonDriverActor
         if (networkName == "USER"
           || app.networks.map(_.mode).contains("container"))
       } yield (ipAddressToUse.ipAddress,
-        docker.portMappings.map(_.containerPort).flatten ++ container.portMappings.map(_.containerPort).flatten)
+        docker.portMappings.flatMap(_.containerPort) ++ container.portMappings.flatMap(_.containerPort))
       portsAndIpForUserNetwork match {
-        case None ⇒ {
+        case None ⇒
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports for ${task.id} => ${task.ports} network: ${network}")
+          log.info(s"Ports for ${task.id} => ${task.ports} network: $network")
           ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
-        }
-        case Some(portsAndIp) ⇒ {
+        case Some(portsAndIp) ⇒
           val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          logger.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: ${network}")
+          log.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
           ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
-        }
       }
     })
     Containers(scale, instances)

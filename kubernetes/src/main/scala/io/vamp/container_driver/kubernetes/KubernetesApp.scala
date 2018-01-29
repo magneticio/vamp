@@ -81,9 +81,11 @@ case class KubernetesTemplate(spec: KubernetesTemplateSpec)
 
 case class KubernetesTemplateSpec(containers: List[KubernetesContainer] = Nil)
 
-case class KubernetesContainer(resources: KubernetesContainerResource, ports: List[KubernetesContainerPort] = Nil)
+case class KubernetesContainer(name: String, image: String, env: List[KubernetesContainerEnv] = Nil, ports: List[KubernetesContainerPort] = Nil, resources: KubernetesContainerResource)
 
 case class KubernetesContainerPort(containerPort: Int)
+
+case class KubernetesContainerEnv(name: String, value: String)
 
 case class KubernetesContainerResource(requests: KubernetesContainerResourceRequests)
 
