@@ -3,10 +3,11 @@ package io.vamp.workflow_driver
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.http.HttpClient
-import io.vamp.common.{ ClassMapper, Config }
-import io.vamp.container_driver.{ ContainerDriverValidation, Docker, DockerDeployableType }
+import io.vamp.common.{ClassMapper, Config, RootAnyMap}
+import io.vamp.container_driver.{ContainerDriverValidation, Docker, DockerDeployableType}
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
 import io.vamp.model.artifact._
+import io.vamp.model.reader.{MegaByte, Quantity}
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
@@ -70,13 +71,15 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
       val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
       validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
+      val scale = workflow.scale.flatMap(s => if(s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale]) else None).
+        getOrElse(DefaultScale(name = "defaultScale", metadata = RootAnyMap.empty, cpu = Quantity(0.1), memory = MegaByte(128), instances = 1))
 
       val jobRequest = job(
         name = name(workflow),
         schedule = period(workflow),
         image = breed.deployable.definition,
         environmentVariables = breed.environmentVariables,
-        scale = workflow.scale.get.asInstanceOf[DefaultScale],
+        scale = scale,
         network = workflow.network.getOrElse(Docker.network())
       )
 

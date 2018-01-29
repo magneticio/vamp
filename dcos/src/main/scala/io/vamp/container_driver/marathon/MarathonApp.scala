@@ -39,16 +39,15 @@ object MarathonHealthCheck {
 
   /** Transforms a HealthCheck to a Marathon specific HealthCheck */
   def apply(ports: List[Port], healthCheck: HealthCheck): MarathonHealthCheck = {
-    val index: Int = ports
+    val index: Option[Int] = ports
       .zipWithIndex
       .find { case (p, i) ⇒ p.name.contains(healthCheck.port) || p.alias.contains(healthCheck.port) }
-      .get // Able to get due to validation
-      ._2
+      .map(_._2)
 
     MarathonHealthCheck(
       healthCheck.path,
       None,
-      Some(index),
+      index,
       healthCheck.protocol,
       healthCheck.initialDelay.value,
       healthCheck.interval.value,

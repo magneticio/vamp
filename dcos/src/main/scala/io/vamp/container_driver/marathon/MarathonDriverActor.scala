@@ -1,16 +1,16 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config, RestrictedMap }
+import io.vamp.common.{ClassMapper, Config, RestrictedMap, RootAnyMap}
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
+import io.vamp.container_driver.notification.{UndefinedMarathonApplication, UnsupportedContainerDriverRequest}
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.JsonAST.JObject
 import org.json4s._
@@ -312,15 +312,17 @@ class MarathonDriverActor
 
     log.info(s"Deploying Workflow and using Arguments:: ${service.arguments}")
 
+    val scale = service.scale.getOrElse(DefaultScale(name = "defaultScale", metadata = RootAnyMap.empty, cpu = Quantity(0.1), memory = MegaByte(128), instances = 1))
+
     val app = MarathonApp(
-      id,
-      container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride(false).isDefinedAt))),
-      None,
-      service.scale.get.instances,
-      service.scale.get.cpu.value,
-      Math.round(service.scale.get.memory.value).toInt,
-      environment(deployment, cluster, service),
-      cmd(deployment, cluster, service),
+      id = id,
+      container = container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride(false).isDefinedAt))),
+      ipAddress = None,
+      instances = scale.instances,
+      cpus = scale.cpu.value,
+      mem = Math.round(scale.memory.value).toInt,
+      env = environment(deployment, cluster, service),
+      cmd = cmd(deployment, cluster, service),
       healthChecks = retrieveHealthChecks(cluster, service).map(MarathonHealthCheck.apply(service.breed.ports, _)),
       labels = labels(deployment, cluster, service),
       constraints = constraints,
@@ -346,20 +348,23 @@ class MarathonDriverActor
 
     val id = appId(workflow)
     if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
-    val scale = workflow.scale.get.asInstanceOf[DefaultScale]
+
+    val scale = workflow.scale.flatMap(s => if(s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale]) else None).
+      getOrElse(DefaultScale(name = "defaultScale", metadata = RootAnyMap.empty, cpu = Quantity(0.1), memory = MegaByte(128), instances = 1))
+
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
     log.info(s"Deploying Workflow and using Arguments:: ${workflow.arguments}")
 
     val marathonApp = MarathonApp(
-      id,
-      container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride(true).isDefinedAt))),
-      None,
-      scale.instances,
-      scale.cpu.value,
-      Math.round(scale.memory.value).toInt,
-      environment(workflow),
-      cmd(workflow),
+      id = id,
+      container = container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride(true).isDefinedAt))),
+      ipAddress = None,
+      instances = scale.instances,
+      cpus = scale.cpu.value,
+      mem = Math.round(scale.memory.value).toInt,
+      env = environment(workflow),
+      cmd = cmd(workflow),
       labels = labels(workflow),
       healthChecks = retrieveHealthChecks(workflow).map(MarathonHealthCheck.apply(breed.ports, _)),
       constraints = constraints,
