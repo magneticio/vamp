@@ -22,7 +22,7 @@ import scala.util.{ Failure, Success, Try }
 /**
  * Created by mihai on 11/10/17.
  */
-class EsDao(val namespace: Namespace, elasticSearchHostAndPort: => String, elasticSearchClusterName: => String, testingContext: Boolean = false)(implicit actorSystem: ActorSystem)
+class EsDao(val namespace: Namespace, elasticSearchHostAndPort: ⇒ String, elasticSearchClusterName: ⇒ String, testingContext: Boolean = false)(implicit actorSystem: ActorSystem)
     extends SimpleArtifactPersistenceDao with PersistToArchive {
   implicit val ns: Namespace = namespace
   private[persistence] val indexName = s"vamp_${namespace.name}"

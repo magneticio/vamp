@@ -2,9 +2,9 @@ package io.vamp.workflow_driver
 
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
-import io.vamp.common.{ClassMapper, Config, RootAnyMap}
-import io.vamp.common.http.{HttpClient, HttpClientException}
-import io.vamp.container_driver.{ContainerDriverValidation, DeployableType, Docker, DockerDeployableType}
+import io.vamp.common.{ ClassMapper, Config, RootAnyMap }
+import io.vamp.common.http.{ HttpClient, HttpClientException }
+import io.vamp.container_driver.{ ContainerDriverValidation, DeployableType, Docker, DockerDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
@@ -14,7 +14,7 @@ import scala.util.Try
 import cats.implicits.catsStdInstancesForList
 import cats.implicits.toTraverseOps
 import cats.implicits.catsStdInstancesForFuture
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.persistence.refactor.VampPersistence
 
 class MetronomeWorkflowActorMapper extends ClassMapper {
@@ -148,7 +148,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     val commandToRun = s"docker run $environmentVariablesAsString --net=${usedNetworkName} " +
       s"--rm ${workflow.breed.asInstanceOf[DefaultBreed].deployable.definition}"
 
-    val scale = workflow.scale.flatMap(s => if(s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale]) else None).
+    val scale = workflow.scale.flatMap(s ⇒ if (s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale]) else None).
       getOrElse(DefaultScale(name = "defaultScale", metadata = RootAnyMap.empty, cpu = Quantity(0.1), memory = MegaByte(128), instances = 1))
 
     val workflowAsMetronomeJob = getJobRepresentation(workflowDescription = workflow.name, workflowId = workflowId,

@@ -111,19 +111,18 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
         deploymentCluster.gatewayBy(port.name) match {
           case Some(gateway) ⇒ {
             for {
-              _ <- VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), gw => gw.copy(
-                routes = gw.routes.map( _ match
-                 {
-                   case rt: DefaultRoute => if(GatewayPath(deployment.name :: deploymentCluster.name :: deploymentService.breed.name :: port.name :: Nil).normalized == rt.path.normalized) rt.copy(targets = Nil) else rt
-                   case r => r
-                 }
+              _ ← VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), gw ⇒ gw.copy(
+                routes = gw.routes.map(_ match {
+                  case rt: DefaultRoute ⇒ if (GatewayPath(deployment.name :: deploymentCluster.name :: deploymentService.breed.name :: port.name :: Nil).normalized == rt.path.normalized) rt.copy(targets = Nil) else rt
+                  case r                ⇒ r
+                }
                 )
               ))
-              gatewayAfterUpdate <- VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
-              _ <- VampPersistence().updateGatewayForDeployment(gatewayAfterUpdate)
+              gatewayAfterUpdate ← VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
+              _ ← VampPersistence().updateGatewayForDeployment(gatewayAfterUpdate)
             } yield ()
           }
-          case None          ⇒ Future.successful(()) // no internal gateway
+          case None ⇒ Future.successful(()) // no internal gateway
         }
       }
     }).map(_ ⇒ ())

@@ -1,16 +1,16 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.ActorRef
-import io.vamp.common.{ClassMapper, Config, RestrictedMap, RootAnyMap}
+import io.vamp.common.{ ClassMapper, Config, RestrictedMap, RootAnyMap }
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.{UndefinedMarathonApplication, UnsupportedContainerDriverRequest}
+import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.JsonAST.JObject
 import org.json4s._
@@ -352,7 +352,7 @@ class MarathonDriverActor
     val id = appId(workflow)
     if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
 
-    val scale = workflow.scale.flatMap(s => if(s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale]) else None).
+    val scale = workflow.scale.flatMap(s ⇒ if (s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale]) else None).
       getOrElse(DefaultScale(name = "defaultScale", metadata = RootAnyMap.empty, cpu = Quantity(0.1), memory = MegaByte(128), instances = 1))
 
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
