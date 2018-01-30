@@ -418,25 +418,25 @@ trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOpe
   def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster, validateOnly: Boolean): List[Future[DeploymentService]] = stableCluster match {
     case None ⇒ Nil
     case Some(sc) ⇒ sc.services.map { service ⇒
-      Future {
         blueprintCluster.services.find(_.breed.name == service.breed.name) match {
-          case None ⇒ service
-          case Some(bpService) ⇒
+          case None ⇒ Future.successful(service)
+          case Some(bpService) ⇒ {
 
             val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
             val state: DeploymentService.Status =
               if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment
               else service.status
 
-            if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service, state)
-
-            service.copy(
-              scale = scale,
-              dialects = RootAnyMap(service.dialects.rootMap ++ bpService.dialects.rootMap),
-              healthChecks = bpService.healthChecks
-            )
+            for {
+              _ <- if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service, state) else Future.successful()
+            } yield
+              service.copy(
+                scale = scale,
+                dialects = RootAnyMap(service.dialects.rootMap ++ bpService.dialects.rootMap),
+                healthChecks = bpService.healthChecks
+              )
+          }
         }
-      }
     }
   }
 
@@ -445,12 +445,16 @@ trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOpe
 
     if (newServices.nonEmpty) {
       newServices.map { service ⇒
-        if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service)
-        val scale = service.scale match {
-          case None                      ⇒ DeploymentActor.defaultScale()
-          case Some(scale: DefaultScale) ⇒ scale
+        for {
+          _ <- if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service) else Future.successful()
+
+        } yield {
+          val scale = service.scale match {
+            case None                      ⇒ DeploymentActor.defaultScale()
+            case Some(scale: DefaultScale) ⇒ scale
+          }
+          service.copy(scale = Some(scale))
         }
-        Future.successful(service.copy(scale = Some(scale)))
       }
     }
     else Nil
