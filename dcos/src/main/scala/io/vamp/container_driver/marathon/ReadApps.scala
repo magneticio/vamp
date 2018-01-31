@@ -10,14 +10,14 @@ case class App(
   id:           String,
   instances:    Int,
   cpus:         Double,
-  container:    Option[AppContainer],
   mem:          Double,
-  env:          Map[String, String],
-  cmd:          Option[String],
-  tasks:        List[Task],
-  healthChecks: List[MarathonHealthCheck],
-  taskStats:    Option[MarathonTaskStats],
-  networks:     List[AppNetwork]
+  container:    Option[AppContainer]      = None,
+  env:          Map[String, String]       = Map(),
+  cmd:          Option[String]            = None,
+  tasks:        List[Task]                = Nil,
+  healthChecks: List[MarathonHealthCheck] = Nil,
+  taskStats:    Option[MarathonTaskStats] = None,
+  networks:     List[AppNetwork]          = Nil
 )
 
 case class AppContainer(docker: Option[DockerAppContainer], portMappings: List[DockerAppContainerPort])
