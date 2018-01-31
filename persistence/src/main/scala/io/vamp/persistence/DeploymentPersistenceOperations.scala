@@ -82,11 +82,11 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
   def resetDeploymentService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
     VampPersistence().createOrUpdate[Deployment]({
       val mServices = deployment.clusters.find(c ⇒ c.name == deploymentCluster.name).map(_.services).getOrElse(Nil).map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(
-          scale = None,
-          instances = List[Instance](),
-          environmentVariables = List[EnvironmentVariable](),
-          health = None)
-        else s)
+        scale = None,
+        instances = List[Instance](),
+        environmentVariables = List[EnvironmentVariable](),
+        health = None)
+      else s)
       val clusters = deployment.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
       deployment.copy(clusters = clusters)
     }).flatMap(_ ⇒ updateDeploymentAfterInternalsHaveModified(deploymentSerilizationSpecifier.idExtractor(deployment))).map(_ ⇒ ())

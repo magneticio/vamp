@@ -418,25 +418,24 @@ trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOpe
   def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster, validateOnly: Boolean): List[Future[DeploymentService]] = stableCluster match {
     case None ⇒ Nil
     case Some(sc) ⇒ sc.services.map { service ⇒
-        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
-          case None ⇒ Future.successful(service)
-          case Some(bpService) ⇒ {
+      blueprintCluster.services.find(_.breed.name == service.breed.name) match {
+        case None ⇒ Future.successful(service)
+        case Some(bpService) ⇒ {
 
-            val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
-            val state: DeploymentService.Status =
-              if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment
-              else service.status
+          val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
+          val state: DeploymentService.Status =
+            if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment
+            else service.status
 
-            for {
-              _ <- if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service, state) else Future.successful()
-            } yield
-              service.copy(
-                scale = scale,
-                dialects = RootAnyMap(service.dialects.rootMap ++ bpService.dialects.rootMap),
-                healthChecks = bpService.healthChecks
-              )
-          }
+          for {
+            _ ← if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service, state) else Future.successful()
+          } yield service.copy(
+            scale = scale,
+            dialects = RootAnyMap(service.dialects.rootMap ++ bpService.dialects.rootMap),
+            healthChecks = bpService.healthChecks
+          )
         }
+      }
     }
   }
 
@@ -446,7 +445,7 @@ trait DeploymentMerger extends DeploymentValueResolver with DeploymentGatewayOpe
     if (newServices.nonEmpty) {
       newServices.map { service ⇒
         for {
-          _ <- if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service) else Future.successful()
+          _ ← if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service) else Future.successful()
 
         } yield {
           val scale = service.scale match {
