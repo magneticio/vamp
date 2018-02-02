@@ -8,10 +8,7 @@ import scalacache._
 import scalacache.caffeine._
 import scalacache.modes.sync._
 
-trait CacheStore {
-  this: NamespaceProvider ⇒
-
-  protected def maximumSize: Long = 1000L
+class CacheStore(maximumSize: Long = 1000L) {
 
   private val cache: Cache[Future[Any]] = CaffeineCache(
     Caffeine.newBuilder().maximumSize(maximumSize).build[String, Entry[Future[Any]]]
@@ -20,20 +17,29 @@ trait CacheStore {
   def contains(key: String): Boolean = cache.get(key).isDefined
 
   def getOrPutIfAbsent[T](key: String, put: () ⇒ Future[T])(timeToLivePeriod: FiniteDuration, log: String ⇒ Unit = (_) ⇒ ()): Future[T] = synchronized {
-    cache.get(key) match {
+    get(key) match {
       case Some(result) ⇒
         log(s"cache get: $key")
-        result.asInstanceOf[Future[T]]
-      case None ⇒
-        log(s"cache put: $key")
-        val value = put()
-        cache.put(key)(value, Option(timeToLivePeriod))
-        value
+        result
+      case None ⇒ this.put[T](key, put)(timeToLivePeriod, log)
     }
+  }
+
+  def get[T](key: String): Option[Future[T]] = synchronized {
+    cache.get(key).map(_.asInstanceOf[Future[T]])
+  }
+
+  def put[T](key: String, put: () ⇒ Future[T])(timeToLivePeriod: FiniteDuration, log: String ⇒ Unit = (_) ⇒ ()): Future[T] = synchronized {
+    log(s"cache put [${timeToLivePeriod.toSeconds} s]: $key")
+    val value = put()
+    cache.put(key)(value, Option(timeToLivePeriod))
+    value
   }
 
   def remove(key: String, log: String ⇒ Unit = (_) ⇒ ()): Unit = synchronized {
     log(s"cache removal: $key")
     cache.remove(key)
   }
+
+  def close(): Unit = cache.close()
 }
