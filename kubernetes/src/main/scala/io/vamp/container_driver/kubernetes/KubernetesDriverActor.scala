@@ -50,7 +50,8 @@ class KubernetesDriverActor
     with KubernetesDeployment
     with KubernetesService
     with KubernetesJob
-    with KubernetesDaemonSet {
+    with KubernetesDaemonSet
+    with KubernetesNamespace {
 
   import KubernetesDriverActor._
 
@@ -86,6 +87,7 @@ class KubernetesDriverActor
 
     case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
     case job: Job                       ⇒ reply(createJob(job))
+    case ns: CreateNamespace            ⇒ reply(createNamespace(ns))
 
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
