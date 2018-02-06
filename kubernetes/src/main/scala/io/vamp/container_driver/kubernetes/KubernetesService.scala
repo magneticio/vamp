@@ -73,6 +73,11 @@ trait KubernetesService extends KubernetesArtifact {
       })
   }
 
+  protected def createService(request: AnyRef): Future[Any] = {
+    log.info(s"Creating service")
+    httpClient.post[Any](url, request, apiHeaders)
+  }
+
   private def toId(name: String): String = name match {
     case nameMatcher(_*) if name.length < 25 ⇒ name
     case _                                   ⇒ s"hex${HashUtil.hexSha1(name).substring(0, 20)}"

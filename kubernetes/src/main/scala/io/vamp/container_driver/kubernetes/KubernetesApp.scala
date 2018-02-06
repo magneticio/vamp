@@ -1,8 +1,8 @@
 package io.vamp.container_driver.kubernetes
 
 import io.vamp.container_driver.Docker
+import org.json4s.DefaultFormats
 import org.json4s.native.Serialization._
-import org.json4s.{ DefaultFormats, Formats }
 
 case class KubernetesApp(
     name:       String,
@@ -62,8 +62,7 @@ case class KubernetesApp(
       )
     )
 
-    implicit val formats: Formats = DefaultFormats
-    write(deployment)
+    write(deployment)(DefaultFormats)
   }
 }
 

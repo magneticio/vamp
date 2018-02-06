@@ -63,4 +63,9 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
         httpClient.post[Any](url, request, apiHeaders)
       })
   }
+
+  protected def createDaemonSet(request: AnyRef): Future[Any] = {
+    log.info(s"Creating daemon set")
+    httpClient.post[Any](url, request, apiHeaders)
+  }
 }
