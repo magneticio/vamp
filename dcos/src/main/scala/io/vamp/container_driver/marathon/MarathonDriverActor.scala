@@ -7,7 +7,9 @@ import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.common.{ ClassMapper, Config, ConfigMagnet }
+import io.vamp.container_driver.ContainerDriverActor.ContainerDriveMessage
 import io.vamp.container_driver._
+import io.vamp.container_driver.marathon.MarathonDriverActor.DeployMarathonApp
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
@@ -57,6 +59,8 @@ object MarathonDriverActor {
   MarathonDriverActor.Schema.values
 
   val dialect = "marathon"
+
+  case class DeployMarathonApp(id: Option[String], request: AnyRef)
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -115,6 +119,7 @@ class MarathonDriverActor
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
     case event: ServerSentEvent         ⇒ process(event)
+    case app: DeployMarathonApp         ⇒ reply(deploy(app.id, app.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -231,10 +236,10 @@ class MarathonDriverActor
       }
       .map {
         case apps: AppsResponse ⇒
-          log.debug(s"apps: for $id => $apps")
+          log.debug(s"apps for: $id => $apps")
           apps.apps.find(app ⇒ app.id == id)
         case _ ⇒
-          log.info(s"no app: for $id")
+          log.info(s"no app for: $id")
           None
       }
   })
@@ -564,5 +569,12 @@ class MarathonDriverActor
       }
     })
     Containers(scale, instances)
+  }
+
+  private def deploy(id: Option[String], request: AnyRef): Future[Any] = {
+    id.map(get).getOrElse(Future.successful(None)).flatMap {
+      case None    ⇒ httpClient.post[Any](appsUrl, request, headers)
+      case Some(_) ⇒ httpClient.put[Any](s"$appsUrl/$id", request, headers)
+    }
   }
 }
