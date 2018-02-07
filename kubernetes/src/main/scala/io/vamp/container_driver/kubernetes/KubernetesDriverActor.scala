@@ -1,8 +1,8 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.{ Actor, ActorRef }
+import io.kubernetes.client.apis.ApisApi
 import io.vamp.common._
-import io.vamp.common.http.HttpClient
 import io.vamp.common.util.YamlUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
@@ -12,8 +12,8 @@ import io.vamp.model.artifact.{ Gateway, Workflow }
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization.write
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
-import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Try
 
@@ -24,19 +24,13 @@ class KubernetesDriverActorMapper extends ClassMapper {
 
 object KubernetesDriverActor {
 
+  import KubernetesContainerDriver._
+
   object Schema extends Enumeration {
     val Docker: Schema.Value = Value
   }
 
-  private val config = "vamp.container-driver.kubernetes"
-
-  val url: ConfigMagnet[String] = Config.string(s"$config.url")
-
   val workflowNamePrefix: ConfigMagnet[String] = Config.string(s"$config.workflow-name-prefix")
-
-  val token: ConfigMagnet[String] = Config.string(s"$config.token")
-
-  val bearer: ConfigMagnet[String] = Config.string(s"$config.bearer")
 
   val createServices: ConfigMagnet[Boolean] = Config.boolean(s"$config.create-services")
 
@@ -45,9 +39,10 @@ object KubernetesDriverActor {
   def serviceType()(implicit namespace: Namespace): KubernetesServiceType.Value = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
 
   case class DeployKubernetesItems(request: String)
+
 }
 
-case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
+case class KubernetesDriverInfo(apis: Any)
 
 class KubernetesDriverActor
     extends ContainerDriverActor
@@ -62,14 +57,7 @@ class KubernetesDriverActor
 
   protected val schema: Enumeration = KubernetesDriverActor.Schema
 
-  protected val apiUrl = KubernetesDriverActor.url()
-
-  protected val apiHeaders: List[(String, String)] = {
-    def headers(bearer: String) = ("Authorization" → s"Bearer $bearer") :: HttpClient.jsonHeaders
-
-    if (bearer().nonEmpty) headers(bearer())
-    else Try(Source.fromFile(token()).mkString).map(headers).getOrElse(HttpClient.jsonHeaders)
-  }
+  protected lazy val k8sClient: K8sClient = new K8sClient(K8sConfig())
 
   private val gatewayService = Map(ContainerDriver.labelNamespace() → "gateway")
 
@@ -79,105 +67,101 @@ class KubernetesDriverActor
 
   def receive: Actor.Receive = {
 
-    case InfoRequest                    ⇒ reply(info)
+    case InfoRequest                    ⇒ reply(Future(info()))
 
     case Get(services, equality)        ⇒ get(services, equality)
-    case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
+    case d: Deploy                      ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
+    case u: Undeploy                    ⇒ reply(Future(undeploy(u.deployment, u.service)))
     case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
 
     case GetWorkflow(workflow, replyTo) ⇒ get(workflow, replyTo)
-    case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
-    case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
+    case d: DeployWorkflow              ⇒ reply(Future(deploy(d.workflow, d.update)))
+    case u: UndeployWorkflow            ⇒ reply(Future(undeploy(u.workflow)))
 
-    case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
-    case job: Job                       ⇒ reply(createJob(job))
-    case ns: CreateNamespace            ⇒ reply(createNamespace(ns))
+    case ds: DaemonSet                  ⇒ reply(Future(daemonSet(ds)))
+    case job: Job                       ⇒ reply(Future(createJob(job)))
+    case ns: CreateNamespace            ⇒ reply(Future(createNamespace(ns)))
 
-    case dm: DeployKubernetesItems      ⇒ reply(deploy(dm.request))
+    case dm: DeployKubernetesItems      ⇒ reply(Future(deploy(dm.request)))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
-  private def info: Future[Any] = for {
-    paths ← httpClient.get[Any](s"$apiUrl", apiHeaders) map {
-      case map: Map[_, _] ⇒ map.headOption.map { case (_, value) ⇒ value }
-      case any            ⇒ any
-    }
-    api ← httpClient.get[Any](s"$apiUrl/api", apiHeaders)
-    apis ← httpClient.get[Any](s"$apiUrl/apis", apiHeaders)
-    version ← httpClient.get[Any](s"$apiUrl/version", apiHeaders)
-  } yield {
-    ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
-  }
+  private def info() = ContainerInfo(
+    "kubernetes",
+    KubernetesDriverInfo(
+      new ApisApi(k8sClient.api).getAPIVersions.getGroups.asScala.map(g ⇒ g.getName → g.getApiVersion)
+    )
+  )
 
   protected def get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Unit = {
     val replyTo = sender()
-    allContainerServices(deploymentServices, equalityRequest).map(_.foreach {
+    containerServices(deploymentServices, equalityRequest).foreach {
       replyTo ! _
-    })
+    }
   }
 
-  protected def get(workflow: Workflow, replyTo: ActorRef): Unit = containerWorkflow(workflow).map(replyTo ! _)
+  protected def get(workflow: Workflow, replyTo: ActorRef): Unit = replyTo ! containerWorkflow(workflow)
 
-  protected override def deployedGateways(gateways: List[Gateway]): Future[Any] = {
+  protected override def deployedGateways(gateways: List[Gateway]): Future[Any] = Future {
     if (createServices()) {
-      services(gatewayService).map { response ⇒
-        // update service ports
-        gateways.filter {
-          _.service.isEmpty
-        } foreach { gateway ⇒
-          response.items.find {
-            item ⇒ item.metadata.labels.getOrElse(ContainerDriver.withNamespace(Lookup.entry), "") == gateway.lookupName
-          } flatMap {
-            item ⇒ item.spec.clusterIP.flatMap(ip ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number).map(port ⇒ ip → port))
-          } foreach {
-            case (ip, port) ⇒ setGatewayService(gateway, ip, port.nodePort)
-          }
+      val v1Services = services(gatewayService)
+
+      // update service ports
+      gateways.filter {
+        _.service.isEmpty
+      } foreach { gateway ⇒
+
+        v1Services.find {
+          v1Service ⇒ v1Service.getMetadata.getLabels.asScala.getOrElse(ContainerDriver.withNamespace(Lookup.entry), "") == gateway.lookupName
+        } flatMap {
+          v1Service ⇒
+            val ip = v1Service.getSpec.getClusterIP
+            if (ip.nonEmpty)
+              v1Service.getSpec.getPorts.asScala.find(port ⇒ port.getPort.toInt == gateway.port.number).map(port ⇒ ip → port)
+            else None
+        } foreach {
+          case (ip, port) ⇒ setGatewayService(gateway, ip, port.getNodePort.toInt)
         }
+      }
 
-        val items = response.items.flatMap { item ⇒ item.metadata.labels.get(ContainerDriver.withNamespace(Lookup.entry)).map(_ → item.metadata.name) } toMap
+      val items = v1Services.flatMap { v1Service ⇒ v1Service.getMetadata.getLabels.asScala.get(ContainerDriver.withNamespace(Lookup.entry)).map(_ → v1Service.getMetadata.getName) } toMap
 
-        // delete services
-        val deleted = items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } map { case (_, id) ⇒ deleteServiceById(id) }
+      // delete services
+      items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } foreach { case (_, id) ⇒ deleteServiceById(id) }
 
-        // create services
-        val created = gateways.filter {
-          gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
-        } map { gateway ⇒
-          val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map(ContainerDriver.withNamespace("gateway") → gateway.name, ContainerDriver.withNamespace(Lookup.entry) → gateway.lookupName))
-        }
-
-        Future.sequence(created ++ deleted)
+      // create services
+      gateways.filter {
+        gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
+      } foreach { gateway ⇒
+        val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
+        createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map(ContainerDriver.withNamespace("gateway") → gateway.name, ContainerDriver.withNamespace(Lookup.entry) → gateway.lookupName))
       }
     }
-    else Future.successful(true)
   }
 
-  private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { response ⇒
-    ds.serviceType.map { st ⇒
+  private def daemonSet(ds: DaemonSet): Unit = {
+    createDaemonSet(ds)
+    ds.serviceType.foreach { st ⇒
       val ports = ds.docker.portMappings.map { pm ⇒
         KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort.getOrElse(0), pm.containerPort)
       }
       createService(ds.name, st, ds.name, ports, update = false, daemonService ++ Map(ContainerDriver.withNamespace("daemon") → ds.name))
-    } getOrElse Future.successful(response)
+    }
   }
 
-  private def deploy(request: String): Future[Any] = {
-    def process(any: Any): Future[Any] = Try {
+  private def deploy(request: String): Unit = {
+    def process(any: Any): Unit = Try {
       val kind = any.asInstanceOf[Map[String, String]]("kind")
       val request = write(any.asInstanceOf[AnyRef])(DefaultFormats)
       kind match {
         case "Service"   ⇒ createService(request)
         case "DaemonSet" ⇒ createDaemonSet(request)
-        case other ⇒
-          log.warning(s"Cannot process kind: $other")
-          Future.successful(false)
+        case other       ⇒ log.warning(s"Cannot process kind: $other")
       }
-    } getOrElse Future.successful(false)
+    }
 
     YamlUtil.convert(YamlUtil.yaml.loadAll(request), preserveOrder = false) match {
-      case l: List[_] ⇒ Future.sequence[Any, List](l.map(process))
+      case l: List[_] ⇒ l.foreach(process)
       case other      ⇒ process(other)
     }
   }

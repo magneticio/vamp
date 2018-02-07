@@ -1,10 +1,14 @@
 package io.vamp.container_driver.kubernetes
 
+import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.apis.CoreV1Api
+import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 
-import scala.concurrent.Future
+import scala.collection.JavaConverters._
+import scala.util.Try
 
 case class KubernetesServicePort(name: String, protocol: String, port: Int, targetPort: Int)
 
@@ -15,67 +19,66 @@ object KubernetesServiceType extends Enumeration {
 trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private lazy val url = s"$apiUrl/api/v1/namespaces/${namespace.name}/services"
+  private lazy val api = new CoreV1Api(k8sClient.api)
 
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
-  protected def services(labels: Map[String, String] = Map()): Future[KubernetesApiResponse] = {
-    def request(u: String) = httpClient.get[KubernetesApiResponse](u, apiHeaders)
-    if (labels.isEmpty) request(url) else request(s"$url?${labelSelector(labels)}")
+  protected def services(labels: Map[String, String] = Map()): Seq[V1Service] = {
+    val selector = if (labels.isEmpty) null else labelSelector(labels)
+    api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala
   }
 
-  protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
+  protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Unit = {
     val id = toId(name)
-    val request =
-      s"""
-         |{
-         |  "kind": "Service",
-         |  "apiVersion": "v1",
-         |  "metadata": {
-         |    "name": "$id",
-         |    ${labels2json(labels)}
-         |  },
-         |  "spec": {
-         |    "selector": {
-         |      "${ContainerDriver.labelNamespace()}": "$selector"
-         |    },
-         |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
-         |    "type": "${`type`.toString}"
-         |  }
-         |}
-   """.stripMargin
-    retrieve(url, id,
-      () ⇒ {
+
+    def request(): V1Service = {
+      val request = new V1Service
+      val metadata = new V1ObjectMeta
+      request.setMetadata(metadata)
+      metadata.setName(id)
+      metadata.setLabels(filterLabels(labels).asJava)
+
+      val spec = new V1ServiceSpec
+      request.setSpec(spec)
+      spec.setSelector(Map(ContainerDriver.labelNamespace() → selector).asJava)
+      spec.setType(`type`.toString)
+      spec.setPorts(ports.map { p ⇒
+        val port = new V1ServicePort
+        port.setName(s"p${p.name}")
+        port.setProtocol(p.protocol.toUpperCase)
+        port.setPort(p.port)
+        port.setTargetPort(p.targetPort.toString)
+        port
+      }.asJava)
+      request
+    }
+
+    Try(api.readNamespacedServiceStatus(id, namespace.name, null)).toOption match {
+      case Some(_) ⇒
         if (update) {
           log.info(s"Updating service: $name")
-          httpClient.put[Any](s"$url/$id", request, apiHeaders)
+          api.patchNamespacedService(id, namespace.name, api.getApiClient.getJSON.serialize(request()), null)
         }
-        else {
-          log.debug(s"Service exists: $name")
-          Future.successful(false)
-        }
-      },
-      () ⇒ {
+        else log.debug(s"Service exists: $name")
+
+      case None ⇒
         log.info(s"Creating service: $name")
-        httpClient.post[Any](url, request, apiHeaders)
-      })
+        api.createNamespacedService(namespace.name, request(), null)
+    }
   }
 
-  protected def deleteServiceById(id: String): Future[Any] = {
-    retrieve(url, id,
-      () ⇒ {
-        log.info(s"Deleting service: $id")
-        httpClient.delete(s"$url/$id", apiHeaders)
-      },
-      () ⇒ {
-        log.debug(s"Service does not exist: $id")
-        Future.successful(false)
-      })
+  protected def deleteServiceById(id: String): Unit = {
+    log.info(s"Deleting service: $id")
+    Try(api.deleteNamespacedService(id, namespace.name, null))
   }
 
-  protected def createService(request: AnyRef): Future[Any] = {
+  protected def createService(request: String): Unit = {
     log.info(s"Creating service")
-    httpClient.post[Any](url, request, apiHeaders)
+    api.createNamespacedService(
+      namespace.name,
+      api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Service]() {}.getType),
+      null
+    )
   }
 
   private def toId(name: String): String = name match {

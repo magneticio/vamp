@@ -1,9 +1,12 @@
 package io.vamp.container_driver.kubernetes
 
+import io.kubernetes.client.apis.BatchV1Api
+import io.kubernetes.client.models.{ V1SecurityContext, _ }
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
 
-import scala.concurrent.Future
+import scala.collection.JavaConverters._
+import scala.util.Try
 
 case class Job(
   name:                 String,
@@ -18,56 +21,65 @@ case class Job(
 trait KubernetesJob extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private lazy val url = s"$apiUrl/apis/batch/v1/namespaces/${namespace.name}/jobs"
+  private lazy val api = new BatchV1Api(k8sClient.api)
 
-  protected def createJob(job: Job, labels: Map[String, String] = Map()): Future[Any] = {
-    val request =
-      s"""
-         |{
-         |  "apiVersion": "batch/v1",
-         |  "kind": "Job",
-         |  "metadata": {
-         |    "name": "${job.name}",
-         |    ${labels2json(labels + (ContainerDriver.withNamespace("name") → job.name))}
-         |  },
-         |  "spec": {
-         |    "template": {
-         |      "metadata": {
-         |        ${labels2json(Map(ContainerDriver.labelNamespace() → "job", ContainerDriver.withNamespace("job") → job.name))}
-         |      },
-         |      "spec": {
-         |        "containers": [{
-         |          "image": "${job.docker.image}",
-         |          "name": "${job.name}",
-         |          "env": [${job.environmentVariables.map({ case (n, v) ⇒ s"""{"name": "$n", "value": "$v"}""" }).mkString(", ")}],
-         |          "ports": [${job.docker.portMappings.map(pm ⇒ s"""{"containerPort": ${pm.containerPort}, "name": "p${pm.containerPort}"}""").mkString(", ")}],
-         |          "args": [${job.arguments.map(str ⇒ s""""$str"""").mkString(", ")}],
-         |          "command": [${job.command.map(str ⇒ s""""$str"""").mkString(", ")}],
-         |          "resources": {
-         |            "requests": {
-         |              "cpu": ${job.cpu},
-         |              "memory": ${job.mem}
-         |            }
-         |          },
-         |          "securityContext": {
-         |            "privileged": ${job.docker.privileged}
-         |          }
-         |        }],
-         |        "restartPolicy": "Never"
-         |      }
-         |    }
-         |  }
-         |}
-      """.stripMargin
-
-    retrieve(url, job.name,
-      () ⇒ {
-        log.debug(s"Job exists: ${job.name}")
-        Future.successful(false)
-      },
-      () ⇒ {
+  protected def createJob(job: Job, labels: Map[String, String] = Map()): Unit = {
+    Try(api.readNamespacedJobStatus(job.name, namespace.name, null)).toOption match {
+      case Some(_) ⇒ log.debug(s"Job exists: ${job.name}")
+      case None ⇒
         log.info(s"Creating job: ${job.name}")
-        httpClient.post[Any](url, request, apiHeaders)
-      })
+
+        val request = new V1Job
+        val metadata = new V1ObjectMeta
+        request.setMetadata(metadata)
+        metadata.setName(job.name)
+        metadata.setLabels(filterLabels(labels + (ContainerDriver.withNamespace("name") → job.name)).asJava)
+
+        val spec = new V1JobSpec
+        request.setSpec(spec)
+        val template = new V1PodTemplateSpec
+        spec.setTemplate(template)
+
+        val templateMetadata = new V1ObjectMeta
+        templateMetadata.setLabels(filterLabels(Map(ContainerDriver.labelNamespace() → "job", ContainerDriver.withNamespace("job") → job.name)).asJava)
+        template.setMetadata(templateMetadata)
+
+        val podSpec = new V1PodSpec
+        template.setSpec(podSpec)
+
+        val container = new V1Container
+        podSpec.setContainers(List(container).asJava)
+        podSpec.setRestartPolicy("Never")
+
+        container.setName(job.name)
+        container.setImage(job.docker.image)
+        container.setPorts(job.docker.portMappings.map { pm ⇒
+          val port = new V1ContainerPort
+          port.setName(s"p${pm.containerPort}")
+          port.setContainerPort(pm.containerPort)
+          port
+        }.asJava)
+        container.setCommand(job.command.asJava)
+
+        val resources = new V1ResourceRequirements
+        container.setResources(resources)
+        resources.setRequests(Map("cpu" → job.cpu.toString, "memory" → job.mem.toString).asJava)
+
+        container.setEnv(job.environmentVariables.map {
+          case (k, v) ⇒
+            val env = new V1EnvVar
+            env.setName(k)
+            env.setValue(v)
+            env
+        }.toList.asJava)
+
+        container.setArgs(job.arguments.asJava)
+
+        val context = new V1SecurityContext
+        container.setSecurityContext(context)
+        context.setPrivileged(job.docker.privileged)
+
+        api.createNamespacedJob(namespace.name, request, null)
+    }
   }
 }

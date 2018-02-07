@@ -5,14 +5,15 @@ import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 import io.vamp.model.artifact._
 
-import scala.concurrent.Future
 import scala.util.matching.Regex
+
+object KubernetesContainerDriver {
+  val config = "vamp.container-driver.kubernetes"
+}
 
 trait KubernetesContainerDriver extends ContainerDriver {
 
-  protected def apiUrl: String
-
-  protected def apiHeaders: List[(String, String)]
+  protected def k8sClient: K8sClient
 
   protected val nameDelimiter = "-"
 
@@ -29,13 +30,5 @@ trait KubernetesContainerDriver extends ContainerDriver {
   protected def string2Id(id: String): String = id match {
     case idMatcher(_*) if id.length < 32 ⇒ id
     case _                               ⇒ HashUtil.hexSha1(id).substring(0, 20)
-  }
-
-  protected def retrieve(url: String, name: String, exists: () ⇒ Future[Any], notExists: () ⇒ Future[Any]): Future[Any] = {
-    httpClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
-      case _ ⇒ notExists()
-    } map {
-      _ ⇒ exists()
-    }
   }
 }
