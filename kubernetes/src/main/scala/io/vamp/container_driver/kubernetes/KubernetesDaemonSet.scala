@@ -1,7 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
 import com.google.gson.reflect.TypeToken
-import io.kubernetes.client.apis.ExtensionsV1beta1Api
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
@@ -21,10 +20,8 @@ case class DaemonSet(
 trait KubernetesDaemonSet extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private lazy val api = new ExtensionsV1beta1Api(k8sClient.api)
-
   protected def createDaemonSet(ds: DaemonSet, labels: Map[String, String] = Map()): Unit = {
-    Try(api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)).toOption match {
+    Try(k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)).toOption match {
       case Some(_) ⇒ log.debug(s"Daemon set exists: ${ds.name}")
       case None ⇒
         log.info(s"Creating daemon set: ${ds.name}")
@@ -65,15 +62,15 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
         container.setResources(resources)
         resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
 
-        api.createNamespacedDaemonSet(ds.name, request, null)
+        k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
     }
   }
 
   protected def createDaemonSet(request: String): Unit = {
     log.info(s"Creating daemon set")
-    api.createNamespacedDaemonSet(
+    k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(
       namespace.name,
-      api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
+      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
       null
     )
   }

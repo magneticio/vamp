@@ -1,7 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
 import com.google.gson.reflect.TypeToken
-import io.kubernetes.client.apis.CoreV1Api
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.common.util.HashUtil
@@ -10,7 +9,7 @@ import io.vamp.container_driver.ContainerDriver
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-case class KubernetesServicePort(name: String, protocol: String, port: Int, targetPort: Int)
+case class KubernetesServicePort(name: String, protocol: String, port: Int)
 
 object KubernetesServiceType extends Enumeration {
   val NodePort, LoadBalancer = Value
@@ -19,13 +18,11 @@ object KubernetesServiceType extends Enumeration {
 trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private lazy val api = new CoreV1Api(k8sClient.api)
-
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
   protected def services(labels: Map[String, String] = Map()): Seq[V1Service] = {
     val selector = if (labels.isEmpty) null else labelSelector(labels)
-    api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala
+    k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala
   }
 
   protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Unit = {
@@ -44,39 +41,38 @@ trait KubernetesService extends KubernetesArtifact {
       spec.setType(`type`.toString)
       spec.setPorts(ports.map { p ⇒
         val port = new V1ServicePort
-        port.setName(s"p${p.name}")
+        port.setName(p.name)
         port.setProtocol(p.protocol.toUpperCase)
         port.setPort(p.port)
-        port.setTargetPort(p.targetPort.toString)
         port
       }.asJava)
       request
     }
 
-    Try(api.readNamespacedServiceStatus(id, namespace.name, null)).toOption match {
+    Try(k8sClient.coreV1Api.readNamespacedServiceStatus(id, namespace.name, null)).toOption match {
       case Some(_) ⇒
         if (update) {
           log.info(s"Updating service: $name")
-          api.patchNamespacedService(id, namespace.name, api.getApiClient.getJSON.serialize(request()), null)
+          k8sClient.coreV1Api.patchNamespacedService(id, namespace.name, k8sClient.coreV1Api.getApiClient.getJSON.serialize(request()), null)
         }
         else log.debug(s"Service exists: $name")
 
       case None ⇒
         log.info(s"Creating service: $name")
-        api.createNamespacedService(namespace.name, request(), null)
+        k8sClient.coreV1Api.createNamespacedService(namespace.name, request(), null)
     }
   }
 
   protected def deleteServiceById(id: String): Unit = {
     log.info(s"Deleting service: $id")
-    Try(api.deleteNamespacedService(id, namespace.name, null))
+    Try(k8sClient.coreV1Api.deleteNamespacedService(id, namespace.name, null))
   }
 
   protected def createService(request: String): Unit = {
     log.info(s"Creating service")
-    api.createNamespacedService(
+    k8sClient.coreV1Api.createNamespacedService(
       namespace.name,
-      api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Service]() {}.getType),
+      k8sClient.coreV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Service]() {}.getType),
       null
     )
   }

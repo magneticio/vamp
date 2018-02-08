@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.{ Actor, ActorRef }
-import io.kubernetes.client.apis.ApisApi
+import io.kubernetes.client.ApiException
 import io.vamp.common._
 import io.vamp.common.util.YamlUtil
 import io.vamp.common.vitals.InfoRequest
@@ -42,8 +42,6 @@ object KubernetesDriverActor {
 
 }
 
-case class KubernetesDriverInfo(apis: Any)
-
 class KubernetesDriverActor
     extends ContainerDriverActor
     with KubernetesContainerDriver
@@ -57,7 +55,7 @@ class KubernetesDriverActor
 
   protected val schema: Enumeration = KubernetesDriverActor.Schema
 
-  protected lazy val k8sClient: K8sClient = new K8sClient(K8sConfig())
+  protected lazy val k8sClient: K8sClient = new K8sClient(K8sConfig(), log)
 
   private val gatewayService = Map(ContainerDriver.labelNamespace() → "gateway")
 
@@ -70,26 +68,39 @@ class KubernetesDriverActor
     case InfoRequest                    ⇒ reply(Future(info()))
 
     case Get(services, equality)        ⇒ get(services, equality)
-    case d: Deploy                      ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
-    case u: Undeploy                    ⇒ reply(Future(undeploy(u.deployment, u.service)))
-    case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
+    case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
+    case DeployedGateways(gateways)     ⇒ reply(updateGateways(gateways))
 
     case GetWorkflow(workflow, replyTo) ⇒ get(workflow, replyTo)
-    case d: DeployWorkflow              ⇒ reply(Future(deploy(d.workflow, d.update)))
-    case u: UndeployWorkflow            ⇒ reply(Future(undeploy(u.workflow)))
+    case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
+    case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
-    case ds: DaemonSet                  ⇒ reply(Future(daemonSet(ds)))
-    case job: Job                       ⇒ reply(Future(createJob(job)))
-    case ns: CreateNamespace            ⇒ reply(Future(createNamespace(ns)))
+    case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
+    case job: Job                       ⇒ reply(createJob(job))
+    case ns: CreateNamespace            ⇒ reply(createNamespace(ns))
 
-    case dm: DeployKubernetesItems      ⇒ reply(Future(deploy(dm.request)))
+    case dm: DeployKubernetesItems      ⇒ reply(deploy(dm.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
+  private def reply(fn: ⇒ Unit): Unit = reply {
+    try Future.successful(fn)
+    catch {
+      case e: ApiException ⇒
+        log.error(s"[${e.getCode}] - ${e.getResponseBody}")
+        Future.failed(e)
+      case e: Exception ⇒ Future.failed(e)
+    }
+  }
+
+  override def postStop(): Unit = k8sClient.close()
+
   private def info() = ContainerInfo(
     "kubernetes",
-    KubernetesDriverInfo(
-      new ApisApi(k8sClient.api).getAPIVersions.getGroups.asScala.map(g ⇒ g.getName → g.getApiVersion)
+    Map(
+      "url" → k8sClient.config.url,
+      "groups" → k8sClient.apisApi.getAPIVersions.getGroups.asScala.map(_.getName)
     )
   )
 
@@ -102,7 +113,7 @@ class KubernetesDriverActor
 
   protected def get(workflow: Workflow, replyTo: ActorRef): Unit = replyTo ! containerWorkflow(workflow)
 
-  protected override def deployedGateways(gateways: List[Gateway]): Future[Any] = Future {
+  private def updateGateways(gateways: List[Gateway]): Unit = {
     if (createServices()) {
       val v1Services = services(gatewayService)
 
@@ -133,7 +144,7 @@ class KubernetesDriverActor
       gateways.filter {
         gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
       } foreach { gateway ⇒
-        val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
+        val ports = KubernetesServicePort("port", "TCP", gateway.port.number) :: Nil
         createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map(ContainerDriver.withNamespace("gateway") → gateway.name, ContainerDriver.withNamespace(Lookup.entry) → gateway.lookupName))
       }
     }
@@ -143,7 +154,7 @@ class KubernetesDriverActor
     createDaemonSet(ds)
     ds.serviceType.foreach { st ⇒
       val ports = ds.docker.portMappings.map { pm ⇒
-        KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort.getOrElse(0), pm.containerPort)
+        KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort.getOrElse(pm.containerPort))
       }
       createService(ds.name, st, ds.name, ports, update = false, daemonService ++ Map(ContainerDriver.withNamespace("daemon") → ds.name))
     }

@@ -1,7 +1,5 @@
 package io.vamp.container_driver.kubernetes
 
-import java.net.URLEncoder
-
 trait KubernetesArtifact {
 
   protected def filterLabels(labels: Map[String, String]): Map[String, String] = labels.filter {
@@ -24,6 +22,6 @@ trait KubernetesArtifact {
   }
 
   protected def labelSelector(labels: Map[String, String]): String = {
-    s"labelSelector=${URLEncoder.encode(labels.map { case (k, v) ⇒ s"$k=$v" } mkString ",", "UTF-8")}"
+    labels.map { case (k, v) ⇒ s"$k=$v" } mkString ","
   }
 }

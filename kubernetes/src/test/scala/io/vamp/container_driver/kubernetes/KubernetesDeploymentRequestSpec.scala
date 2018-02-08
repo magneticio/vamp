@@ -8,12 +8,12 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Matchers }
 
 @RunWith(classOf[JUnitRunner])
-class KubernetesAppSpec extends FlatSpec with Matchers {
+class KubernetesDeploymentRequestSpec extends FlatSpec with Matchers {
 
   implicit val formats: Formats = DefaultFormats
 
   "KubernetesApp" should "marshall to string" in {
-    val app = KubernetesApp(
+    val app = KubernetesDeploymentRequest(
       name = "my_app",
       docker = Docker("may/app", List(DockerPortMapping(8080, Some(80))), Nil, privileged = true, network = "custom"),
       replicas = 3,
@@ -70,7 +70,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
   }
 
   it should "merge dialect data" in {
-    val app = KubernetesApp(
+    val app = KubernetesDeploymentRequest(
       name = "my_app",
       docker = Docker("may/app", List(DockerPortMapping(8080, Some(80))), Nil, privileged = false, network = "custom"),
       replicas = 3,
@@ -177,7 +177,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
   }
 
   it should "override dialect container" in {
-    val app = KubernetesApp(
+    val app = KubernetesDeploymentRequest(
       name = "my_app",
       docker = Docker("may/app", List(DockerPortMapping(8080, Some(80))), Nil, privileged = true, network = "custom"),
       replicas = 3,
@@ -248,7 +248,7 @@ class KubernetesAppSpec extends FlatSpec with Matchers {
   }
 
   it should "merge dialect container" in {
-    val app = KubernetesApp(
+    val app = KubernetesDeploymentRequest(
       name = "my_app",
       docker = Docker("may/app", List(DockerPortMapping(8080, Some(80))), Nil, privileged = true, network = "custom"),
       replicas = 3,

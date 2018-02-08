@@ -1,6 +1,5 @@
 package io.vamp.container_driver.kubernetes
 
-import io.kubernetes.client.apis.BatchV1Api
 import io.kubernetes.client.models.{ V1SecurityContext, _ }
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
@@ -21,10 +20,8 @@ case class Job(
 trait KubernetesJob extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private lazy val api = new BatchV1Api(k8sClient.api)
-
   protected def createJob(job: Job, labels: Map[String, String] = Map()): Unit = {
-    Try(api.readNamespacedJobStatus(job.name, namespace.name, null)).toOption match {
+    Try(k8sClient.batchV1Api.readNamespacedJobStatus(job.name, namespace.name, null)).toOption match {
       case Some(_) ⇒ log.debug(s"Job exists: ${job.name}")
       case None ⇒
         log.info(s"Creating job: ${job.name}")
@@ -79,7 +76,7 @@ trait KubernetesJob extends KubernetesArtifact {
         container.setSecurityContext(context)
         context.setPrivileged(job.docker.privileged)
 
-        api.createNamespacedJob(namespace.name, request, null)
+        k8sClient.batchV1Api.createNamespacedJob(namespace.name, request, null)
     }
   }
 }
