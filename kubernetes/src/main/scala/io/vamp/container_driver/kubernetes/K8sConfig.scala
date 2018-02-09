@@ -10,6 +10,7 @@ object K8sConfig {
 
   def apply()(implicit namespace: Namespace): K8sConfig = {
     K8sConfig(
+      namespace = namespace.name,
       url = Config.string(s"$config.url")(),
       bearer = Config.string(s"$config.bearer")(),
       token = Config.string(s"$config.token")(),
@@ -27,6 +28,7 @@ object K8sConfig {
 }
 
 case class K8sConfig(
+  namespace:    String,
   url:          String,
   bearer:       String,
   token:        String,
