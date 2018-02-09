@@ -7,7 +7,6 @@ import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 case class KubernetesServicePort(name: String, protocol: String, port: Int)
 
@@ -22,7 +21,10 @@ trait KubernetesService extends KubernetesArtifact {
 
   protected def services(labels: Map[String, String] = Map()): Seq[V1Service] = {
     val selector = if (labels.isEmpty) null else labelSelector(labels)
-    k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala
+    k8sClient.cache.readRequestWithCache(
+      K8sCache.service,
+      () ⇒ k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala
+    )
   }
 
   protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Unit = {
@@ -49,23 +51,39 @@ trait KubernetesService extends KubernetesArtifact {
       request
     }
 
-    Try(k8sClient.coreV1Api.readNamespacedServiceStatus(id, namespace.name, null)).toOption match {
-      case Some(_) ⇒
-        if (update) {
-          log.info(s"Updating service: $name")
-          k8sClient.coreV1Api.patchNamespacedService(id, namespace.name, k8sClient.coreV1Api.getApiClient.getJSON.serialize(request()), null)
-        }
-        else log.debug(s"Service exists: $name")
+    k8sClient.cache.readRequestWithCache(
+      K8sCache.service,
+      id,
+      () ⇒ k8sClient.coreV1Api.readNamespacedServiceStatus(id, namespace.name, null)
+    ) match {
+        case Some(_) ⇒
+          if (update) {
+            log.info(s"Updating service: $name")
+            k8sClient.cache.writeRequestWithCache(
+              K8sCache.service,
+              id,
+              () ⇒ k8sClient.coreV1Api.patchNamespacedService(id, namespace.name, k8sClient.coreV1Api.getApiClient.getJSON.serialize(request()), null)
+            )
+          }
+          else log.debug(s"Service exists: $name")
 
-      case None ⇒
-        log.info(s"Creating service: $name")
-        k8sClient.coreV1Api.createNamespacedService(namespace.name, request(), null)
-    }
+        case None ⇒
+          log.info(s"Creating service: $name")
+          k8sClient.cache.writeRequestWithCache(
+            K8sCache.service,
+            id,
+            () ⇒ k8sClient.coreV1Api.createNamespacedService(namespace.name, request(), null)
+          )
+      }
   }
 
   protected def deleteServiceById(id: String): Unit = {
     log.info(s"Deleting service: $id")
-    Try(k8sClient.coreV1Api.deleteNamespacedService(id, namespace.name, null))
+    k8sClient.cache.writeRequestWithCache(
+      K8sCache.service,
+      id,
+      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(id, namespace.name, null)
+    )
   }
 
   protected def createService(request: String): Unit = {

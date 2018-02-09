@@ -6,7 +6,6 @@ import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
 
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 case class DaemonSet(
   name:        String,
@@ -21,49 +20,57 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
   protected def createDaemonSet(ds: DaemonSet, labels: Map[String, String] = Map()): Unit = {
-    Try(k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)).toOption match {
-      case Some(_) ⇒ log.debug(s"Daemon set exists: ${ds.name}")
-      case None ⇒
-        log.info(s"Creating daemon set: ${ds.name}")
+    k8sClient.cache.readRequestWithCache(
+      K8sCache.daemonSet,
+      ds.name,
+      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)
+    ) match {
+        case Some(_) ⇒ log.debug(s"Daemon set exists: ${ds.name}")
+        case None ⇒
+          log.info(s"Creating daemon set: ${ds.name}")
 
-        val request = new V1beta1DaemonSet
+          val request = new V1beta1DaemonSet
 
-        val metadata = new V1ObjectMeta
-        request.setMetadata(metadata)
-        metadata.setName(ds.name)
-        metadata.setLabels(filterLabels(labels + (ContainerDriver.withNamespace("name") → ds.name)).asJava)
+          val metadata = new V1ObjectMeta
+          request.setMetadata(metadata)
+          metadata.setName(ds.name)
+          metadata.setLabels(filterLabels(labels + (ContainerDriver.withNamespace("name") → ds.name)).asJava)
 
-        val spec = new V1beta1DaemonSetSpec
-        request.setSpec(spec)
-        val template = new V1PodTemplateSpec
-        spec.setTemplate(template)
+          val spec = new V1beta1DaemonSetSpec
+          request.setSpec(spec)
+          val template = new V1PodTemplateSpec
+          spec.setTemplate(template)
 
-        val templateMetadata = new V1ObjectMeta
-        templateMetadata.setLabels(filterLabels(Map(ContainerDriver.labelNamespace() → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name)).asJava)
-        template.setMetadata(templateMetadata)
+          val templateMetadata = new V1ObjectMeta
+          templateMetadata.setLabels(filterLabels(Map(ContainerDriver.labelNamespace() → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name)).asJava)
+          template.setMetadata(templateMetadata)
 
-        val podSpec = new V1PodSpec
-        template.setSpec(podSpec)
+          val podSpec = new V1PodSpec
+          template.setSpec(podSpec)
 
-        val container = new V1Container
-        podSpec.setContainers(List(container).asJava)
+          val container = new V1Container
+          podSpec.setContainers(List(container).asJava)
 
-        container.setName(ds.name)
-        container.setImage(ds.docker.image)
-        container.setPorts(ds.docker.portMappings.map { pm ⇒
-          val port = new V1ContainerPort
-          port.setName(s"p${pm.containerPort}")
-          port.setContainerPort(pm.containerPort)
-          port
-        }.asJava)
-        container.setCommand(ds.command.asJava)
+          container.setName(ds.name)
+          container.setImage(ds.docker.image)
+          container.setPorts(ds.docker.portMappings.map { pm ⇒
+            val port = new V1ContainerPort
+            port.setName(s"p${pm.containerPort}")
+            port.setContainerPort(pm.containerPort)
+            port
+          }.asJava)
+          container.setCommand(ds.command.asJava)
 
-        val resources = new V1ResourceRequirements
-        container.setResources(resources)
-        resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
+          val resources = new V1ResourceRequirements
+          container.setResources(resources)
+          resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
 
-        k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
-    }
+          k8sClient.cache.writeRequestWithCache(
+            K8sCache.daemonSet,
+            ds.name,
+            () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
+          )
+      }
   }
 
   protected def createDaemonSet(request: String): Unit = {
