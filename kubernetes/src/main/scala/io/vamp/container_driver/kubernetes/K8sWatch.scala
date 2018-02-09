@@ -30,44 +30,38 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) {
   private val watchHandles = new mutable.HashMap[String, Call]()
 
   watch(
-    K8sCache.job,
-    () ⇒ client.batchV1Api.listNamespacedJobCall(client.config.namespace, null, null, null, null, 0, true, null, null),
+    K8sCache.jobs,
+    () ⇒ client.batchV1Api.listJobForAllNamespacesCall(null, null, null, null, 0, true, null, null),
     (call: Call) ⇒ Watch.createWatch(client.batchV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Job]]() {}.getType)
   )
 
   watch(
-    K8sCache.pod,
-    () ⇒ client.coreV1Api.listNamespacedPodCall(client.config.namespace, null, null, null, null, 0, true, null, null),
+    K8sCache.pods,
+    () ⇒ client.coreV1Api.listPodForAllNamespacesCall(null, null, null, null, 0, true, null, null),
     (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Pod]]() {}.getType)
   )
 
   watch(
-    K8sCache.service,
-    () ⇒ client.coreV1Api.listNamespacedServiceCall(client.config.namespace, null, null, null, null, 0, true, null, null),
+    K8sCache.services,
+    () ⇒ client.coreV1Api.listServiceForAllNamespacesCall(null, null, null, null, 0, true, null, null),
     (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Service]]() {}.getType)
   )
 
   watch(
-    K8sCache.namespace,
-    () ⇒ client.coreV1Api.listNamespaceCall(null, null, null, null, 0, true, null, null),
-    (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Namespace]]() {}.getType)
-  )
-
-  watch(
-    K8sCache.daemonSet,
-    () ⇒ client.extensionsV1beta1Api.listNamespacedDaemonSetCall(client.config.namespace, null, null, null, null, 0, true, null, null),
+    K8sCache.daemonSets,
+    () ⇒ client.extensionsV1beta1Api.listDaemonSetForAllNamespacesCall(null, null, null, null, 0, true, null, null),
     (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1DaemonSet]]() {}.getType)
   )
 
   watch(
-    K8sCache.deployment,
-    () ⇒ client.extensionsV1beta1Api.listNamespacedDeploymentCall(client.config.namespace, null, null, null, null, 0, true, null, null),
+    K8sCache.deployments,
+    () ⇒ client.extensionsV1beta1Api.listDeploymentForAllNamespacesCall(null, null, null, null, 0, true, null, null),
     (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[ExtensionsV1beta1Deployment]]() {}.getType)
   )
 
   watch(
-    K8sCache.replicaSet,
-    () ⇒ client.extensionsV1beta1Api.listNamespacedReplicaSetCall(client.config.namespace, null, null, null, null, 0, true, null, null),
+    K8sCache.replicaSets,
+    () ⇒ client.extensionsV1beta1Api.listReplicaSetForAllNamespacesCall(null, null, null, null, 0, true, null, null),
     (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1ReplicaSet]]() {}.getType)
   )
 
@@ -98,14 +92,18 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) {
     system.scheduler.scheduleOnce(initialDelay, () ⇒ stream())
   }
 
-  private def handleEvent(event: AnyRef): Unit = event match {
-    case j: V1Job                       ⇒ client.cache.invalidate(K8sCache.job, j.getMetadata.getName)
-    case p: V1Pod                       ⇒ client.cache.invalidate(K8sCache.pod, p.getMetadata.getName)
-    case s: V1Service                   ⇒ client.cache.invalidate(K8sCache.service, s.getMetadata.getName)
-    case n: V1Namespace                 ⇒ client.cache.invalidate(K8sCache.namespace, n.getMetadata.getName)
-    case d: V1beta1DaemonSet            ⇒ client.cache.invalidate(K8sCache.daemonSet, d.getMetadata.getName)
-    case d: ExtensionsV1beta1Deployment ⇒ client.cache.invalidate(K8sCache.deployment, d.getMetadata.getName)
-    case r: V1beta1ReplicaSet           ⇒ client.cache.invalidate(K8sCache.replicaSet, r.getMetadata.getName)
-    case _                              ⇒
+  private def handleEvent(event: Watch.Response[_]): Unit = {
+
+    def invalidate(kind: String, name: String): Unit = client.caches.foreach(_.invalidate(kind, name))
+
+    event.`object` match {
+      case j: V1Job                       ⇒ invalidate(K8sCache.jobs, j.getMetadata.getName)
+      case p: V1Pod                       ⇒ invalidate(K8sCache.pods, p.getMetadata.getName)
+      case s: V1Service                   ⇒ invalidate(K8sCache.services, s.getMetadata.getName)
+      case d: V1beta1DaemonSet            ⇒ invalidate(K8sCache.daemonSets, d.getMetadata.getName)
+      case d: ExtensionsV1beta1Deployment ⇒ invalidate(K8sCache.deployments, d.getMetadata.getName)
+      case r: V1beta1ReplicaSet           ⇒ invalidate(K8sCache.replicaSets, r.getMetadata.getName)
+      case _                              ⇒
+    }
   }
 }

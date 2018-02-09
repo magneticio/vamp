@@ -21,7 +21,7 @@ trait KubernetesJob extends KubernetesArtifact {
 
   protected def createJob(job: Job, labels: Map[String, String] = Map()): Unit = {
     k8sClient.cache.readRequestWithCache(
-      K8sCache.job,
+      K8sCache.jobs,
       job.name,
       () ⇒ k8sClient.batchV1Api.readNamespacedJobStatus(job.name, namespace.name, null)
     ) match {
@@ -80,7 +80,7 @@ trait KubernetesJob extends KubernetesArtifact {
           context.setPrivileged(job.docker.privileged)
 
           k8sClient.cache.writeRequestWithCache(
-            K8sCache.job,
+            K8sCache.jobs,
             job.name,
             () ⇒ k8sClient.batchV1Api.createNamespacedJob(namespace.name, request, null)
           )

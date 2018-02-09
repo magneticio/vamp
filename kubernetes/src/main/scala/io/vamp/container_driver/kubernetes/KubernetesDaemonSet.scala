@@ -21,7 +21,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
 
   protected def createDaemonSet(ds: DaemonSet, labels: Map[String, String] = Map()): Unit = {
     k8sClient.cache.readRequestWithCache(
-      K8sCache.daemonSet,
+      K8sCache.daemonSets,
       ds.name,
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)
     ) match {
@@ -66,7 +66,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
           resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
 
           k8sClient.cache.writeRequestWithCache(
-            K8sCache.daemonSet,
+            K8sCache.daemonSets,
             ds.name,
             () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
           )

@@ -33,7 +33,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
         val id = appId(deploymentService.deployment, service.breed)
         log.debug(s"kubernetes get $id")
         k8sClient.cache.readRequestWithCache(
-          K8sCache.deployment,
+          K8sCache.deployments,
           id,
           () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
         ).flatMap { deployment ⇒
@@ -64,7 +64,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     val id = appId(workflow)
     log.debug(s"kubernetes get $id")
     k8sClient.cache.readRequestWithCache(
-      K8sCache.deployment,
+      K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
     ).map { deployment ⇒
@@ -182,7 +182,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     if (update)
       k8sClient.cache.writeRequestWithCache(
-        K8sCache.deployment,
+        K8sCache.deployments,
         id,
         () ⇒ k8sClient.extensionsV1beta1Api.replaceNamespacedDeployment(
           id,
@@ -192,7 +192,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
         )
       )
     else k8sClient.cache.writeRequestWithCache(
-      K8sCache.deployment,
+      K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
         namespace.name,
@@ -204,20 +204,20 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private def undeploy(id: String, selector: String): Unit = {
     k8sClient.cache.writeRequestWithCache(
-      K8sCache.deployment,
+      K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(id, namespace.name, new V1DeleteOptions, null, null, null, null)
     )
     replicas(id, selector).foreach { rs ⇒
       k8sClient.cache.writeRequestWithCache(
-        K8sCache.replicaSet,
+        K8sCache.replicaSets,
         rs.getMetadata.getName,
         () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedReplicaSet(rs.getMetadata.getName, namespace.name, new V1DeleteOptions, null, null, null, null)
       )
     }
     pods(id, selector).foreach { pod ⇒
       k8sClient.cache.writeRequestWithCache(
-        K8sCache.pod,
+        K8sCache.pods,
         pod.getMetadata.getName,
         () ⇒ k8sClient.coreV1Api.deleteNamespacedPod(pod.getMetadata.getName, namespace.name, new V1DeleteOptions, null, null, null, null)
       )
@@ -226,14 +226,14 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private def pods(id: String, value: String): Seq[V1Pod] = {
     k8sClient.cache.readRequestWithCache(
-      K8sCache.pod,
+      K8sCache.pods,
       () ⇒ k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala
     )
   }
 
   private def replicas(id: String, value: String): Seq[V1beta1ReplicaSet] = {
     k8sClient.cache.readRequestWithCache(
-      K8sCache.replicaSet,
+      K8sCache.replicaSets,
       () ⇒ k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala
     )
   }

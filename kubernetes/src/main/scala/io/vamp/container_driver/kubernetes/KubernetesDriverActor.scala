@@ -55,7 +55,7 @@ class KubernetesDriverActor
 
   protected val schema: Enumeration = KubernetesDriverActor.Schema
 
-  private lazy val k8sConfig = K8sConfig()
+  private lazy val k8sConfig = K8sClientConfig()
 
   protected lazy val k8sClient: K8sClient = K8sClient.acquire(k8sConfig)
 
@@ -118,6 +118,8 @@ class KubernetesDriverActor
   private def updateGateways(gateways: List[Gateway]): Unit = {
     if (createServices()) {
       val v1Services = services(gatewayService)
+
+      v1Services.foreach(touchService)
 
       // update service ports
       gateways.filter {
