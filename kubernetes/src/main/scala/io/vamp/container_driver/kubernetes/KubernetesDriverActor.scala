@@ -55,7 +55,9 @@ class KubernetesDriverActor
 
   protected val schema: Enumeration = KubernetesDriverActor.Schema
 
-  protected lazy val k8sClient: K8sClient = new K8sClient(K8sConfig(), log)
+  private lazy val k8sConfig = K8sConfig()
+
+  protected lazy val k8sClient: K8sClient = K8sClient.acquire(k8sConfig)
 
   private val gatewayService = Map(ContainerDriver.labelNamespace() → "gateway")
 
@@ -94,7 +96,7 @@ class KubernetesDriverActor
     }
   }
 
-  override def postStop(): Unit = k8sClient.close()
+  override def postStop(): Unit = K8sClient.release(k8sConfig)
 
   private def info() = ContainerInfo(
     "kubernetes",

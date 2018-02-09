@@ -4,56 +4,50 @@ import java.io.FileInputStream
 import java.lang.reflect.Type
 import java.util
 
-import akka.event.LoggingAdapter
 import com.squareup.okhttp.{ Call, OkHttpClient, Request }
+import com.typesafe.scalalogging.Logger
 import io.kubernetes.client.apis.{ ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api }
 import io.kubernetes.client.{ ApiCallback, ApiClient, ApiResponse, Pair, ProgressRequestBody }
-import io.vamp.common.{ CacheStore, Config, Namespace }
+import io.vamp.common.CacheStore
+import org.slf4j.LoggerFactory
 
+import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 import scala.io.Source
 import scala.util.Try
 
-object K8sConfig {
+private case class SharedK8sClient(client: K8sClient, counter: Int)
 
-  import KubernetesContainerDriver._
+object K8sClient {
 
-  def apply()(implicit namespace: Namespace): K8sConfig = {
-    K8sConfig(
-      url = Config.string(s"$config.url")(),
-      bearer = Config.string(s"$config.bearer")(),
-      token = Config.string(s"$config.token")(),
-      username = Config.string(s"$config.username")(),
-      password = Config.string(s"$config.password")(),
-      serverCaCert = Config.string(s"$config.server-ca-cert")(),
-      tlsCheck = Config.boolean(s"$config.tls-check")(),
-      cache = K8sCacheConfig(
-        readTimeToLivePeriod = Config.duration(s"$config.cache.read-time-to-live")(),
-        writeTimeToLivePeriod = Config.duration(s"$config.cache.write-time-to-live")(),
-        failureTimeToLivePeriod = Config.duration(s"$config.cache.failure-time-to-live")()
-      )
-    )
+  private val clients = new mutable.HashMap[K8sConfig, SharedK8sClient]()
+
+  def acquire(config: K8sConfig): K8sClient = synchronized {
+    clients.get(config) match {
+      case Some(shared) ⇒
+        clients.put(config, shared.copy(counter = shared.counter + 1))
+        shared.client
+      case None ⇒
+        val shared = SharedK8sClient(new K8sClient(config), 1)
+        clients.put(config, shared)
+        shared.client
+    }
+  }
+
+  def release(config: K8sConfig): Unit = synchronized {
+    clients.get(config) match {
+      case Some(shared) if shared.counter == 1 ⇒
+        clients.remove(config)
+        shared.client.close()
+      case Some(shared) ⇒ clients.put(config, shared.copy(counter = shared.counter - 1))
+      case None         ⇒
+    }
   }
 }
 
-case class K8sConfig(
-  url:          String,
-  bearer:       String,
-  token:        String,
-  username:     String,
-  password:     String,
-  serverCaCert: String,
-  tlsCheck:     Boolean,
-  cache:        K8sCacheConfig
-)
+class K8sClient(val config: K8sConfig) {
 
-case class K8sCacheConfig(
-  readTimeToLivePeriod:    FiniteDuration,
-  writeTimeToLivePeriod:   FiniteDuration,
-  failureTimeToLivePeriod: FiniteDuration
-)
-
-class K8sClient(val config: K8sConfig, log: LoggingAdapter) {
+  private val log = Logger(LoggerFactory.getLogger(getClass))
 
   private lazy val cache = new CacheStore()
 
