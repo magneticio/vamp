@@ -8,6 +8,7 @@ import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.common.{ ClassMapper, Config, ConfigMagnet }
 import io.vamp.container_driver._
+import io.vamp.container_driver.marathon.MarathonDriverActor.DeployMarathonApp
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
@@ -41,6 +42,7 @@ object MarathonDriverActor {
 
   val readTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.read-time-to-live")
   val writeTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.write-time-to-live")
+  val failureTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.failure-time-to-live")
 
   val namespaceConstraint: ConfigMagnet[List[String]] = Config.stringList(s"$marathonConfig.namespace-constraint")
 
@@ -56,6 +58,8 @@ object MarathonDriverActor {
   MarathonDriverActor.Schema.values
 
   val dialect = "marathon"
+
+  case class DeployMarathonApp(request: AnyRef)
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -114,12 +118,16 @@ class MarathonDriverActor
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
     case event: ServerSentEvent         ⇒ process(event)
+    case app: DeployMarathonApp         ⇒ reply(deploy(app.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   override def preStart(): Unit = if (sse) openSseStream(eventsUrl, headers, tlsCheck = httpClient.tlsCheck)
 
-  override def postStop(): Unit = if (sse) closeSseStream()
+  override def postStop(): Unit = {
+    closeCache()
+    if (sse) closeSseStream()
+  }
 
   private def info: Future[Any] = {
 
@@ -212,23 +220,25 @@ class MarathonDriverActor
     }
   }
 
-  private def get(id: String): Future[Option[App]] = readCached(id, () ⇒ {
+  private def get(id: String): Future[Option[App]] = readFromCache(id, () ⇒ {
     log.info(s"marathon sending request: $id")
     httpClient.get[AppsResponse](s"$appsUrl?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
       .recover {
         case t: Throwable ⇒
-          log.error(t, s"Error while getting app id: $id => ${t.getMessage}")
+          log.error(t, s"Error while getting app id: $id ⇒ ${t.getMessage}")
+          markReadFailure(id)
           None
         case _ ⇒
           log.warning(s"Unknown error while getting app id: $id")
+          markReadFailure(id)
           None
       }
       .map {
         case apps: AppsResponse ⇒
-          log.debug(s"apps: for $id => $apps")
+          log.debug(s"apps for: $id => $apps")
           apps.apps.find(app ⇒ app.id == id)
         case _ ⇒
-          log.info(s"no app: for $id")
+          log.info(s"no app for: $id")
           None
       }
   })
@@ -432,7 +442,13 @@ class MarathonDriverActor
           case Some(app) ⇒ app.diff(payload).changed
           case None      ⇒ payload
         }
-        if (changed != JNothing) writeCached(id, () ⇒ httpClient.put[Any](s"$appsUrl/$id", changed, headers))
+        if (changed != JNothing)
+          writeToCache(id, () ⇒ httpClient.put[Any](s"$appsUrl/$id", changed, headers).recover {
+            case t ⇒
+              log.error(t, t.getMessage)
+              markWriteFailure(id)
+              Future.failed(t)
+          })
         else {
           log.info(s"Nothing has changed in app $id configuration")
           Future.successful(false)
@@ -440,11 +456,12 @@ class MarathonDriverActor
       }
     }
     else {
-      writeCached(id, () ⇒ {
+      writeToCache(id, () ⇒ {
         httpClient.post[Any](appsUrl, payload, headers, logError = false).recover {
           case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
           case t ⇒
             log.error(t, t.getMessage)
+            markWriteFailure(id)
             Future.failed(t)
         }
       })
@@ -509,13 +526,21 @@ class MarathonDriverActor
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    writeCached(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover { case _ ⇒ None })
+    writeToCache(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover {
+      case _ ⇒
+        markWriteFailure(id)
+        None
+    })
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    writeCached(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover { case _ ⇒ None })
+    writeToCache(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover {
+      case _ ⇒
+        markWriteFailure(id)
+        None
+    })
   }
 
   private def containers(app: App): Containers = {
@@ -544,4 +569,6 @@ class MarathonDriverActor
     })
     Containers(scale, instances)
   }
+
+  private def deploy(request: AnyRef): Future[Any] = httpClient.post[Any](appsUrl, request, headers)
 }

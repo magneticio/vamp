@@ -3,11 +3,14 @@ package io.vamp.container_driver.kubernetes
 import akka.actor.{ Actor, ActorRef }
 import io.vamp.common._
 import io.vamp.common.http.HttpClient
+import io.vamp.common.util.YamlUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.{ Gateway, Workflow }
+import org.json4s.DefaultFormats
+import org.json4s.native.Serialization.write
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -40,6 +43,8 @@ object KubernetesDriverActor {
   val vampGatewayAgentId: ConfigMagnet[String] = Config.string(s"$config.vamp-gateway-agent-id")
 
   def serviceType()(implicit namespace: Namespace): KubernetesServiceType.Value = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
+
+  case class DeployKubernetesItems(request: String)
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
@@ -50,7 +55,8 @@ class KubernetesDriverActor
     with KubernetesDeployment
     with KubernetesService
     with KubernetesJob
-    with KubernetesDaemonSet {
+    with KubernetesDaemonSet
+    with KubernetesNamespace {
 
   import KubernetesDriverActor._
 
@@ -86,7 +92,9 @@ class KubernetesDriverActor
 
     case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
     case job: Job                       ⇒ reply(createJob(job))
+    case ns: CreateNamespace            ⇒ reply(createNamespace(ns))
 
+    case dm: DeployKubernetesItems      ⇒ reply(deploy(dm.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -153,5 +161,24 @@ class KubernetesDriverActor
       }
       createService(ds.name, st, ds.name, ports, update = false, daemonService ++ Map(ContainerDriver.withNamespace("daemon") → ds.name))
     } getOrElse Future.successful(response)
+  }
+
+  private def deploy(request: String): Future[Any] = {
+    def process(any: Any): Future[Any] = Try {
+      val kind = any.asInstanceOf[Map[String, String]]("kind")
+      val request = write(any.asInstanceOf[AnyRef])(DefaultFormats)
+      kind match {
+        case "Service"   ⇒ createService(request)
+        case "DaemonSet" ⇒ createDaemonSet(request)
+        case other ⇒
+          log.warning(s"Cannot process kind: $other")
+          Future.successful(false)
+      }
+    } getOrElse Future.successful(false)
+
+    YamlUtil.convert(YamlUtil.yaml.loadAll(request), preserveOrder = false) match {
+      case l: List[_] ⇒ Future.sequence[Any, List](l.map(process))
+      case other      ⇒ process(other)
+    }
   }
 }
