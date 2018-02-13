@@ -9,6 +9,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 object KubernetesDeployment {
   val dialect = "kubernetes"
@@ -40,21 +41,21 @@ trait KubernetesDeployment extends KubernetesArtifact {
             containers(
               id,
               deploymentServiceIdLabel,
-              deployment.getSpec.getTemplate.getSpec.getContainers.asScala,
+              Try(deployment.getSpec.getTemplate.getSpec.getContainers.asScala).toOption.getOrElse(Nil),
               deployment.getSpec.getReplicas
             ) map { containerService ⇒
-              val k8sContainer = deployment.getSpec.getTemplate.getSpec.getContainers.asScala.map(c ⇒ c.getName → c).toMap.get(id)
-              val cluster = deploymentService.deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
-              val processClusterEquality = k8sContainer.isDefined && cluster.isDefined
+                val k8sContainer = deployment.getSpec.getTemplate.getSpec.getContainers.asScala.map(c ⇒ c.getName → c).toMap.get(id)
+                val cluster = deploymentService.deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
+                val processClusterEquality = k8sContainer.isDefined && cluster.isDefined
 
-              val equality = ServiceEqualityResponse(
-                deployable = !equalityRequest.deployable || (k8sContainer.isDefined && checkDeployable(service, k8sContainer.get)),
-                ports = !equalityRequest.ports || (processClusterEquality && checkPorts(deploymentService.deployment, cluster.get, service, k8sContainer.get)),
-                environmentVariables = !equalityRequest.environmentVariables || (processClusterEquality && checkEnvironmentVariables(deploymentService.deployment, cluster.get, service, k8sContainer.get))
-              )
+                val equality = ServiceEqualityResponse(
+                  deployable = !equalityRequest.deployable || (k8sContainer.isDefined && checkDeployable(service, k8sContainer.get)),
+                  ports = !equalityRequest.ports || (processClusterEquality && checkPorts(deploymentService.deployment, cluster.get, service, k8sContainer.get)),
+                  environmentVariables = !equalityRequest.environmentVariables || (processClusterEquality && checkEnvironmentVariables(deploymentService.deployment, cluster.get, service, k8sContainer.get))
+                )
 
-              ContainerService(deploymentService.deployment, service, Option(containerService), None, equality)
-            }
+                ContainerService(deploymentService.deployment, service, Option(containerService), None, equality)
+              }
           } getOrElse ContainerService(deploymentService.deployment, service, None)
       }
     }
@@ -73,14 +74,14 @@ trait KubernetesDeployment extends KubernetesArtifact {
           containers(
             id,
             workflowIdLabel,
-            deployment.getSpec.getTemplate.getSpec.getContainers.asScala,
+            Try(deployment.getSpec.getTemplate.getSpec.getContainers.asScala).toOption.getOrElse(Nil),
             deployment.getSpec.getReplicas
           )
         )
       } getOrElse ContainerWorkflow(workflow, None)
   }
 
-  private def containers(id: String, selector: String, v1Containers: Seq[V1Container], replicas: Int): Option[Containers] = {
+  private def containers(id: String, selector: String, v1Containers: Seq[V1Container], replicas: Int): Option[Containers] = Try {
     val ports = v1Containers.headOption.map(_.getPorts.asScala.map(_.getContainerPort.toInt)).getOrElse(Nil).toList
     val scale: Option[DefaultScale] = v1Containers.headOption.flatMap { item ⇒
       val request = item.getResources.getRequests.asScala
@@ -91,21 +92,21 @@ trait KubernetesDeployment extends KubernetesArtifact {
     }
     if (scale.isDefined) {
       val instances = pods(id, selector).map { pod ⇒
-        ContainerInstance(pod.getMetadata.getName, pod.getStatus.getPodIP, ports, pod.getStatus.getPhase.contains("Running"))
+        ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
       }.toList
       Option(Containers(scale.get, instances))
     }
     else None
-  }
+  }.toOption.flatten
 
   private def checkDeployable(service: DeploymentService, container: V1Container): Boolean = service.breed.deployable.definition == container.getImage
 
   private def checkPorts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: V1Container): Boolean = {
-    container.getPorts.asScala.map(_.getContainerPort.toInt).toSet == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
+    Try(container.getPorts.asScala).toOption.getOrElse(Nil).map(_.getContainerPort.toInt).toSet == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
   }
 
   private def checkEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: V1Container): Boolean = {
-    container.getEnv.asScala.map(e ⇒ e.getName → e.getValue).toMap == environment(deployment, cluster, service)
+    Try(container.getEnv.asScala).toOption.getOrElse(Nil).map(e ⇒ e.getName → e.getValue).toMap == environment(deployment, cluster, service)
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Unit = {
@@ -227,14 +228,14 @@ trait KubernetesDeployment extends KubernetesArtifact {
   private def pods(id: String, value: String): Seq[V1Pod] = {
     k8sClient.cache.readRequestWithCache(
       K8sCache.pods,
-      () ⇒ k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
   private def replicas(id: String, value: String): Seq[V1beta1ReplicaSet] = {
     k8sClient.cache.readRequestWithCache(
       K8sCache.replicaSets,
-      () ⇒ k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala
+      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 }

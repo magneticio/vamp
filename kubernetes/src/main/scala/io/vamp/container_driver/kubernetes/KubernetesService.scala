@@ -7,6 +7,7 @@ import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 case class KubernetesServicePort(name: String, protocol: String, port: Int)
 
@@ -23,7 +24,7 @@ trait KubernetesService extends KubernetesArtifact {
     val selector = if (labels.isEmpty) null else labelSelector(labels)
     k8sClient.cache.readRequestWithCache(
       K8sCache.services,
-      () ⇒ k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 

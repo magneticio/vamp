@@ -102,7 +102,7 @@ class KubernetesDriverActor
     "kubernetes",
     Map(
       "url" → k8sClient.config.url,
-      "groups" → k8sClient.apisApi.getAPIVersions.getGroups.asScala.map(_.getName)
+      "groups" → Try(k8sClient.apisApi.getAPIVersions.getGroups.asScala).toOption.getOrElse(Nil).map(_.getName)
     )
   )
 
