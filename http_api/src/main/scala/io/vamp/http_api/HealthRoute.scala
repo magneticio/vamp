@@ -9,10 +9,14 @@ import io.vamp.operation.controller.HealthController
 
 import io.vamp.model.artifact.{ Gateway, Deployment }
 
+object HealthRoute {
+  val path = "health"
+}
+
 trait HealthRoute extends AbstractRoute with HealthController {
   this: HttpApiDirectives ⇒
 
-  def healthRoutes(implicit namespace: Namespace, timeout: Timeout): Route = pathPrefix("health") {
+  def healthRoutes(implicit namespace: Namespace, timeout: Timeout): Route = pathPrefix(HealthRoute.path) {
     get {
       path(Gateway.kind / Segment) { gateway ⇒
         pathEndOrSingleSlash {
