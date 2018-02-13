@@ -9,10 +9,14 @@ import io.vamp.operation.controller.MetricsController
 
 import io.vamp.model.artifact.{ Gateway, Deployment }
 
+object MetricsRoute {
+  val path = "metrics"
+}
+
 trait MetricsRoute extends AbstractRoute with MetricsController {
   this: HttpApiDirectives ⇒
 
-  def metricsRoutes(implicit namespace: Namespace, timeout: Timeout): Route = pathPrefix("metrics") {
+  def metricsRoutes(implicit namespace: Namespace, timeout: Timeout): Route = pathPrefix(MetricsRoute.path) {
     get {
       path(Gateway.kind / Segment / Segment) { (gateway, metrics) ⇒
         pathEndOrSingleSlash {
