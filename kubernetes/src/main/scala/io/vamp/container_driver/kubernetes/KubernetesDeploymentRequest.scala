@@ -4,7 +4,7 @@ import io.vamp.container_driver.Docker
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization._
 
-case class KubernetesApp(
+case class KubernetesDeploymentRequest(
     name:       String,
     docker:     Docker,
     replicas:   Int,
@@ -65,29 +65,3 @@ case class KubernetesApp(
     write(deployment)(DefaultFormats)
   }
 }
-
-case class KubernetesApiResponse(items: List[KubernetesItem] = Nil)
-
-case class KubernetesItem(metadata: KubernetesMetadata, spec: KubernetesSpec, status: KubernetesStatus)
-
-case class KubernetesMetadata(name: String, labels: Map[String, String] = Map())
-
-case class KubernetesSpec(replicas: Option[Int] = None, template: Option[KubernetesTemplate] = None, ports: List[KubernetesPort] = Nil, clusterIP: Option[String] = None)
-
-case class KubernetesPort(name: String, protocol: String, port: Int, nodePort: Int)
-
-case class KubernetesTemplate(spec: KubernetesTemplateSpec)
-
-case class KubernetesTemplateSpec(containers: List[KubernetesContainer] = Nil)
-
-case class KubernetesContainer(name: String, image: String, env: List[KubernetesContainerEnv] = Nil, ports: List[KubernetesContainerPort] = Nil, resources: KubernetesContainerResource)
-
-case class KubernetesContainerPort(containerPort: Int)
-
-case class KubernetesContainerEnv(name: String, value: String)
-
-case class KubernetesContainerResource(requests: KubernetesContainerResourceRequests)
-
-case class KubernetesContainerResourceRequests(cpu: String, memory: String)
-
-case class KubernetesStatus(phase: Option[String] = None, podIP: Option[String] = None)

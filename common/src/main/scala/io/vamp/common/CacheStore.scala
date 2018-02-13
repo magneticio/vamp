@@ -2,44 +2,24 @@ package io.vamp.common
 
 import com.github.benmanes.caffeine.cache.Caffeine
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scalacache._
 import scalacache.caffeine._
 import scalacache.modes.sync._
 
-class CacheStore(maximumSize: Long = 1000L) {
+class CacheStore(maximumSize: Long = 10000L) {
 
-  private val cache: Cache[Future[Any]] = CaffeineCache(
-    Caffeine.newBuilder().maximumSize(maximumSize).build[String, Entry[Future[Any]]]
+  private val store: Cache[Any] = CaffeineCache(
+    Caffeine.newBuilder().maximumSize(maximumSize).build[String, Entry[Any]]
   )
 
-  def contains(key: String): Boolean = cache.get(key).isDefined
+  def contains(key: String): Boolean = store.get(key).isDefined
 
-  def getOrPutIfAbsent[T](key: String, put: () ⇒ Future[T])(timeToLivePeriod: FiniteDuration, log: String ⇒ Unit = (_) ⇒ ()): Future[T] = synchronized {
-    get(key) match {
-      case Some(result) ⇒
-        log(s"cache get: $key")
-        result
-      case None ⇒ this.put[T](key, put)(timeToLivePeriod, log)
-    }
-  }
+  def get[T](key: String): Option[T] = store.get(key).map(_.asInstanceOf[T])
 
-  def get[T](key: String): Option[Future[T]] = synchronized {
-    cache.get(key).map(_.asInstanceOf[Future[T]])
-  }
+  def put[T](key: String, value: T, timeToLivePeriod: FiniteDuration): Unit = store.put(key)(value, Option(timeToLivePeriod))
 
-  def put[T](key: String, put: () ⇒ Future[T])(timeToLivePeriod: FiniteDuration, log: String ⇒ Unit = (_) ⇒ ()): Future[T] = synchronized {
-    log(s"cache put [${timeToLivePeriod.toSeconds} s]: $key")
-    val value = put()
-    cache.put(key)(value, Option(timeToLivePeriod))
-    value
-  }
+  def remove(key: String): Unit = store.remove(key)
 
-  def remove(key: String, log: String ⇒ Unit = (_) ⇒ ()): Unit = synchronized {
-    log(s"cache removal: $key")
-    cache.remove(key)
-  }
-
-  def close(): Unit = cache.close()
+  def close(): Unit = store.close()
 }

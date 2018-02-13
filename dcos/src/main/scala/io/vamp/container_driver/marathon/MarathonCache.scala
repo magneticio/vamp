@@ -5,6 +5,7 @@ import io.vamp.common.akka.{ ActorExecutionContextProvider, CommonActorLogging }
 import io.vamp.common.{ CacheStore, NamespaceProvider }
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 trait MarathonCache {
   this: Actor with ActorExecutionContextProvider with CommonActorLogging with NamespaceProvider ⇒
@@ -16,18 +17,18 @@ trait MarathonCache {
   private lazy val cache = new CacheStore()
 
   protected def readFromCache[T](id: String, request: () ⇒ Future[T]): Future[T] = {
-    cache.getOrPutIfAbsent(r(id), request)(readTimeToLivePeriod, log.info)
+    getOrPutIfAbsent(r(id), request)(readTimeToLivePeriod)
   }
 
   protected def writeToCache[T](id: String, request: () ⇒ Future[T]): Future[T] = {
-    cache.getOrPutIfAbsent(w(id), request)(writeTimeToLivePeriod, log.info)
+    getOrPutIfAbsent(w(id), request)(writeTimeToLivePeriod)
   }
 
   protected def inCache(id: String): Boolean = cache.contains(r(id)) || cache.contains(w(id))
 
   protected def invalidateCache(id: String): Unit = {
-    cache.remove(r(id), log.info)
-    cache.remove(w(id), log.info)
+    remove(r(id))
+    remove(w(id))
   }
 
   protected def markReadFailure[T](id: String): Unit = markFailure(r(id))
@@ -37,7 +38,28 @@ trait MarathonCache {
   protected def closeCache(): Unit = cache.close()
 
   private def markFailure[T](id: String): Unit = cache.get(id).foreach { value ⇒
-    cache.put(id, () ⇒ value)(failureTimeToLivePeriod, log.info)
+    put(id, () ⇒ value)(failureTimeToLivePeriod)
+  }
+
+  private def getOrPutIfAbsent[T](key: String, put: () ⇒ T)(timeToLivePeriod: FiniteDuration): T = synchronized {
+    cache.get(key) match {
+      case Some(result) ⇒
+        log.info(s"cache get: $key")
+        result
+      case None ⇒ this.put[T](key, put)(timeToLivePeriod)
+    }
+  }
+
+  private def put[T](key: String, putValue: () ⇒ T)(timeToLivePeriod: FiniteDuration): T = synchronized {
+    log.info(s"cache put [${timeToLivePeriod.toSeconds} s]: $key")
+    val value = putValue()
+    cache.put(key, value, timeToLivePeriod)
+    value
+  }
+
+  private def remove(key: String): Unit = synchronized {
+    log.info(s"cache removal: $key")
+    cache.remove(key)
   }
 
   @inline
