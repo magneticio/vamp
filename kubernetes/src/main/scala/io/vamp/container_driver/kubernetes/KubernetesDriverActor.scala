@@ -7,8 +7,10 @@ import io.vamp.common.util.YamlUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
+import io.vamp.container_driver.kubernetes.KubernetesDriverActor.vampGatewayAgentId
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.{ Gateway, Workflow }
+import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization.write
 
@@ -49,7 +51,8 @@ class KubernetesDriverActor
     with KubernetesService
     with KubernetesJob
     with KubernetesDaemonSet
-    with KubernetesNamespace {
+    with KubernetesNamespace
+    with NamespaceValueResolver {
 
   import KubernetesDriverActor._
 
@@ -62,6 +65,8 @@ class KubernetesDriverActor
   private val gatewayService = Map(ContainerDriver.labelNamespace() → "gateway")
 
   private val daemonService = Map(ContainerDriver.labelNamespace() → "daemon")
+
+  private val vampGatewayAgentId = resolveWithOptionalNamespace(KubernetesDriverActor.vampGatewayAgentId())._1
 
   protected val workflowNamePrefix = KubernetesDriverActor.workflowNamePrefix()
 
@@ -149,7 +154,7 @@ class KubernetesDriverActor
         gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
       } foreach { gateway ⇒
         val ports = KubernetesServicePort("port", "TCP", gateway.port.number) :: Nil
-        createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map(ContainerDriver.withNamespace("gateway") → gateway.name, ContainerDriver.withNamespace(Lookup.entry) → gateway.lookupName))
+        createService(gateway.name, serviceType(), vampGatewayAgentId, ports, update = false, gatewayService ++ Map(ContainerDriver.withNamespace("gateway") → gateway.name, ContainerDriver.withNamespace(Lookup.entry) → gateway.lookupName))
       }
     }
   }
