@@ -7,7 +7,6 @@ import io.vamp.common.util.YamlUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
-import io.vamp.container_driver.kubernetes.KubernetesDriverActor.vampGatewayAgentId
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.{ Gateway, Workflow }
 import io.vamp.model.resolver.NamespaceValueResolver

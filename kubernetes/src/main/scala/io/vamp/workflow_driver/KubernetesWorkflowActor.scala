@@ -8,6 +8,7 @@ import io.vamp.container_driver.kubernetes.{ Job, K8sClientConfig, KubernetesDri
 import io.vamp.container_driver.{ ContainerDriverMapping, ContainerDriverValidation, DeployableType, DockerDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
+import io.vamp.model.resolver.WorkflowValueResolver
 import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
@@ -19,7 +20,7 @@ class KubernetesWorkflowActorMapper extends ClassMapper {
   val clazz: Class[_] = classOf[KubernetesWorkflowActor]
 }
 
-class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverMapping with ContainerDriverValidation {
+class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueResolver with ContainerDriverMapping with ContainerDriverValidation {
 
   override protected lazy val supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: Nil
 
@@ -52,4 +53,6 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverM
       )
     }
   }
+
+  override def resolverClasses: List[String] = super[WorkflowValueResolver].resolverClasses
 }
