@@ -102,11 +102,11 @@ trait KubernetesDeployment extends KubernetesArtifact {
   private def checkDeployable(service: DeploymentService, container: V1Container): Boolean = service.breed.deployable.definition == container.getImage
 
   private def checkPorts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: V1Container): Boolean = {
-    Try(container.getPorts.asScala).toOption.getOrElse(Nil).map(_.getContainerPort.toInt).toSet == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
+    Try(container.getPorts.asScala.map(_.getContainerPort.toInt).toSet).toOption.getOrElse(Set[Int]()) == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
   }
 
   private def checkEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: V1Container): Boolean = {
-    Try(container.getEnv.asScala).toOption.getOrElse(Nil).map(e ⇒ e.getName → e.getValue).toMap == environment(deployment, cluster, service)
+    Try(container.getEnv.asScala.map(e ⇒ e.getName → e.getValue).toMap).toOption.getOrElse(Map[String, String]()) == environment(deployment, cluster, service)
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Unit = {
