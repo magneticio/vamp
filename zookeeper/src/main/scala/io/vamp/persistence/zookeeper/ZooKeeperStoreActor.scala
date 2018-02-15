@@ -119,7 +119,10 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   override def preStart(): Unit = initClient()
 
-  override def postStop(): Unit = zooKeeperClient.foreach(_.close())
+  override def postStop(): Unit = {
+    zooKeeperClient.foreach(_.close())
+    super.postStop()
+  }
 }
 
 trait ZooKeeperServerStatistics {
