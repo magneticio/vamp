@@ -207,32 +207,18 @@ trait KubernetesDeployment extends KubernetesArtifact {
     k8sClient.cache.writeRequestWithCache(
       K8sCache.deployments,
       id,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(id, namespace.name, new V1DeleteOptions, null, null, null, null)
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(id, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
     )
-    replicas(id, selector).foreach { rs ⇒
-      k8sClient.cache.writeRequestWithCache(
-        K8sCache.replicaSets,
-        rs.getMetadata.getName,
-        () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedReplicaSet(rs.getMetadata.getName, namespace.name, new V1DeleteOptions, null, null, null, null)
-      )
-    }
-    pods(id, selector).foreach { pod ⇒
-      k8sClient.cache.writeRequestWithCache(
-        K8sCache.pods,
-        pod.getMetadata.getName,
-        () ⇒ k8sClient.coreV1Api.deleteNamespacedPod(pod.getMetadata.getName, namespace.name, new V1DeleteOptions, null, null, null, null)
-      )
-    }
   }
 
-  private def pods(id: String, value: String): Seq[V1Pod] = {
+  protected def pods(id: String, value: String): Seq[V1Pod] = {
     k8sClient.cache.readRequestWithCache(
       K8sCache.pods,
       () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
-  private def replicas(id: String, value: String): Seq[V1beta1ReplicaSet] = {
+  protected def replicas(id: String, value: String): Seq[V1beta1ReplicaSet] = {
     k8sClient.cache.readRequestWithCache(
       K8sCache.replicaSets,
       () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala).toOption.getOrElse(Nil)
