@@ -87,7 +87,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
     k8sClient.cache.writeRequestWithCache(
       K8sCache.daemonSets,
       id,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(id, namespace.name, null, null, null, null, null)
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(id, namespace.name, new V1DeleteOptions, null, null, null, null)
     )
   }
 }
