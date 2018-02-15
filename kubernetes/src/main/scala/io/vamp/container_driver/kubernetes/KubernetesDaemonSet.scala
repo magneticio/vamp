@@ -81,4 +81,13 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       null
     )
   }
+
+  protected def deleteDaemonSetById(id: String): Unit = {
+    log.info(s"Deleting daemon set $id")
+    k8sClient.cache.writeRequestWithCache(
+      K8sCache.daemonSets,
+      id,
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(id, namespace.name, null, null, null, null, null)
+    )
+  }
 }
