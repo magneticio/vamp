@@ -81,6 +81,8 @@ val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
 
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
+val k8s = Seq("io.kubernetes" % "client-java" % "0.2")
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -286,11 +288,11 @@ lazy val etcd =  project.settings(
   bintrayRepository := "vamp"
 ).dependsOn(persistence)
 
-lazy val kubernetes =project.settings(
+lazy val kubernetes = project.settings(
   description := "Container driver for Kubernetes",
   name := "vamp-kubernetes",
   formatting,
-  libraryDependencies ++= testing,
+  libraryDependencies ++= k8s ++ testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 

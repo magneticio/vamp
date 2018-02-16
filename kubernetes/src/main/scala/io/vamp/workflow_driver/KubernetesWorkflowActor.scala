@@ -4,10 +4,11 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import io.vamp.common.ClassMapper
 import io.vamp.common.akka.IoC
-import io.vamp.container_driver.kubernetes.{ Job, KubernetesDriverActor }
+import io.vamp.container_driver.kubernetes.{ Job, K8sClientConfig, KubernetesDriverActor }
 import io.vamp.container_driver.{ ContainerDriverMapping, ContainerDriverValidation, DeployableType, DockerDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
+import io.vamp.model.resolver.WorkflowValueResolver
 import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
@@ -19,11 +20,11 @@ class KubernetesWorkflowActorMapper extends ClassMapper {
   val clazz: Class[_] = classOf[KubernetesWorkflowActor]
 }
 
-class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverMapping with ContainerDriverValidation {
+class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueResolver with ContainerDriverMapping with ContainerDriverValidation {
 
   override protected lazy val supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: Nil
 
-  override protected lazy val info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → KubernetesDriverActor.url())))
+  override protected lazy val info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → K8sClientConfig().url)))
 
   override protected lazy val driverActor: ActorRef = IoC.actorFor[KubernetesDriverActor]
 
@@ -52,4 +53,6 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverM
       )
     }
   }
+
+  override def resolverClasses: List[String] = super[WorkflowValueResolver].resolverClasses
 }

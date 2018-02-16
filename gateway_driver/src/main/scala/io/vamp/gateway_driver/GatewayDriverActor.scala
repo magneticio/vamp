@@ -1,8 +1,10 @@
 package io.vamp.gateway_driver
 
+import akka.actor.Actor
 import akka.pattern.ask
+import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.notification.Notification
+import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
@@ -28,6 +30,8 @@ object GatewayDriverActor {
 
   case class SetTemplate(`type`: String, name: String, template: String) extends GatewayDriverMessage
 
+  case class ResetTemplate(`type`: String, name: String) extends GatewayDriverMessage
+
   case class GetConfiguration(`type`: String, name: String) extends GatewayDriverMessage
 }
 
@@ -37,12 +41,13 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
 
   import GatewayDriverActor._
 
-  lazy implicit val timeout = KeyValueStoreActor.timeout()
+  lazy implicit val timeout: Timeout = KeyValueStoreActor.timeout()
 
-  def receive = {
+  def receive: Actor.Receive = {
     case InfoRequest         ⇒ reply(info)
     case r: GetTemplate      ⇒ reply(getTemplate(r.`type`, r.name))
     case r: SetTemplate      ⇒ reply(setTemplate(r.`type`, r.name, r.template))
+    case r: ResetTemplate    ⇒ reply(resetTemplate(r.`type`, r.name))
     case r: GetConfiguration ⇒ reply(getConfiguration(r.`type`, r.name))
     case Pull                ⇒ reply(pull())
     case Push(gateways)      ⇒ push(gateways)
@@ -50,9 +55,9 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
     case other               ⇒ unsupported(UnsupportedGatewayDriverRequest(other))
   }
 
-  override def errorNotificationClass = classOf[GatewayDriverResponseError]
+  override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[GatewayDriverResponseError]
 
-  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 
   private def info = Future.successful {
     Map("marshallers" → marshallers.map {
@@ -74,6 +79,13 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
     }
   }
 
+  private def reset(path: List[String]): Future[_] = {
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) flatMap {
+      case Some(c_) ⇒ IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, None)
+      case _        ⇒ Future.successful(None)
+    }
+  }
+
   private def pull(): Future[List[Gateway]] = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(rootPath) map {
       case Some(content: String) ⇒ unmarshall[Gateway](content)
@@ -81,7 +93,7 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
     }
   }
 
-  private def push(gateways: List[Gateway]) = {
+  private def push(gateways: List[Gateway]): Unit = {
     set(rootPath, marshall(gateways))
     marshallers.foreach {
       case (name, definition) ⇒ getTemplate(definition.marshaller.`type`, name).map { content ⇒
@@ -112,6 +124,15 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
       case stored ⇒
         IoC.actorFor[PulseActor] ! Publish(Event(tags(`type`, name, "template"), None), publishEventValue = false)
         stored
+    }
+  }
+
+  private def resetTemplate(`type`: String, name: String) = {
+    reset(templatePath(`type`, name)).map {
+      case None | false ⇒
+      case result ⇒
+        IoC.actorFor[PulseActor] ! Publish(Event(tags(`type`, name, "template"), None), publishEventValue = false)
+        result
     }
   }
 

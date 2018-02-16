@@ -1,13 +1,15 @@
 package io.vamp.container_driver.kubernetes
 
+import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
-import io.vamp.common.http.HttpClient
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriver, _ }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
-import scala.concurrent.Future
+import scala.collection.JavaConverters._
+import scala.util.Try
 
 object KubernetesDeployment {
   val dialect = "kubernetes"
@@ -20,103 +22,94 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private val workflowIdLabel = "workflow"
 
-  private lazy val podUrl = s"$apiUrl/api/v1/namespaces/${namespace.name}/pods"
-
-  private lazy val replicaSetUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/${namespace.name}/replicasets"
-
-  private lazy val deploymentUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/${namespace.name}/deployments"
-
   override protected def supportedDeployableTypes: List[DeployableType] = RktDeployableType :: DockerDeployableType :: Nil
 
   protected def schema: Enumeration
 
   protected def labels(id: String, value: String) = Map(ContainerDriver.labelNamespace() → value, ContainerDriver.withNamespace(value) → id)
 
-  protected def pods(id: String, value: String) = s"$podUrl?${labelSelector(labels(id, value))}"
+  protected def containerServices(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): List[ContainerService] = {
+    deploymentServices.flatMap { deploymentService ⇒
+      deploymentService.services.map { service ⇒
+        val id = appId(deploymentService.deployment, service.breed)
+        log.debug(s"kubernetes get $id")
+        k8sClient.cache.readWithCache(
+          K8sCache.deployments,
+          id,
+          () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
+        ).flatMap { deployment ⇒
+            containers(
+              id,
+              deploymentServiceIdLabel,
+              Try(deployment.getSpec.getTemplate.getSpec.getContainers.asScala).toOption.getOrElse(Nil),
+              deployment.getSpec.getReplicas
+            ) map { containerService ⇒
+                val k8sContainer = deployment.getSpec.getTemplate.getSpec.getContainers.asScala.map(c ⇒ c.getName → c).toMap.get(id)
+                val cluster = deploymentService.deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
+                val processClusterEquality = k8sContainer.isDefined && cluster.isDefined
 
-  protected def replicas(id: String, value: String) = s"$replicaSetUrl?${labelSelector(labels(id, value))}"
+                val equality = ServiceEqualityResponse(
+                  deployable = !equalityRequest.deployable || (k8sContainer.isDefined && checkDeployable(service, k8sContainer.get)),
+                  ports = !equalityRequest.ports || (processClusterEquality && checkPorts(deploymentService.deployment, cluster.get, service, k8sContainer.get)),
+                  environmentVariables = !equalityRequest.environmentVariables || (processClusterEquality && checkEnvironmentVariables(deploymentService.deployment, cluster.get, service, k8sContainer.get))
+                )
 
-  protected def allContainerServices(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Future[List[ContainerService]] = {
-    log.debug(s"kubernetes get all")
-    httpClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
-      containerServices(equalityRequest, deploymentServices, deployments)
-    }
-  }
-
-  protected def containerWorkflow(workflow: Workflow): Future[ContainerWorkflow] = {
-    log.debug(s"kubernetes get all")
-    val id = appId(workflow)
-
-    httpClient.get[KubernetesItem](s"$deploymentUrl/$id", apiHeaders, HttpClient.jsonContentType, logError = false).recover {
-      case _ ⇒ None
-    }.flatMap {
-      case item: KubernetesItem ⇒ containers(id, item, workflowIdLabel).map(ContainerWorkflow(workflow, _))
-      case _                    ⇒ Future.successful(ContainerWorkflow(workflow, None))
-    }
-  }
-
-  private def containerServices(equalityRequest: ServiceEqualityRequest, deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = {
-    val deployed = response.items.map(item ⇒ item.metadata.name → item).toMap
-    val k8sContainers = response.items.flatMap(_.spec.template).flatMap(_.spec.containers).map(c ⇒ c.name → c).toMap
-    Future.sequence {
-      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
-        case (deployment, service) ⇒
-
-          val id = appId(deployment, service.breed)
-          deployed.get(id) match {
-            case Some(item) ⇒
-              containers(id, item, deploymentServiceIdLabel).map {
-                case Some(cs) ⇒
-                  val k8sContainer = k8sContainers.get(id)
-                  val cluster = deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
-                  val processClusterEquality = k8sContainer.isDefined && cluster.isDefined
-
-                  val equality = ServiceEqualityResponse(
-                    deployable = !equalityRequest.deployable || (k8sContainer.isDefined && checkDeployable(service, k8sContainer.get)),
-                    ports = !equalityRequest.ports || (processClusterEquality && checkPorts(deployment, cluster.get, service, k8sContainer.get)),
-                    environmentVariables = !equalityRequest.environmentVariables || (processClusterEquality && checkEnvironmentVariables(deployment, cluster.get, service, k8sContainer.get))
-                  )
-
-                  ContainerService(deployment, service, Option(cs), None, equality)
-
-                case None ⇒ ContainerService(deployment, service, None)
+                ContainerService(deploymentService.deployment, service, Option(containerService), None, equality)
               }
-            case None ⇒ Future.successful(ContainerService(deployment, service, None))
-          }
+          } getOrElse ContainerService(deploymentService.deployment, service, None)
       }
     }
   }
 
-  private def checkDeployable(service: DeploymentService, container: KubernetesContainer): Boolean = {
-    service.breed.deployable.definition == container.image
+  protected def containerWorkflow(workflow: Workflow): ContainerWorkflow = {
+    val id = appId(workflow)
+    log.debug(s"kubernetes get $id")
+    k8sClient.cache.readWithCache(
+      K8sCache.deployments,
+      id,
+      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
+    ).map { deployment ⇒
+        ContainerWorkflow(
+          workflow,
+          containers(
+            id,
+            workflowIdLabel,
+            Try(deployment.getSpec.getTemplate.getSpec.getContainers.asScala).toOption.getOrElse(Nil),
+            deployment.getSpec.getReplicas
+          )
+        )
+      } getOrElse ContainerWorkflow(workflow, None)
   }
 
-  private def checkPorts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: KubernetesContainer): Boolean = {
-    container.ports.map(_.containerPort).toSet == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
-  }
-
-  private def checkEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: KubernetesContainer): Boolean = {
-    container.env.map(e ⇒ e.name → e.value).toMap == environment(deployment, cluster, service)
-  }
-
-  private def containers(id: String, item: KubernetesItem, selector: String): Future[Option[Containers]] = {
-    val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
-    val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map { request ⇒
-      DefaultScale(Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
+  private def containers(id: String, selector: String, v1Containers: Seq[V1Container], replicas: Int): Option[Containers] = Try {
+    val ports = v1Containers.headOption.map(_.getPorts.asScala.map(_.getContainerPort.toInt)).getOrElse(Nil).toList
+    val scale: Option[DefaultScale] = v1Containers.headOption.flatMap { item ⇒
+      val request = item.getResources.getRequests.asScala
+      for {
+        cpu ← request.get("cpu")
+        memory ← request.get("memory")
+      } yield DefaultScale(Quantity.of(cpu), MegaByte.of(memory), replicas)
     }
-
     if (scale.isDefined) {
-      httpClient.get[KubernetesApiResponse](pods(id, selector), apiHeaders).map { pods ⇒
-        val instances = pods.items.map { pod ⇒
-          ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
-        }
-        Option(Containers(scale.get, instances))
-      }
+      val instances = pods(id, selector).map { pod ⇒
+        ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
+      }.toList
+      Option(Containers(scale.get, instances))
     }
-    else Future.successful(None)
+    else None
+  }.toOption.flatten
+
+  private def checkDeployable(service: DeploymentService, container: V1Container): Boolean = service.breed.deployable.definition == container.getImage
+
+  private def checkPorts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: V1Container): Boolean = {
+    Try(container.getPorts.asScala.map(_.getContainerPort.toInt).toSet).toOption.getOrElse(Set[Int]()) == portMappings(deployment, cluster, service, "").map(_.containerPort).toSet
   }
 
-  protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
+  private def checkEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, container: V1Container): Boolean = {
+    Try(container.getEnv.asScala.map(e ⇒ e.getName → e.getValue).toMap).toOption.getOrElse(Map[String, String]()) == environment(deployment, cluster, service)
+  }
+
+  protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Unit = {
     validateDeployable(service.breed.deployable)
 
     val id = appId(deployment, service.breed)
@@ -140,24 +133,13 @@ trait KubernetesDeployment extends KubernetesArtifact {
     )
   }
 
-  protected def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
+  protected def undeploy(deployment: Deployment, service: DeploymentService): Unit = {
     val id = appId(deployment, service.breed)
     log.info(s"kubernetes delete app: $id")
-    undeploy(id, deploymentServiceIdLabel)
+    undeploy(id)
   }
 
-  protected def retrieve(id: String): Future[Option[Any]] = {
-    httpClient.get[KubernetesItem](s"$deploymentUrl/${string2Id(id)}", apiHeaders, logError = false).recover {
-      case _ ⇒ None
-    } map {
-      case None ⇒ None
-      case item ⇒ Option(item)
-    }
-  }
-
-  protected def retrieve(workflow: Workflow): Future[Option[Any]] = retrieve(appId(workflow))
-
-  protected def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
+  protected def deploy(workflow: Workflow, update: Boolean): Unit = {
 
     validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
@@ -178,14 +160,14 @@ trait KubernetesDeployment extends KubernetesArtifact {
     )
   }
 
-  protected def undeploy(workflow: Workflow): Future[Any] = {
+  protected def undeploy(workflow: Workflow): Unit = {
     val id = appId(workflow)
     log.info(s"kubernetes delete workflow: ${workflow.name}")
-    undeploy(id, workflowIdLabel)
+    undeploy(id)
   }
 
-  private def deploy(id: String, docker: Docker, scale: DefaultScale, environmentVariables: Map[String, String], labels: Map[String, String], update: Boolean, dialect: Map[String, Any]): Future[Any] = {
-    val app = KubernetesApp(
+  private def deploy(id: String, docker: Docker, scale: DefaultScale, environmentVariables: Map[String, String], labels: Map[String, String], update: Boolean, dialect: Map[String, Any]): Unit = {
+    val app = KubernetesDeploymentRequest(
       name = id,
       docker = docker,
       replicas = scale.instances,
@@ -199,26 +181,51 @@ trait KubernetesDeployment extends KubernetesArtifact {
       dialect = dialect
     )
 
-    if (update) httpClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else httpClient.post[Any](deploymentUrl, app.toString, apiHeaders)
+    if (update)
+      k8sClient.cache.writeWithCache(
+        K8sCache.deployments,
+        id,
+        () ⇒ k8sClient.extensionsV1beta1Api.replaceNamespacedDeployment(
+          id,
+          namespace.name,
+          k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+          null
+        )
+      )
+    else k8sClient.cache.writeWithCache(
+      K8sCache.deployments,
+      id,
+      () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
+        namespace.name,
+        k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+        null
+      )
+    )
   }
 
-  private def undeploy(id: String, selector: String): Future[Any] = {
-    for {
+  private def undeploy(id: String): Unit = {
+    k8sClient.cache.writeWithCache(
+      K8sCache.deployments,
+      id,
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(id, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+    )
+  }
 
-      deployment ← httpClient.delete(s"$deploymentUrl/$id", apiHeaders)
+  protected def pods(id: String, value: String): Seq[V1Pod] = {
+    val selector = labelSelector(labels(id, value))
+    k8sClient.cache.readAllWithCache(
+      K8sCache.pods,
+      selector,
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+    )
+  }
 
-      replicas ← httpClient.get[KubernetesApiResponse](replicas(id, selector), apiHeaders).flatMap { replicas ⇒
-        Future.sequence {
-          replicas.items.map(item ⇒ httpClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
-        }
-      }
-
-      pods ← httpClient.get[KubernetesApiResponse](pods(id, selector), apiHeaders).flatMap { pods ⇒
-        Future.sequence {
-          pods.items.map(item ⇒ httpClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
-        }
-      }
-
-    } yield deployment :: replicas :: pods :: Nil
+  protected def replicas(id: String, value: String): Seq[V1beta1ReplicaSet] = {
+    val selector = labelSelector(labels(id, value))
+    k8sClient.cache.readAllWithCache(
+      K8sCache.replicaSets,
+      selector,
+      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+    )
   }
 }

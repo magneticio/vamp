@@ -15,7 +15,12 @@ trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolve
   override def resolverClasses: List[String] = if (Config.has(resolversPath)(namespace)()) Config.stringList(resolversPath)() else Nil
 
   def valueFor(workflow: Workflow)(reference: ValueReference): String = {
-    (valueForWorkflow(workflow, None) orElse PartialFunction[ValueReference, String] { _ ⇒ "" })(reference)
+    resolve(
+      (super[ClassLoaderValueResolver].valueForReference((workflow, None)) orElse
+        super[ConfigurationValueResolver].valueForReference orElse
+        PartialFunction[ValueReference, String] { referenceAsPart })(reference),
+      valueForWorkflow(workflow, None) orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
+    )
   }
 
   def resolveEnvironmentVariable(workflow: Workflow, data: Any): EnvironmentVariable ⇒ EnvironmentVariable = { env ⇒
