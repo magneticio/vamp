@@ -345,15 +345,15 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "") :: Nil
 
     List(
-      ("user-agent = Firefox", "hdr_sub(user-agent) Firefox"),
-      ("user-agent = Safari", "hdr_sub(user-agent) Safari"),
+      ("user-agent = Firefox", "req.fhdr(User-Agent) -m sub 'Firefox'"),
+      ("user-agent = Safari", "req.fhdr(User-Agent) -m sub 'Safari'"),
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android"),
-      ("user-agent=Android", "hdr_sub(user-agent) Android"),
-      ("user-agent!=Android", "hdr_sub(user-agent) Android"),
-      ("User-Agent=Android", "hdr_sub(user-agent) Android"),
-      ("user-agent = Android", "hdr_sub(user-agent) Android"),
-      ("user-agent  =  Android", "hdr_sub(user-agent) Android"),
-      ("user.agent = Ios", "hdr_sub(user-agent) Ios"),
+      ("user-agent=Android", "req.fhdr(User-Agent) -m sub 'Android'"),
+      ("user-agent!=Android", "req.fhdr(User-Agent) -m sub 'Android'"),
+      ("User-Agent=Android", "req.fhdr(User-Agent) -m sub 'Android'"),
+      ("user-agent = Android", "req.fhdr(User-Agent) -m sub 'Android'"),
+      ("user-agent  =  Android", "req.fhdr(User-Agent) -m sub 'Android'"),
+      ("user.agent = Ios", "req.fhdr(User-Agent) -m sub 'Ios'"),
       ("host = www.google.com", "hdr_str(host) www.google.com"),
       ("host != www.google.com", "hdr_str(host) www.google.com"),
       ("cookie MYCUSTOMER contains Value=good", "cook_sub(MYCUSTOMER) Value=good"),
