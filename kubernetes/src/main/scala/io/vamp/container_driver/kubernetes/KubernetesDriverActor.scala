@@ -172,7 +172,7 @@ class KubernetesDriverActor
   }
 
   private def deploy(request: String): Unit = {
-    def process(any: Any): Unit = Try {
+    def process(any: Any): Unit = {
       val kind = any.asInstanceOf[Map[String, String]]("kind")
       val request = write(any.asInstanceOf[AnyRef])(DefaultFormats)
       kind match {
@@ -189,7 +189,7 @@ class KubernetesDriverActor
   }
 
   private def undeploy(request: String): Unit = {
-    def process(any: Any): Unit = Try {
+    def process(any: Any): Unit = {
       val kind = any.asInstanceOf[Map[String, String]]("kind")
       val id = any.asInstanceOf[Map[String, Map[String, String]]]("metadata")("name")
       kind match {
