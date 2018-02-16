@@ -37,12 +37,12 @@ trait MarathonCache {
 
   protected def closeCache(): Unit = cache.close()
 
-  private def markFailure[T](id: String): Unit = cache.get(id).foreach { value ⇒
-    put(id, () ⇒ value)(failureTimeToLivePeriod)
+  private def markFailure[T](id: String): Unit = cache.get[T](id).foreach { value ⇒
+    put[T](id, () ⇒ value)(failureTimeToLivePeriod)
   }
 
   private def getOrPutIfAbsent[T](key: String, put: () ⇒ T)(timeToLivePeriod: FiniteDuration): T = synchronized {
-    cache.get(key) match {
+    cache.get[T](key) match {
       case Some(result) ⇒
         log.info(s"cache get: $key")
         result
