@@ -20,7 +20,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
   protected def createDaemonSet(ds: DaemonSet, labels: Map[String, String] = Map()): Unit = {
-    k8sClient.cache.readRequestWithCache(
+    k8sClient.cache.readWithCache(
       K8sCache.daemonSets,
       ds.name,
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)
@@ -65,7 +65,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
           container.setResources(resources)
           resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
 
-          k8sClient.cache.writeRequestWithCache(
+          k8sClient.cache.writeWithCache(
             K8sCache.daemonSets,
             ds.name,
             () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
@@ -79,6 +79,15 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       namespace.name,
       k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
       null
+    )
+  }
+
+  protected def deleteDaemonSetById(id: String): Unit = {
+    log.info(s"Deleting daemon set $id")
+    k8sClient.cache.writeWithCache(
+      K8sCache.daemonSets,
+      id,
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(id, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
     )
   }
 }

@@ -8,7 +8,7 @@ import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.common.{ ClassMapper, Config, ConfigMagnet }
 import io.vamp.container_driver._
-import io.vamp.container_driver.marathon.MarathonDriverActor.DeployMarathonApp
+import io.vamp.container_driver.marathon.MarathonDriverActor.{ DeployMarathonApp, UnDeployMarathonApp }
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
@@ -16,6 +16,7 @@ import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.JsonAST.JObject
 import org.json4s._
+import org.json4s.native.JsonMethods.parse
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -60,6 +61,9 @@ object MarathonDriverActor {
   val dialect = "marathon"
 
   case class DeployMarathonApp(request: AnyRef)
+
+  case class UnDeployMarathonApp(request: AnyRef)
+
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -118,7 +122,8 @@ class MarathonDriverActor
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
     case event: ServerSentEvent         ⇒ process(event)
-    case app: DeployMarathonApp         ⇒ reply(deploy(app.request))
+    case a: DeployMarathonApp           ⇒ reply(deploy(a.request))
+    case a: UnDeployMarathonApp         ⇒ reply(undeploy(a.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -386,11 +391,10 @@ class MarathonDriverActor
     // Iterate through all Argument objects and if they represent an override, apply them
     val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
       applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app))
-
     val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
 
     log.info(s"Deploying $asd")
-    sendRequest(update, id, asd)
+    deploy(update, id, asd)
   }
 
   private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
@@ -427,7 +431,7 @@ class MarathonDriverActor
 
     val toDeploy = requestPayload(workflow, purge(marathonAppWithGlobalOverrides))
     log.info(s"Deploying ${workflow.name} with id $id")
-    sendRequest(update, id, toDeploy)
+    deploy(update, id, toDeploy)
   }
 
   private def purge(app: MarathonApp): MarathonApp = {
@@ -435,7 +439,7 @@ class MarathonDriverActor
     if (app.args.isEmpty) app.copy(args = null) else app
   }
 
-  private def sendRequest(update: Boolean, id: String, payload: JValue) = {
+  private def deploy(update: Boolean, id: String, payload: JValue) = {
     if (update) {
       get(id).flatMap { response ⇒
         val changed = Extraction.decompose(response).children.headOption match {
@@ -526,16 +530,16 @@ class MarathonDriverActor
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    writeToCache(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover {
-      case _ ⇒
-        markWriteFailure(id)
-        None
-    })
+    undeployApp(id)
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
+    undeployApp(id)
+  }
+
+  private def undeployApp(id: String) = {
     writeToCache(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover {
       case _ ⇒
         markWriteFailure(id)
@@ -570,5 +574,18 @@ class MarathonDriverActor
     Containers(scale, instances)
   }
 
-  private def deploy(request: AnyRef): Future[Any] = httpClient.post[Any](appsUrl, request, headers)
+  private def deploy(request: AnyRef): Future[Any] = {
+    implicit val formats: DefaultFormats = DefaultFormats
+    val r = parse(StringInput(request.toString))
+    val app = r.extract[MarathonApp]
+    log.info(s"Deploying ${app.id}")
+    deploy(update = true, app.id, r)
+  }
+
+  private def undeploy(request: AnyRef): Future[Any] = {
+    implicit val formats: DefaultFormats = DefaultFormats
+    val app = parse(StringInput(request.toString)).extract[MarathonApp]
+    log.info(s"marathon delete app: ${app.id}")
+    undeployApp(app.id)
+  }
 }

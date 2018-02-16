@@ -41,6 +41,8 @@ object KubernetesDriverActor {
 
   case class DeployKubernetesItems(request: String)
 
+  case class UnDeployKubernetesItems(request: String)
+
 }
 
 class KubernetesDriverActor
@@ -86,7 +88,8 @@ class KubernetesDriverActor
     case job: Job                       ⇒ reply(createJob(job))
     case ns: CreateNamespace            ⇒ reply(createNamespace(ns))
 
-    case dm: DeployKubernetesItems      ⇒ reply(deploy(dm.request))
+    case d: DeployKubernetesItems       ⇒ reply(deploy(d.request))
+    case u: UnDeployKubernetesItems     ⇒ reply(undeploy(u.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -122,8 +125,6 @@ class KubernetesDriverActor
   private def updateGateways(gateways: List[Gateway]): Unit = {
     if (createServices()) {
       val v1Services = services(gatewayService)
-
-      v1Services.foreach(touchService)
 
       // update service ports
       gateways.filter {
@@ -169,12 +170,29 @@ class KubernetesDriverActor
   }
 
   private def deploy(request: String): Unit = {
-    def process(any: Any): Unit = Try {
+    def process(any: Any): Unit = {
       val kind = any.asInstanceOf[Map[String, String]]("kind")
       val request = write(any.asInstanceOf[AnyRef])(DefaultFormats)
       kind match {
         case "Service"   ⇒ createService(request)
         case "DaemonSet" ⇒ createDaemonSet(request)
+        case other       ⇒ log.warning(s"Cannot process kind: $other")
+      }
+    }
+
+    YamlUtil.convert(YamlUtil.yaml.loadAll(request), preserveOrder = false) match {
+      case l: List[_] ⇒ l.foreach(process)
+      case other      ⇒ process(other)
+    }
+  }
+
+  private def undeploy(request: String): Unit = {
+    def process(any: Any): Unit = {
+      val kind = any.asInstanceOf[Map[String, String]]("kind")
+      val id = any.asInstanceOf[Map[String, Map[String, String]]]("metadata")("name")
+      kind match {
+        case "Service"   ⇒ deleteServiceById(id)
+        case "DaemonSet" ⇒ deleteDaemonSetById(id)
         case other       ⇒ log.warning(s"Cannot process kind: $other")
       }
     }

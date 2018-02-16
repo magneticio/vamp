@@ -6,12 +6,16 @@ import scala.concurrent.duration.FiniteDuration
 import scalacache._
 import scalacache.caffeine._
 import scalacache.modes.sync._
+import scala.collection.JavaConverters._
+import scala.util.Try
 
 class CacheStore(maximumSize: Long = 10000L) {
 
-  private val store: Cache[Any] = CaffeineCache(
-    Caffeine.newBuilder().maximumSize(maximumSize).build[String, Entry[Any]]
-  )
+  private val underlying = Caffeine.newBuilder().maximumSize(maximumSize).build[String, Entry[Any]]
+
+  private val store: Cache[Any] = CaffeineCache(underlying)
+
+  def keys: Set[String] = Try(underlying.asMap().keySet.asScala.toSet).getOrElse(Set())
 
   def contains(key: String): Boolean = store.get(key).isDefined
 
