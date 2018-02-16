@@ -24,13 +24,14 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
 
   logger.info(s"starting Kubernetes cache: ${namespace.name}")
 
-  def readRequestWithCache[T](kind: String, request: () ⇒ T): T =
-    requestWithCache[T](read = true, id(kind), request)
+  def readAllWithCache[T](kind: String, selector: String, request: () ⇒ T): T = {
+    requestWithCache[T](read = true, id(kind, selector = Option(selector).getOrElse("")), request)
+  }
 
-  def readRequestWithCache[T](kind: String, name: String, request: () ⇒ T): Option[T] =
+  def readWithCache[T](kind: String, name: String, request: () ⇒ T): Option[T] =
     Try(requestWithCache[T](read = true, id(kind, name), request)).toOption
 
-  def writeRequestWithCache(kind: String, name: String, request: () ⇒ Any): Unit =
+  def writeWithCache(kind: String, name: String, request: () ⇒ Any): Unit =
     Try(requestWithCache[Any](read = false, id(kind, name, read = false), request)).recover {
       case _: JsonSyntaxException ⇒
       case e                      ⇒ logger.warn(e.getMessage)
@@ -39,7 +40,7 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
   private def requestWithCache[T](read: Boolean, id: String, request: () ⇒ T): T = {
     cache.get[Either[T, Exception]](id) match {
       case Some(response) ⇒
-        logger.info(s"cache get: $id")
+        logger.debug(s"cache get: $id")
         response match {
           case Left(r)  ⇒ r
           case Right(e) ⇒ throw e
@@ -63,13 +64,14 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
   }
 
   def invalidate(kind: String, name: String): Unit = {
-    if (cache.contains(id(kind, name)) || cache.contains(id(kind, name, read = false))) {
-      logger.info(s"invalidate cache: ${namespace.name}/$kind/")
-      cache.remove(id(kind))
-
-      logger.info(s"invalidate cache: ${namespace.name}/$kind/$name")
-      cache.remove(id(kind, name))
-      cache.remove(id(kind, name, read = false))
+    val ofKind = all(kind)
+    cache.keys.filter(_.startsWith(ofKind)).foreach { key ⇒
+      logger.info(s"invalidate cache: $key")
+      cache.remove(key)
+    }
+    (id(kind, name) :: id(kind, name, read = false) :: Nil).foreach { key ⇒
+      logger.info(s"invalidate cache: $key")
+      cache.remove(key)
     }
   }
 
@@ -78,5 +80,7 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
     cache.close()
   }
 
-  private def id(kind: String, name: String = "", read: Boolean = true) = s"${if (read) "r/" else "w/"}${namespace.name}/$kind/$name"
+  private def all(kind: String) = s"r/${namespace.name}/$kind/?"
+
+  private def id(kind: String, name: String = "", selector: String = "", read: Boolean = true) = s"${if (read) "r/" else "w/"}${namespace.name}/$kind/$name?$selector"
 }

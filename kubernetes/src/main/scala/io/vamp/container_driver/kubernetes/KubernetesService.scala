@@ -22,14 +22,11 @@ trait KubernetesService extends KubernetesArtifact {
 
   protected def services(labels: Map[String, String] = Map()): Seq[V1Service] = {
     val selector = if (labels.isEmpty) null else labelSelector(labels)
-    k8sClient.cache.readRequestWithCache(
+    k8sClient.cache.readAllWithCache(
       K8sCache.services,
+      selector,
       () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
-  }
-
-  protected def touchService(service: V1Service): Unit = {
-    k8sClient.cache.readRequestWithCache(K8sCache.services, service.getMetadata.getName, () ⇒ service)
   }
 
   protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Unit = {
@@ -56,7 +53,7 @@ trait KubernetesService extends KubernetesArtifact {
       request
     }
 
-    k8sClient.cache.readRequestWithCache(
+    k8sClient.cache.readWithCache(
       K8sCache.services,
       id,
       () ⇒ k8sClient.coreV1Api.readNamespacedServiceStatus(id, namespace.name, null)
@@ -64,7 +61,7 @@ trait KubernetesService extends KubernetesArtifact {
         case Some(_) ⇒
           if (update) {
             log.info(s"Updating service: $name")
-            k8sClient.cache.writeRequestWithCache(
+            k8sClient.cache.writeWithCache(
               K8sCache.services,
               id,
               () ⇒ k8sClient.coreV1Api.patchNamespacedService(id, namespace.name, k8sClient.coreV1Api.getApiClient.getJSON.serialize(request()), null)
@@ -74,7 +71,7 @@ trait KubernetesService extends KubernetesArtifact {
 
         case None ⇒
           log.info(s"Creating service: $name")
-          k8sClient.cache.writeRequestWithCache(
+          k8sClient.cache.writeWithCache(
             K8sCache.services,
             id,
             () ⇒ k8sClient.coreV1Api.createNamespacedService(namespace.name, request(), null)
@@ -84,7 +81,7 @@ trait KubernetesService extends KubernetesArtifact {
 
   protected def deleteServiceById(id: String): Unit = {
     log.info(s"Deleting service: $id")
-    k8sClient.cache.writeRequestWithCache(
+    k8sClient.cache.writeWithCache(
       K8sCache.services,
       id,
       () ⇒ k8sClient.coreV1Api.deleteNamespacedService(id, namespace.name, null)

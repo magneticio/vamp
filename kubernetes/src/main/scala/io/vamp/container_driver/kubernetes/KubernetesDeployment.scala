@@ -33,7 +33,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
       deploymentService.services.map { service ⇒
         val id = appId(deploymentService.deployment, service.breed)
         log.debug(s"kubernetes get $id")
-        k8sClient.cache.readRequestWithCache(
+        k8sClient.cache.readWithCache(
           K8sCache.deployments,
           id,
           () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
@@ -64,7 +64,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   protected def containerWorkflow(workflow: Workflow): ContainerWorkflow = {
     val id = appId(workflow)
     log.debug(s"kubernetes get $id")
-    k8sClient.cache.readRequestWithCache(
+    k8sClient.cache.readWithCache(
       K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
@@ -136,7 +136,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   protected def undeploy(deployment: Deployment, service: DeploymentService): Unit = {
     val id = appId(deployment, service.breed)
     log.info(s"kubernetes delete app: $id")
-    undeploy(id, deploymentServiceIdLabel)
+    undeploy(id)
   }
 
   protected def deploy(workflow: Workflow, update: Boolean): Unit = {
@@ -163,7 +163,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   protected def undeploy(workflow: Workflow): Unit = {
     val id = appId(workflow)
     log.info(s"kubernetes delete workflow: ${workflow.name}")
-    undeploy(id, workflowIdLabel)
+    undeploy(id)
   }
 
   private def deploy(id: String, docker: Docker, scale: DefaultScale, environmentVariables: Map[String, String], labels: Map[String, String], update: Boolean, dialect: Map[String, Any]): Unit = {
@@ -182,7 +182,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     )
 
     if (update)
-      k8sClient.cache.writeRequestWithCache(
+      k8sClient.cache.writeWithCache(
         K8sCache.deployments,
         id,
         () ⇒ k8sClient.extensionsV1beta1Api.replaceNamespacedDeployment(
@@ -192,7 +192,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
           null
         )
       )
-    else k8sClient.cache.writeRequestWithCache(
+    else k8sClient.cache.writeWithCache(
       K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
@@ -203,8 +203,8 @@ trait KubernetesDeployment extends KubernetesArtifact {
     )
   }
 
-  private def undeploy(id: String, selector: String): Unit = {
-    k8sClient.cache.writeRequestWithCache(
+  private def undeploy(id: String): Unit = {
+    k8sClient.cache.writeWithCache(
       K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(id, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
@@ -212,16 +212,20 @@ trait KubernetesDeployment extends KubernetesArtifact {
   }
 
   protected def pods(id: String, value: String): Seq[V1Pod] = {
-    k8sClient.cache.readRequestWithCache(
+    val selector = labelSelector(labels(id, value))
+    k8sClient.cache.readAllWithCache(
       K8sCache.pods,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      selector,
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
   protected def replicas(id: String, value: String): Seq[V1beta1ReplicaSet] = {
-    k8sClient.cache.readRequestWithCache(
+    val selector = labelSelector(labels(id, value))
+    k8sClient.cache.readAllWithCache(
       K8sCache.replicaSets,
-      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, labelSelector(labels(id, value)), null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      selector,
+      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 }

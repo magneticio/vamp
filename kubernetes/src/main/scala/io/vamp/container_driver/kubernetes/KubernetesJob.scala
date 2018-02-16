@@ -20,7 +20,7 @@ trait KubernetesJob extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
   protected def createJob(job: Job, labels: Map[String, String] = Map()): Unit = {
-    k8sClient.cache.readRequestWithCache(
+    k8sClient.cache.readWithCache(
       K8sCache.jobs,
       job.name,
       () ⇒ k8sClient.batchV1Api.readNamespacedJobStatus(job.name, namespace.name, null)
@@ -79,7 +79,7 @@ trait KubernetesJob extends KubernetesArtifact {
           container.setSecurityContext(context)
           context.setPrivileged(job.docker.privileged)
 
-          k8sClient.cache.writeRequestWithCache(
+          k8sClient.cache.writeWithCache(
             K8sCache.jobs,
             job.name,
             () ⇒ k8sClient.batchV1Api.createNamespacedJob(namespace.name, request, null)

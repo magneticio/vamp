@@ -126,8 +126,6 @@ class KubernetesDriverActor
     if (createServices()) {
       val v1Services = services(gatewayService)
 
-      v1Services.foreach(touchService)
-
       // update service ports
       gateways.filter {
         _.service.isEmpty
