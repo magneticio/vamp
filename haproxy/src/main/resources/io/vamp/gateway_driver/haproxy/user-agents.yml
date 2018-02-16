@@ -1,6 +1,6 @@
 
-Chrome  : "< hdr_sub(user-agent) Chrome >"
-Firefox : "< hdr_sub(user-agent) Firefox >"
-Safari  : "< hdr_sub(user-agent) Safari > and < hdr_sub(user-agent) Version >"
-Edge    : "< hdr_sub(user-agent) Edge >"
-IE      : "< hdr_sub(user-agent) MSIE >"
+Chrome  : "< req.fhdr(User-Agent) -m sub 'Chrome' >"
+Firefox : "< req.fhdr(User-Agent) -m sub 'Firefox' >"
+Safari  : "< req.fhdr(User-Agent) -m sub 'Safari' > and < req.fhdr(User-Agent) -m sub 'Version' >"
+Edge    : "< req.fhdr(User-Agent) -m sub 'Edge' >"
+IE      : "< req.fhdr(User-Agent) -m sub 'MSIE' >"

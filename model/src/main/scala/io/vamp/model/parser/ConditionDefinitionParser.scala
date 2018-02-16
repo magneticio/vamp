@@ -1,6 +1,6 @@
 package io.vamp.model.parser
 
-import akka.parboiled2.{ ParserInput, Rule1 }
+import akka.parboiled2.{ CharPredicate, ParserInput, Rule0, Rule1 }
 
 sealed trait ConditionDefinitionOperand extends Operand
 
@@ -22,6 +22,12 @@ trait ConditionDefinitionParser extends Parser[AstNode] {
 
 class ConditionDefinitionParboiledParser(override val input: ParserInput) extends BooleanParboiledParser(input) {
 
+  private val QUOTED = CharPredicate.Printable -- '"' -- '\''
+
+  private val UNQUOTED = CharPredicate.Visible -- '(' -- ')'
+
+  private val sb = new java.lang.StringBuilder
+
   override def Operand: Rule1[AstNode] = rule {
     HostOperand | UserAgentOperand | HeaderOperand | CookieOperand | CookieContainsOperand | HeaderContainsOperand | ValueOperand
   }
@@ -31,7 +37,7 @@ class ConditionDefinitionParboiledParser(override val input: ParserInput) extend
   }
 
   def HostOperand = rule {
-    (HostString ~ ComparisonOperator ~ capture(String)) ~>
+    (HostString ~ ComparisonOperator ~ String) ~>
       ((equal: Boolean, value: String) ⇒ if (equal) Host(value) else Negation(Host(value)))
   }
 
@@ -40,7 +46,7 @@ class ConditionDefinitionParboiledParser(override val input: ParserInput) extend
   }
 
   def UserAgentOperand = rule {
-    (UserAgentString ~ ComparisonOperator ~ capture(String)) ~>
+    (UserAgentString ~ ComparisonOperator ~ String) ~>
       ((equal: Boolean, value: String) ⇒ if (equal) UserAgent(value) else Negation(UserAgent(value)))
   }
 
@@ -49,12 +55,12 @@ class ConditionDefinitionParboiledParser(override val input: ParserInput) extend
   }
 
   def CookieOperand = rule {
-    (ContainsOperator ~ CookieString ~ WS ~ capture(String)) ~>
+    (ContainsOperator ~ CookieString ~ WS ~ String) ~>
       ((equal: Boolean, value: String) ⇒ if (equal) Cookie(value) else Negation(Cookie(value)))
   }
 
   def CookieContainsOperand = rule {
-    (CookieString ~ WS ~ capture(String) ~ WS ~ ContainsOperator ~ capture(String)) ~>
+    (CookieString ~ WS ~ String ~ WS ~ ContainsOperator ~ String) ~>
       ((name: String, equal: Boolean, value: String) ⇒ if (equal) CookieContains(name, value) else Negation(CookieContains(name, value)))
   }
 
@@ -63,12 +69,12 @@ class ConditionDefinitionParboiledParser(override val input: ParserInput) extend
   }
 
   def HeaderOperand = rule {
-    ContainsOperator ~ HeaderString ~ WS ~ capture(String) ~>
+    ContainsOperator ~ HeaderString ~ WS ~ String ~>
       ((equal: Boolean, value: String) ⇒ if (equal) Header(value) else Negation(Header(value)))
   }
 
   def HeaderContainsOperand = rule {
-    (HeaderString ~ WS ~ capture(String) ~ WS ~ ContainsOperator ~ capture(String)) ~>
+    (HeaderString ~ WS ~ String ~ WS ~ ContainsOperator ~ String) ~>
       ((name: String, equal: Boolean, value: String) ⇒ if (equal) HeaderContains(name, value) else Negation(HeaderContains(name, value)))
   }
 
@@ -105,6 +111,22 @@ class ConditionDefinitionParboiledParser(override val input: ParserInput) extend
   }
 
   def String = rule {
-    oneOrMore(noneOf(" \n\r\t\f()"))
+    SingleQuoted | DoubleQuoted | capture(oneOrMore(UNQUOTED))
+  }
+
+  def SingleQuoted = rule {
+    '\'' ~ clearSB() ~ zeroOrMore((QUOTED | "''") ~ appendSB()) ~ '\'' ~ push(sb.toString)
+  }
+
+  def DoubleQuoted = rule {
+    '"' ~ clearSB() ~ zeroOrMore((QUOTED | "\"\"") ~ appendSB()) ~ '"' ~ push(sb.toString)
+  }
+
+  private def clearSB(): Rule0 = rule {
+    run(sb.setLength(0))
+  }
+
+  private def appendSB(): Rule0 = rule {
+    run(sb.append(lastChar))
   }
 }

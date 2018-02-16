@@ -10,11 +10,11 @@ class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResol
   "ConditionDefinitionResolver" should "resolve single" in {
 
     resolve("User-Agent is Firefox") shouldBe Some {
-      HaProxyAcls(List(Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")), Some("af31629d4c4c8e71"))
+      HaProxyAcls(List(Acl("7b796e5d25d870c6", "req.fhdr(User-Agent) -m sub 'Firefox'")), Some("7b796e5d25d870c6"))
     }
 
     resolve("User-Agent is Safari") shouldBe Some {
-      HaProxyAcls(List(Acl("ecae438902d47151", "hdr_sub(user-agent) Safari"), Acl("54c1c532d16b2684", "hdr_sub(user-agent) Version")), Some("ecae438902d47151 54c1c532d16b2684"))
+      HaProxyAcls(List(Acl("d5f16211db6f5105", "req.fhdr(User-Agent) -m sub 'Safari'"), Acl("2d9aa9e2c5ea6536", "req.fhdr(User-Agent) -m sub 'Version'")), Some("d5f16211db6f5105 2d9aa9e2c5ea6536"))
     }
 
     resolve("host == localhost") shouldBe Some {
@@ -34,7 +34,7 @@ class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResol
     }
 
     resolve("header page contains 1") shouldBe Some {
-      HaProxyAcls(List(Acl("d87230f59992cc95", "hdr_sub(page) 1")), Some("d87230f59992cc95"))
+      HaProxyAcls(List(Acl("2640a60ce3da6491", "req.fhdr(page) -m sub '1'")), Some("2640a60ce3da6491"))
     }
 
     resolve("misses cookie vamp") shouldBe Some {
@@ -68,28 +68,36 @@ class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResol
     resolve("not <hdr_sub(user-agent) Android> and User-Agent != Chrome") shouldBe Some {
       HaProxyAcls(
         List(
-          Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android"), Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome")
+          Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android"), Acl("de0de9d22824714a", "req.fhdr(User-Agent) -m sub 'Chrome'")
         ),
-        Some("!29c278b48a0ff033 !81b5022a1c5966ab")
+        Some("!29c278b48a0ff033 !de0de9d22824714a")
       )
     }
 
     resolve("not <hdr_sub(user-agent) Android> or User-Agent != Chrome") shouldBe Some {
       HaProxyAcls(
         List(
-          Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")
+          Acl("de0de9d22824714a", "req.fhdr(User-Agent) -m sub 'Chrome'"), Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")
         ),
-        Some("!81b5022a1c5966ab or !29c278b48a0ff033")
+        Some("!de0de9d22824714a or !29c278b48a0ff033")
       )
     }
 
     resolve("(User-Agent = Chrome OR User-Agent = Firefox) AND has cookie vamp") shouldBe Some {
       HaProxyAcls(
         List(
-          Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("d2c606178591676a", "cook(vamp) -m found"), Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")
+          Acl("de0de9d22824714a", "req.fhdr(User-Agent) -m sub 'Chrome'"), Acl("d2c606178591676a", "cook(vamp) -m found"), Acl("7b796e5d25d870c6", "req.fhdr(User-Agent) -m sub 'Firefox'")
         ),
-        Some("81b5022a1c5966ab d2c606178591676a or af31629d4c4c8e71 d2c606178591676a")
+        Some("de0de9d22824714a d2c606178591676a or 7b796e5d25d870c6 d2c606178591676a")
       )
+    }
+
+    resolve("User-Agent == \"Mozilla/5.0 Macintosh\"") shouldBe Some {
+      HaProxyAcls(List(Acl("3581fea35ba6e992", "req.fhdr(User-Agent) -m sub 'Mozilla/5.0 Macintosh'")), Some("3581fea35ba6e992"))
+    }
+
+    resolve("User-Agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0.1 Safari/602.2.14'") shouldBe Some {
+      HaProxyAcls(List(Acl("1fc41db2449a9c62", "req.fhdr(User-Agent) -m sub 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/602.2.14 (KHTML, like Gecko) Version/10.0.1 Safari/602.2.14'")), Some("1fc41db2449a9c62"))
     }
   }
 }
