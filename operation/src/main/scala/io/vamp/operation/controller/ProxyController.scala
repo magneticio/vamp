@@ -15,9 +15,15 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 
-trait ProxyController extends AbstractController with GatewayWorkflowDeploymentResolver with ProxyCache {
+private case class HostPortCacheEntry(host: String, port: Int)
+
+trait ProxyController extends AbstractController with GatewayWorkflowDeploymentResolver {
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
+
+  private val cache = new CacheStore()
+
+  private lazy val ttl = Config.duration("vamp.operation.proxy.cache.ttl")
 
   def gatewayProxy(gatewayName: String, path: Path, skip: Boolean)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
     val key = s"gateways/$gatewayName"
@@ -117,22 +123,14 @@ trait ProxyController extends AbstractController with GatewayWorkflowDeploymentR
     )
     context.complete(upgrade.handleMessages(Http().webSocketClientFlow(request)))
   }
-}
 
-private case class HostPortCacheEntry(host: String, port: Int)
-
-trait ProxyCache {
-  this: ProxyController ⇒
-
-  private val cache = new CacheStore()
-
-  private lazy val ttl = Config.duration("vamp.operation.proxy.cache.ttl")
-
-  protected def readFromCache(key: String): Option[(String, Int)] = {
+  private def readFromCache(key: String): Option[(String, Int)] = {
+    logger.debug(s"Reading from proxy cache: $key")
     cache.get[HostPortCacheEntry](key).map(hp ⇒ hp.host → hp.port)
   }
 
-  protected def writeToCache(key: String, host: String, port: Int)(implicit namespace: Namespace): Unit = {
+  private def writeToCache(key: String, host: String, port: Int)(implicit namespace: Namespace): Unit = {
+    logger.debug(s"Writing to proxy cache: $key [$host:$port]")
     cache.put[HostPortCacheEntry](key, HostPortCacheEntry(host, port), ttl())
   }
 }
