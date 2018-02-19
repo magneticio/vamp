@@ -35,7 +35,7 @@ object AsyncResponse {
   }
 
   case class FailedAsyncResponse(exception: KeeperException, path: Option[String], stat: Option[Stat], ctx: Option[Any]) extends RuntimeException(exception) with AsyncResponse {
-    val code = exception.code
+    val code: KeeperException.Code = exception.code
   }
 
   case class ChildrenResponse(children: Seq[String], path: String, stat: Stat, ctx: Option[Any]) extends SuccessAsyncResponse
@@ -53,7 +53,7 @@ object AsyncResponse {
 }
 
 /** This just provides some implicits to help working with byte arrays. They are totally optional */
-object AsyncZooKeeperClient {
+object AsyncZooKeeperConnection {
   implicit def bytesToSome(bytes: Array[Byte]): Option[Array[Byte]] = Some(bytes)
 
   implicit val stringDeserializer: Array[Byte] ⇒ String = bytes ⇒ bytes.view.map(_.toChar).mkString
@@ -69,9 +69,9 @@ object AsyncZooKeeperClient {
     sessionTimeout: Int,
     connectTimeout: Int,
     basePath:       String,
-    watcher:        Option[AsyncZooKeeperClient ⇒ Unit],
+    watcher:        Option[AsyncZooKeeperConnection ⇒ Unit],
     eCtx:           ExecutionContext
-  ): AsyncZooKeeperClient = new AsyncZooKeeperClientImpl(servers, sessionTimeout, connectTimeout, basePath, watcher, eCtx)
+  ): AsyncZooKeeperConnection = new AsyncZooKeeperConnectionImpl(servers, sessionTimeout, connectTimeout, basePath, watcher, eCtx)
 }
 
 /**
@@ -91,7 +91,7 @@ object AsyncZooKeeperClient {
  *
  *
  */
-trait AsyncZooKeeperClient {
+trait AsyncZooKeeperConnection {
 
   import AsyncResponse._
 
@@ -237,18 +237,18 @@ trait AsyncZooKeeperClient {
   def watchConnection(onState: KeeperState ⇒ Unit): Unit
 }
 
-class AsyncZooKeeperClientImpl(
+class AsyncZooKeeperConnectionImpl(
     val servers:        String,
     val sessionTimeout: Int,
     val connectTimeout: Int,
     val basePath:       String,
-    watcher:            Option[AsyncZooKeeperClient ⇒ Unit],
+    watcher:            Option[AsyncZooKeeperConnection ⇒ Unit],
     eCtx:               ExecutionContext
-) extends AsyncZooKeeperClient {
+) extends AsyncZooKeeperConnection {
 
   import AsyncResponse._
 
-  implicit val c = eCtx
+  implicit val c: ExecutionContext = eCtx
 
   private val log = LoggerFactory.getLogger(this.getClass)
 
@@ -260,13 +260,13 @@ class AsyncZooKeeperClientImpl(
     this(servers, sessionTimeout, connectTimeout, basePath, None, eCtx)
 
   def this(servers: String, sessionTimeout: Int, connectTimeout: Int,
-           basePath: String, watcher: AsyncZooKeeperClient ⇒ Unit, eCtx: ExecutionContext) =
+           basePath: String, watcher: AsyncZooKeeperConnection ⇒ Unit, eCtx: ExecutionContext) =
     this(servers, sessionTimeout, connectTimeout, basePath, Some(watcher), eCtx)
 
   def this(servers: String, eCtx: ExecutionContext) =
     this(servers, 3000, 3000, "/", None, eCtx)
 
-  def this(servers: String, watcher: AsyncZooKeeperClient ⇒ Unit, eCtx: ExecutionContext) =
+  def this(servers: String, watcher: AsyncZooKeeperConnection ⇒ Unit, eCtx: ExecutionContext) =
     this(servers, 3000, 3000, "/", watcher, eCtx)
 
   override def underlying: Option[ZooKeeper] = Option(zk)
@@ -312,7 +312,7 @@ class AsyncZooKeeperClientImpl(
 
   private[zookeeper] def handleNull(op: Option[Array[Byte]]): Array[Byte] = if (op == null) null else op.orNull
 
-  override def subPaths(path: String, sep: Char) =
+  override def subPaths(path: String, sep: Char): List[String] =
     path.split(sep).toList match {
       case Nil ⇒ Nil
       case l :: tail ⇒
@@ -496,7 +496,7 @@ class AsyncZooKeeperClientImpl(
         if (persistent) Some(this) else None
       }
 
-      def process(event: WatchedEvent) = event.getType match {
+      def process(event: WatchedEvent): Unit = event.getType match {
         case e if e == EventType.None || e == EventType.NodeChildrenChanged ⇒
           exists(path, watch = ifPersist)
 
@@ -532,7 +532,7 @@ class AsyncZooKeeperClientImpl(
         if (persistent) Some(this) else None
       }
 
-      def process(event: WatchedEvent) = event.getType match {
+      def process(event: WatchedEvent): Unit = event.getType match {
         case EventType.NodeChildrenChanged ⇒
           getChildren(p, watch = ifPersist) onComplete {
             case Failure(error) ⇒
@@ -550,9 +550,9 @@ class AsyncZooKeeperClientImpl(
     getChildren(p, watch = Some(w))
   }
 
-  override def watchConnection(onState: KeeperState ⇒ Unit) = {
+  override def watchConnection(onState: KeeperState ⇒ Unit): Unit = {
     val w = new Watcher {
-      def process(event: WatchedEvent) = onState(event.getState)
+      def process(event: WatchedEvent): Unit = onState(event.getState)
     }
     clientWatcher = Some(w)
   }
