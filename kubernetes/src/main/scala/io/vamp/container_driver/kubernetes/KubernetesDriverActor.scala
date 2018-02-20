@@ -43,6 +43,10 @@ object KubernetesDriverActor {
 
   case class UnDeployKubernetesItems(request: String)
 
+  case class CreateJob(job: Job)
+
+  case class DeleteJob(selector: String)
+
 }
 
 class KubernetesDriverActor
@@ -85,7 +89,8 @@ class KubernetesDriverActor
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
     case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
-    case job: Job                       ⇒ reply(createJob(job))
+    case CreateJob(job)                 ⇒ reply(createJob(job))
+    case DeleteJob(job)                 ⇒ reply(deleteJob(job))
     case ns: CreateNamespace            ⇒ reply(createNamespace(ns))
 
     case d: DeployKubernetesItems       ⇒ reply(deploy(d.request))
@@ -147,7 +152,7 @@ class KubernetesDriverActor
       val items = v1Services.flatMap { v1Service ⇒ v1Service.getMetadata.getLabels.asScala.get(ContainerDriver.withNamespace(Lookup.entry)).map(_ → v1Service.getMetadata.getName) } toMap
 
       // delete services
-      items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } foreach { case (_, id) ⇒ deleteServiceById(id) }
+      items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } foreach { case (_, name) ⇒ deleteService(name) }
 
       // create services
       gateways.filter {
@@ -189,10 +194,10 @@ class KubernetesDriverActor
   private def undeploy(request: String): Unit = {
     def process(any: Any): Unit = {
       val kind = any.asInstanceOf[Map[String, String]]("kind")
-      val id = any.asInstanceOf[Map[String, Map[String, String]]]("metadata")("name")
+      val name = any.asInstanceOf[Map[String, Map[String, String]]]("metadata")("name")
       kind match {
-        case "Service"   ⇒ deleteServiceById(id)
-        case "DaemonSet" ⇒ deleteDaemonSetById(id)
+        case "Service"   ⇒ deleteService(name)
+        case "DaemonSet" ⇒ deleteDaemonSet(name)
         case other       ⇒ log.warning(s"Cannot process kind: $other")
       }
     }
