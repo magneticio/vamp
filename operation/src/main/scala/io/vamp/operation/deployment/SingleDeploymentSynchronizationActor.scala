@@ -4,7 +4,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
-import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Updating }
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
@@ -95,7 +95,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def redeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService, update: Boolean): Unit = {
-    if (update) publishRedeploy(deployment, deploymentCluster, deploymentService)
+    if (update && deploymentService.status.phase.isInstanceOf[Initiated])
+      publishRedeploy(deployment, deploymentCluster, deploymentService)
 
     actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
     actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = update)

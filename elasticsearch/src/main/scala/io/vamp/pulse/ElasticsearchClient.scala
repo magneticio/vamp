@@ -11,7 +11,7 @@ import io.vamp.common.http.{ HttpClient, HttpClientException }
 import org.json4s.native.JsonMethods._
 import org.json4s.{ DefaultFormats, Formats, StringInput }
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
 object ElasticsearchClient {
@@ -42,9 +42,11 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
 
   private val httpClient = new HttpClient
 
-  implicit val executionContext = system.dispatcher
+  implicit val executionContext: ExecutionContext = system.dispatcher
 
-  def health = httpClient.get[Any](urlOf(url, "_cluster", "health"))
+  private val baseUrl = if (url.endsWith("/")) url.substring(0, url.length - 1) else url
+
+  def health: Future[Any] = httpClient.get[Any](urlOf(url, "_cluster", "health"))
 
   def version(): Future[Option[String]] = httpClient
     .get[Map[String, Any]](url)
@@ -54,8 +56,7 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
         versionMap ← Try(version.asInstanceOf[Map[String, Any]]).toOption
         number ← versionMap.get("number")
         numberS ← Try(number.asInstanceOf[String]).toOption
-      } yield numberS
-    )
+      } yield numberS)
 
   def creationTime(index: String): Future[String] = httpClient.get[Any](urlOf(url, index)) map {
     case response: Map[_, _] ⇒ Try {
@@ -111,5 +112,8 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
   def aggregate(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
     httpClient.post[ElasticsearchAggregationResponse](urlOf(url, index, "_search"), query)
 
-  private def urlOf(url: String, paths: String*) = (url :: paths.map(path ⇒ URLEncoder.encode(path, "UTF-8")).toList) mkString "/"
+  private def urlOf(url: String, paths: String*) = {
+    val path = paths.map(path ⇒ URLEncoder.encode(path, "UTF-8")).toList
+    baseUrl :: path mkString "/"
+  }
 }

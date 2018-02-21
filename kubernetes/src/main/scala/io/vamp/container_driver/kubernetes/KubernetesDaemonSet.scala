@@ -82,12 +82,12 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
     )
   }
 
-  protected def deleteDaemonSetById(id: String): Unit = {
-    log.info(s"Deleting daemon set $id")
+  protected def deleteDaemonSet(name: String): Unit = {
+    log.info(s"Deleting daemon set $name")
     k8sClient.cache.writeWithCache(
       K8sCache.daemonSets,
-      id,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(id, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+      name,
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
     )
   }
 }
