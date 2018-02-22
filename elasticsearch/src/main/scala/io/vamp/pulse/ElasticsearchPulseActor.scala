@@ -162,7 +162,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
             Map("must" → List(
               constructTagQuery(eventQuery.tags),
               constructTypeQuery(eventQuery.`type`),
-              constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get))))))
+              constructTimeRange(eventQuery.timestamp)
+            ).filter(_.isDefined).map(_.get)))
+        )))
 
   private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = {
     if (tags.nonEmpty) Option((for (tag ← tags) yield Map("term" → Map("tags" → tag))).toList) else None
@@ -212,10 +214,10 @@ trait ElasticsearchPulseEvent {
 
   def indexTimeFormat: Map[String, String]
 
-  def indexTypeName(schema: String = Event.defaultType): (String, String) = {
+  def indexTypeName(schema: String = Event.defaultType, interpolateTime: Boolean = true): (String, String) = {
     val base = schema.toLowerCase
     val format = indexTimeFormat.getOrElse(base, indexTimeFormat.getOrElse(Event.defaultType, "YYYY-MM-dd"))
-    val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
+    val time = if (interpolateTime) OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format)) else s"{$format}"
     s"$indexName-$base-$time" → base
   }
 }
