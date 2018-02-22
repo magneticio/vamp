@@ -18,39 +18,41 @@ trait MetricsRoute extends AbstractRoute with MetricsController {
 
   def metricsRoutes(implicit namespace: Namespace, timeout: Timeout): Route = pathPrefix(MetricsRoute.path) {
     get {
-      path(Gateway.kind / Segment / Segment) { (gateway, metrics) ⇒
-        pathEndOrSingleSlash {
-          onSuccess(gatewayMetrics(gateway, metrics)) {
-            case Some(result) ⇒ respondWith(OK, result)
-            case _            ⇒ respondWith(NotFound, None)
+      parameters("window".?) { window ⇒
+        path(Gateway.kind / Segment / Segment) { (gateway, metrics) ⇒
+          pathEndOrSingleSlash {
+            onSuccess(gatewayMetrics(gateway, metrics)(window)) {
+              case Some(result) ⇒ respondWith(OK, result)
+              case _            ⇒ respondWith(NotFound, None)
+            }
           }
-        }
-      } ~ path(Gateway.kind / Segment / "routes" / Segment / Segment) { (gateway, route, metrics) ⇒
-        pathEndOrSingleSlash {
-          onSuccess(routeMetrics(gateway, route, metrics)) {
-            case Some(result) ⇒ respondWith(OK, result)
-            case _            ⇒ respondWith(NotFound, None)
+        } ~ path(Gateway.kind / Segment / "routes" / Segment / Segment) { (gateway, route, metrics) ⇒
+          pathEndOrSingleSlash {
+            onSuccess(routeMetrics(gateway, route, metrics)(window)) {
+              case Some(result) ⇒ respondWith(OK, result)
+              case _            ⇒ respondWith(NotFound, None)
+            }
           }
-        }
-      } ~ path(Deployment.kind / Segment / "clusters" / Segment / "ports" / Segment / Segment) { (deployment, cluster, port, metrics) ⇒
-        pathEndOrSingleSlash {
-          onSuccess(clusterMetrics(deployment, cluster, port, metrics)) {
-            case Some(result) ⇒ respondWith(OK, result)
-            case _            ⇒ respondWith(NotFound, None)
+        } ~ path(Deployment.kind / Segment / "clusters" / Segment / "ports" / Segment / Segment) { (deployment, cluster, port, metrics) ⇒
+          pathEndOrSingleSlash {
+            onSuccess(clusterMetrics(deployment, cluster, port, metrics)(window)) {
+              case Some(result) ⇒ respondWith(OK, result)
+              case _            ⇒ respondWith(NotFound, None)
+            }
           }
-        }
-      } ~ path(Deployment.kind / Segment / "clusters" / Segment / "services" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, port, metrics) ⇒
-        pathEndOrSingleSlash {
-          onSuccess(serviceMetrics(deployment, cluster, service, port, metrics)) {
-            case Some(result) ⇒ respondWith(OK, result)
-            case _            ⇒ respondWith(NotFound, None)
+        } ~ path(Deployment.kind / Segment / "clusters" / Segment / "services" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, port, metrics) ⇒
+          pathEndOrSingleSlash {
+            onSuccess(serviceMetrics(deployment, cluster, service, port, metrics)(window)) {
+              case Some(result) ⇒ respondWith(OK, result)
+              case _            ⇒ respondWith(NotFound, None)
+            }
           }
-        }
-      } ~ path(Deployment.kind / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, instance, port, metrics) ⇒
-        pathEndOrSingleSlash {
-          onSuccess(instanceMetrics(deployment, cluster, service, instance, port, metrics)) {
-            case Some(result) ⇒ respondWith(OK, result)
-            case _            ⇒ respondWith(NotFound, None)
+        } ~ path(Deployment.kind / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, instance, port, metrics) ⇒
+          pathEndOrSingleSlash {
+            onSuccess(instanceMetrics(deployment, cluster, service, instance, port, metrics)(window)) {
+              case Some(result) ⇒ respondWith(OK, result)
+              case _            ⇒ respondWith(NotFound, None)
+            }
           }
         }
       }
