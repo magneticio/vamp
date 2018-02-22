@@ -30,66 +30,63 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
 
   import PersistenceActor._
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope]
+  protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope
 
-  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
+  protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T]
 
-  protected def set(artifact: Artifact): Future[Artifact]
+  protected def set[T <: Artifact](artifact: T): T
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean]
+  protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean
 
   def receive: Actor.Receive = {
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
-      all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage)
-        .flatMap(combine).flatMap { artifacts ⇒
-          (expandRef, onlyRef) match {
-            case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { response ⇒ artifacts.copy(response = response) }
-            case (false, true) ⇒ Future.successful(artifacts.copy(response = artifacts.response.map(onlyReferences)))
-            case _             ⇒ Future.successful(artifacts)
-          }
+      Future {
+        val artifacts = combine(
+          all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage)
+        )
+        (expandRef, onlyRef) match {
+          case (true, false) ⇒ artifacts.copy(response = artifacts.response.map(expandReferences[Artifact]))
+          case (false, true) ⇒ artifacts.copy(response = artifacts.response.map(onlyReferences))
+          case _             ⇒ artifacts
         }
+      }
     }
 
     case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
-      get(name, ofType)
-        .flatMap(combine).flatMap { artifact ⇒
-          (expandRef, onlyRef) match {
-            case (true, false) ⇒ expandReferences(artifact)
-            case (false, true) ⇒ Future.successful(onlyReferences(artifact))
-            case _             ⇒ Future.successful(artifact)
-          }
+      Future {
+        val artifact = combine(combine(get(name, ofType)))
+        (expandRef, onlyRef) match {
+          case (true, false) ⇒ expandReferences(artifact)
+          case (false, true) ⇒ onlyReferences(artifact)
+          case _             ⇒ artifact
         }
+      }
     }
-
     case Create(artifact, source) ⇒ reply {
-      split(artifact, { artifact: Artifact ⇒
-        set(artifact) map {
-          archiveCreate(_, source)
-        }
-      })
+      Future {
+        split(artifact, { artifact: Artifact ⇒ archiveCreate(set(artifact), source) })
+      }
     }
 
     case Update(artifact, source) ⇒ reply {
-      split(artifact, { artifact: Artifact ⇒
-        set(artifact) map {
-          archiveUpdate(_, source)
-        }
-      })
+      Future {
+        split(artifact, { artifact: Artifact ⇒ archiveUpdate(set(artifact), source) })
+      }
     }
 
     case Delete(name, ofType) ⇒ reply {
-      remove(name, ofType, { (name, ofType) ⇒
-        delete(name, ofType) map {
-          result ⇒
-            if (result) archiveDelete(name, ofType)
-            result
-        }
-      })
+      Future {
+        remove(name, ofType, { (name, ofType) ⇒
+          val result = delete(name, ofType)
+          if (result) archiveDelete(name, ofType)
+          result
+        })
+      }
     }
   }
 
-  protected def readExpanded[T <: Artifact: ClassTag](name: String)(implicit namespace: Namespace): Future[Option[T]] = {
-    get(name, classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]).asInstanceOf[Future[Option[T]]]
+  protected def readExpanded[T <: Artifact: ClassTag](name: String)(implicit namespace: Namespace): Option[T] = {
+    get(name, classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]).asInstanceOf[Option[T]]
   }
 }

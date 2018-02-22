@@ -4,14 +4,13 @@ import akka.actor.Actor
 import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
-import io.vamp.persistence.CQRSActor.ReadAll
+import io.vamp.persistence.CqrsActor.ReadAll
 import io.vamp.persistence.notification.CorruptedDataException
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
-object CQRSActor {
+object CqrsActor {
 
   sealed trait CQRSMessage
 
@@ -22,7 +21,7 @@ object CQRSActor {
 /**
  * Interface for CQRS Actors
  */
-trait CQRSActor extends InMemoryRepresentationPersistenceActor
+trait CqrsActor extends InMemoryRepresentationPersistenceActor
     with AccessGuard
     with PersistenceMarshaller
     with NamespaceValueResolver
@@ -57,17 +56,17 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
       schedule(synchronization, delay)
   }
 
-  override protected def set(artifact: Artifact): Future[Artifact] = {
+  override protected def set[T <: Artifact](artifact: T): T = {
     log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
     guard()
     lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
 
     insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))).collect {
-      case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(artifact), () ⇒ fail[Artifact](failMessage))
-    }.getOrElse(fail(failMessage))
+      case Some(id: Long) ⇒ readOrFail(id, () ⇒ artifact, () ⇒ fail[Artifact](failMessage))
+    }.getOrElse(fail(failMessage)).asInstanceOf[T]
   }
 
-  override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = super.readArtifact(name, `type`) match {
+  override protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = super.get[T](name, `type`) match {
     case Some(_) ⇒
       log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
       guard()
@@ -75,15 +74,15 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
       lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
 
       insert(PersistenceRecord(name, kind)).collect {
-        case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(true), () ⇒ fail[Boolean](failMessage))
+        case Some(id: Long) ⇒ readOrFail(id, () ⇒ true, () ⇒ fail[Boolean](failMessage))
       } getOrElse fail[Boolean](failMessage)
 
-    case _ ⇒ Future.successful(false)
+    case _ ⇒ false
   }
 
-  private def fail[A](message: String): Future[A] = Future.failed(new RuntimeException(message))
+  private def fail[A](message: String): A = throw new RuntimeException(message)
 
-  private def readOrFail[T](id: Long, succeed: () ⇒ Future[T], fail: () ⇒ Future[T]): Future[T] = {
+  private def readOrFail[T](id: Long, succeed: () ⇒ T, fail: () ⇒ T): T = {
     readWrapper()
     if (id <= lastId) succeed() else fail()
   }

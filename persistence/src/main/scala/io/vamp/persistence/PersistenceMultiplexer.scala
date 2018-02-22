@@ -1,221 +1,159 @@
 package io.vamp.persistence
 
 import io.vamp.common.Artifact
-import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.model.artifact._
 
-import scala.concurrent.Future
 import scala.language.postfixOps
 
 trait PersistenceMultiplexer {
-  this: ExecutionContextProvider ⇒
 
-  protected def split(artifact: Artifact, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = artifact match {
-    case blueprint: DefaultBlueprint ⇒ split(blueprint, each)
-    case _                           ⇒ Future.sequence(each(artifact) :: Nil)
+  protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T]
+
+  protected def combine(artifact: Option[Artifact]): Option[Artifact] = {
+    if (artifact.isDefined) combineArtifact(artifact.get) else None
   }
 
-  protected def remove(name: String, `type`: Class[_ <: Artifact], each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = `type` match {
+  protected def combine(artifacts: ArtifactResponseEnvelope): ArtifactResponseEnvelope = {
+    artifacts.copy(response = artifacts.response.flatMap(combineArtifact))
+  }
+
+  protected def split(artifact: Artifact, each: Artifact ⇒ Artifact): List[Artifact] = artifact match {
+    case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map(each) :+ each(blueprint)
+    case _                           ⇒ each(artifact) :: Nil
+  }
+
+  protected def remove(name: String, `type`: Class[_ <: Artifact], each: (String, Class[_ <: Artifact]) ⇒ Boolean): List[Boolean] = `type` match {
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ removeGateway(name, each)
-    case _                                         ⇒ Future.sequence(each(name, `type`) :: Nil)
+    case _                                         ⇒ each(name, `type`) :: Nil
   }
 
-  protected def combine(artifact: Option[Artifact]): Future[Option[Artifact]] = {
-    if (artifact.isDefined) combine(artifact.get) else Future.successful(None)
-  }
-
-  protected def combine(artifacts: ArtifactResponseEnvelope): Future[ArtifactResponseEnvelope] = {
-    Future.sequence(artifacts.response.map(combine)).map { response ⇒ artifacts.copy(response = response.flatten) }
-  }
-
-  protected def combine(artifact: Artifact): Future[Option[Artifact]] = artifact match {
+  private def combineArtifact(artifact: Artifact): Option[Artifact] = artifact match {
     case gateway: Gateway            ⇒ combine(gateway)
     case deployment: Deployment      ⇒ combine(deployment)
     case blueprint: DefaultBlueprint ⇒ combine(blueprint)
     case workflow: Workflow          ⇒ combine(workflow)
-    case _                           ⇒ Future.successful(Option(artifact))
+    case _                           ⇒ Option(artifact)
   }
 
-  private def split(blueprint: DefaultBlueprint, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = Future.sequence {
-    blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map(each) :+ each(blueprint)
-  }
-
-  protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = {
+  private def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Boolean): List[Boolean] = {
     def default = each(name, classOf[GatewayPort]) :: each(name, classOf[GatewayServiceAddress]) :: each(name, classOf[GatewayDeploymentStatus]) :: each(name, classOf[Gateway]) :: Nil
 
-    get(name, classOf[Gateway]).flatMap {
-      case Some(gateway: Gateway) ⇒ Future.sequence {
-        gateway.routes.map(route ⇒ each(route.path.normalized, classOf[DefaultRoute])) ++ default
-      }
-      case _ ⇒ Future.sequence {
-        default
-      }
+    get(name, classOf[Gateway]) match {
+      case Some(gateway: Gateway) ⇒ gateway.routes.map(route ⇒ each(route.path.normalized, classOf[DefaultRoute])) ++ default
+      case _                      ⇒ default
     }
   }
 
-  private def combine(gateway: Gateway): Future[Option[Gateway]] = {
-    for {
-      port ← if (!gateway.port.assigned) {
-        get(gateway.name, classOf[GatewayPort]).map {
-          case Some(gp) ⇒ gateway.port.copy(number = gp.asInstanceOf[GatewayPort].port) match {
-            case p ⇒ p.copy(value = Option(p.toValue))
-          }
+  private def combine(gateway: Gateway): Option[Gateway] = {
+    val port = {
+      if (!gateway.port.assigned) {
+        get(gateway.name, classOf[GatewayPort]) match {
+          case Some(gp) ⇒
+            gateway.port.copy(number = gp.asInstanceOf[GatewayPort].port) match {
+              case p ⇒ p.copy(value = Option(p.toValue))
+            }
           case _ ⇒ gateway.port
         }
       }
-      else {
-        Future.successful(gateway.port)
-      }
+      else gateway.port
+    }
 
-      service ← get(gateway.name, classOf[GatewayServiceAddress]).map {
+    val service = {
+      get(gateway.name, classOf[GatewayServiceAddress]) match {
         case Some(gp: GatewayServiceAddress) ⇒ Option(GatewayService(gp.host, gateway.port.copy(number = gp.port) match { case p ⇒ p.copy(value = Option(p.toValue)) }))
         case _                               ⇒ None
       }
+    }
 
-      routes ← Future.sequence(gateway.routes.map {
-        case route: DefaultRoute ⇒ get(route.path.normalized, classOf[RouteTargets]).map {
+    val routes = {
+      gateway.routes.map {
+        case route: DefaultRoute ⇒ get(route.path.normalized, classOf[RouteTargets]) match {
           case Some(rt: RouteTargets) ⇒ route.copy(targets = rt.targets)
           case _                      ⇒ route.copy(targets = Nil)
         }
-        case route ⇒ Future.successful(route)
-      })
-
-      deployed ← get(gateway.name, classOf[GatewayDeploymentStatus]).map(_.getOrElse(GatewayDeploymentStatus("", deployed = false)).asInstanceOf[GatewayDeploymentStatus])
-    } yield {
-      Option(gateway.copy(port = port, service = service, routes = routes, deployed = deployed.deployed))
-    }
-  }
-
-  private def combine(blueprint: DefaultBlueprint): Future[Option[DefaultBlueprint]] = {
-    val clusters = Future.sequence {
-      blueprint.clusters.map { cluster ⇒
-        val services = Future.sequence {
-          cluster.services.map { service ⇒
-            (service.breed match {
-              case b: DefaultBreed ⇒ get(b).map { result ⇒ result.getOrElse(BreedReference(b.name)) }
-              case b               ⇒ Future.successful(b)
-            }).map {
-              breed ⇒ service.copy(breed = breed)
-            }
-          }
-        }
-        services.map(services ⇒ cluster.copy(services = services))
+        case route ⇒ route
       }
     }
-    clusters.map(clusters ⇒ Option(blueprint.copy(clusters = clusters)))
+
+    val deployed = get(gateway.name, classOf[GatewayDeploymentStatus]).getOrElse(GatewayDeploymentStatus("", deployed = false))
+
+    Option(gateway.copy(port = port, service = service, routes = routes, deployed = deployed.deployed))
   }
 
-  private def combine(deployment: Deployment): Future[Option[Deployment]] = {
+  private def combine(blueprint: DefaultBlueprint): Option[DefaultBlueprint] = Option(
+    blueprint.copy(
+      clusters = blueprint.clusters.map { cluster ⇒
+        val services = cluster.services.map { service ⇒
+          val breed = service.breed match {
+            case b: DefaultBreed ⇒ get(b).getOrElse(BreedReference(b.name))
+            case b               ⇒ b
+          }
+          service.copy(breed = breed)
+        }
+        cluster.copy(services = services)
+      }
+    )
+  )
+
+  private def combine(deployment: Deployment): Option[Deployment] = {
     import DeploymentPersistenceOperations._
 
-    for {
-      clusters ← Future.sequence {
-        deployment.clusters.map { cluster ⇒
-          for {
-            gateways ← Future.sequence {
-              cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
-                val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
-                get(name, classOf[InternalGateway]).flatMap {
-                  case Some(InternalGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
-                  case _                        ⇒ Future.successful(gateway)
-                } map { g ⇒
-                  g.copy(name = name, port = g.port.copy(name = gateway.port.name))
-                }
-              }
-            }
+    val clusters = deployment.clusters.map { cluster ⇒
 
-            services ← Future.sequence {
-              cluster.services.map { service ⇒
-                for {
-                  status ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceStatus]).map {
-                    _.getOrElse(DeploymentServiceStatus("", service.status)).asInstanceOf[DeploymentServiceStatus].status
-                  }
-                  scale ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceScale]).map {
-                    _.orElse(service.scale.map(DeploymentServiceScale("", _))).asInstanceOf[Option[DeploymentServiceScale]].map(_.scale)
-                  }
-                  instances ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances]).map {
-                    _.getOrElse(DeploymentServiceInstances("", service.instances)).asInstanceOf[DeploymentServiceInstances].instances
-                  }
-                  environmentVariables ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map {
-                    _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
-                  }
-                  health ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map {
-                    _.map(_.asInstanceOf[DeploymentServiceHealth].health)
-                  }
-                } yield service.copy(
-                  status = status,
-                  scale = scale,
-                  instances = instances,
-                  environmentVariables = environmentVariables,
-                  health = health)
-              }
-            }
-          } yield {
-            cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = gateways)
-          }
+      val gateways = cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
+        val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
+        val g = get(name, classOf[InternalGateway]) match {
+          case Some(InternalGateway(ig)) ⇒ combine(ig).getOrElse(gateway)
+          case _                         ⇒ gateway
         }
-      } map {
-        _.flatMap { cluster ⇒
-          val services = cluster.services.filterNot(_.status.isUndeployed)
-          if (services.isEmpty) Nil else cluster.copy(services = services) :: Nil
-        }
+        g.copy(name = name, port = g.port.copy(name = gateway.port.name))
       }
 
-    } yield {
-
-      if (clusters.nonEmpty) {
-        val hosts = deployment.hosts.filter { host ⇒
-          TraitReference.referenceFor(host.name).flatMap(ref ⇒ clusters.find(_.name == ref.cluster)).isDefined
-        }
-
-        val ports = clusters.flatMap { cluster ⇒
-          cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
-          })
-        } map { p ⇒ p.name → p } toMap
-
-        val environmentVariables = (deployment.environmentVariables ++ clusters.flatMap { cluster ⇒
-          cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
-        }) map { p ⇒ p.name → p } toMap
-
-        Option(deployment.copy(gateways = Nil, clusters = clusters, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList))
-
+      val services = cluster.services.map { service ⇒
+        service.copy(
+          status = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceStatus]).map(_.status).getOrElse(service.status),
+          scale = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceScale]).map(_.scale).orElse(service.scale),
+          instances = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances]).map(_.instances).getOrElse(service.instances),
+          environmentVariables = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map(_.environmentVariables).getOrElse(service.environmentVariables),
+          health = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map(_.health)
+        )
       }
-      else None
+
+      cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = gateways)
     }
+
+    if (clusters.nonEmpty) {
+      val hosts = deployment.hosts.filter { host ⇒
+        TraitReference.referenceFor(host.name).flatMap(ref ⇒ clusters.find(_.name == ref.cluster)).isDefined
+      }
+      val ports = clusters.flatMap { cluster ⇒
+        cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
+          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
+        })
+      } map { p ⇒ p.name → p } toMap
+
+      val environmentVariables = (deployment.environmentVariables ++ clusters.flatMap { cluster ⇒
+        cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
+      }) map { p ⇒ p.name → p } toMap
+
+      Option(deployment.copy(gateways = Nil, clusters = clusters, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList))
+    }
+    else None
   }
 
-  private def combine(workflow: Workflow): Future[Option[Workflow]] = {
-    for {
-      breed ← get(workflow.name, classOf[WorkflowBreed]).asInstanceOf[Future[Option[WorkflowBreed]]].map {
-        _.map(_.breed).getOrElse(workflow.breed)
-      }
-      status ← get(workflow.name, classOf[WorkflowStatus]).asInstanceOf[Future[Option[WorkflowStatus]]].map {
-        _.map(_.unmarshall).getOrElse(workflow.status)
-      }
-      scale ← get(workflow.name, classOf[WorkflowScale]).asInstanceOf[Future[Option[WorkflowScale]]].map {
-        _.map(_.scale).orElse(workflow.scale)
-      }
-      network ← get(workflow.name, classOf[WorkflowNetwork]).asInstanceOf[Future[Option[WorkflowNetwork]]].map {
-        _.map(_.network).orElse(workflow.network)
-      }
-      arguments ← get(workflow.name, classOf[WorkflowArguments]).asInstanceOf[Future[Option[WorkflowArguments]]].map {
-        _.map(_.arguments).getOrElse(workflow.arguments)
-      }
-      environmentVariables ← get(workflow.name, classOf[WorkflowEnvironmentVariables]).asInstanceOf[Future[Option[WorkflowEnvironmentVariables]]].map {
-        _.map(_.environmentVariables).getOrElse(workflow.environmentVariables)
-      }
-      instances ← get(workflow.name, classOf[WorkflowInstances]).asInstanceOf[Future[Option[WorkflowInstances]]].map {
-        _.map(_.instances).getOrElse(Nil)
-      }
-      health ← get(workflow.name, classOf[WorkflowHealth]).asInstanceOf[Future[Option[WorkflowHealth]]].map {
-        _.flatMap(_.health)
-      }
-    } yield Option(workflow.copy(breed = breed, status = status, scale = scale, network = network, arguments = arguments, environmentVariables = environmentVariables, instances = instances, health = health))
-  }
+  private def combine(workflow: Workflow): Option[Workflow] = Option(
+    workflow.copy(
+      breed = get(workflow.name, classOf[WorkflowBreed]).map(_.breed).getOrElse(workflow.breed),
+      status = get(workflow.name, classOf[WorkflowStatus]).map(_.unmarshall).getOrElse(workflow.status),
+      scale = get(workflow.name, classOf[WorkflowScale]).map(_.scale).orElse(workflow.scale),
+      network = get(workflow.name, classOf[WorkflowNetwork]).map(_.network).orElse(workflow.network),
+      arguments = get(workflow.name, classOf[WorkflowArguments]).map(_.arguments).getOrElse(workflow.arguments),
+      environmentVariables = get(workflow.name, classOf[WorkflowEnvironmentVariables]).map(_.environmentVariables).getOrElse(workflow.environmentVariables),
+      instances = get(workflow.name, classOf[WorkflowInstances]).map(_.instances).getOrElse(Nil),
+      health = get(workflow.name, classOf[WorkflowHealth]).flatMap(_.health)
+    )
+  )
 
-  private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]
-
-  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
+  private def get[A <: Artifact](artifact: A): Option[A] = get(artifact.name, artifact.getClass)
 }
 

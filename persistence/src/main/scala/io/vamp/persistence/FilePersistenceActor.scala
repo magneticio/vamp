@@ -6,7 +6,6 @@ import akka.actor.Actor
 import io.vamp.common.{ Artifact, ClassMapper, Config, ConfigMagnet }
 import io.vamp.persistence.notification.CorruptedDataException
 
-import scala.concurrent.Future
 import scala.io.Source
 
 class FilePersistenceActorMapper extends ClassMapper {
@@ -38,7 +37,7 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
 
   override def preStart(): Unit = self ! "load"
 
-  override protected def info(): Future[Map[String, Any]] = super.info().map(_ + ("type" → "file") + ("file" → file.getAbsolutePath))
+  override protected def info(): Map[String, Any] = super.info() + ("type" → "file") + ("file" → file.getAbsolutePath)
 
   protected def read(): Unit = this.synchronized {
     try {
@@ -54,27 +53,16 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
     }
   }
 
-  override protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope] = {
-    guard()
-    super.all(`type`, page, perPage, filter)
-  }
-
-  override protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
-    guard()
-    super.get(name, `type`)
-  }
-
-  protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
+  protected def set[T <: Artifact](artifact: T): T = {
     write(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
-    setArtifact(artifact)
+    setArtifact[T](artifact)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = super.readArtifact(name, `type`) match {
-    case Some(_) ⇒ Future.successful {
+  protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = super.get[T](name, `type`) match {
+    case Some(_) ⇒
       write(PersistenceRecord(name, type2string(`type`)))
       deleteArtifact(name, type2string(`type`)).isDefined
-    }
-    case _ ⇒ Future.successful(false)
+    case _ ⇒ false
   }
 
   private def write(record: PersistenceRecord): Unit = {

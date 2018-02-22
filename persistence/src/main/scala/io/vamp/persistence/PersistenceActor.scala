@@ -37,7 +37,7 @@ trait PersistenceActor
 
   implicit lazy val timeout: Timeout = PersistenceActor.timeout()
 
-  protected def info(): Future[Any]
+  protected def info(): Map[String, Any]
 
   override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]
 
@@ -46,7 +46,7 @@ trait PersistenceActor
       super[DeploymentPersistenceOperations].receive orElse
       super[GatewayPersistenceOperations].receive orElse
       super[WorkflowPersistenceOperations].receive orElse {
-        case InfoRequest  ⇒ reply(info() map { persistenceInfo ⇒ Map("database" → persistenceInfo, "archiving" → true) })
+        case InfoRequest  ⇒ reply(Future(Map("database" → info(), "archiving" → true)))
         case StatsRequest ⇒ reply(stats())
         case other        ⇒ unsupported(UnsupportedPersistenceRequest(other))
       }

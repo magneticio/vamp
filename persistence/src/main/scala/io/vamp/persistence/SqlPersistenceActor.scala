@@ -6,7 +6,6 @@ import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
@@ -21,11 +20,11 @@ object SqlPersistenceActor {
 
 }
 
-trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with PersistenceDataReader {
+trait SqlPersistenceActor extends CqrsActor with SqlStatementProvider with PersistenceDataReader {
 
-  protected def dbInfo(`type`: String): Future[Map[String, Any]] = {
+  override protected def info(): Map[String, Any] = {
     ping()
-    Future.successful(Map("type" → `type`) + ("url" → url))
+    super.info() + ("type" → getClass.getSimpleName.replace("PersistenceActor", "").toLowerCase) + ("url" → url)
   }
 
   protected lazy val url: String = resolveWithOptionalNamespace(SqlPersistenceActor.url())._1

@@ -18,9 +18,7 @@ trait PersistenceStats extends ArtifactPaginationSupport with PersistenceTag {
 
   protected implicit def timeout: Timeout
 
-  protected def count(`type`: Class[_ <: Artifact]): Future[Long] = all(`type`, 1, 1).map(_.total)
-
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope]
+  protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope
 
   protected def stats(): Future[Map[String, Any]] = {
 
@@ -55,12 +53,11 @@ trait PersistenceStats extends ArtifactPaginationSupport with PersistenceTag {
         }
       }
       for {
-        currentCount ← all(`type`, 1, 1).map(_.total)
         created ← count(PersistenceArchive.archiveCreateTag)
         updated ← count(PersistenceArchive.archiveUpdateTag)
         deleted ← count(PersistenceArchive.archiveDeleteTag)
       } yield Map(
-        tag → Map("count" → currentCount, "created" → created, "updated" → updated, "deleted" → deleted)
+        tag → Map("count" → all(`type`, 1, 1).total, "created" → created, "updated" → updated, "deleted" → deleted)
       )
     }
   }

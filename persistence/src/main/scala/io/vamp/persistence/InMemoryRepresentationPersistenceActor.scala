@@ -5,7 +5,6 @@ import io.vamp.common.Artifact
 import io.vamp.common.http.OffsetEnvelope
 
 import scala.collection.mutable
-import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.reflect.{ ClassTag, classTag }
 
@@ -21,19 +20,22 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   protected def query: Actor.Receive = PartialFunction.empty
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope] = {
-    Future.successful(allArtifacts(`type`, page, perPage, filter))
+  protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
+    allArtifacts[T](`type`, page, perPage, filter)
   }
 
-  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful(readArtifact(name, `type`))
+  protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T] = {
+    log.debug(s"In memory representation: read [${`type`.getSimpleName}] - $name}")
+    store.get(type2string(`type`)).flatMap(_.get(name)).asInstanceOf[Option[T]]
+  }
 
-  protected def info(): Future[Map[String, Any]] = Future.successful(Map[String, Any](
+  protected def info(): Map[String, Any] = Map[String, Any](
     "status" → (if (validData) "valid" else "corrupted"),
     "records" → records,
     "artifacts" → (store.map {
       case (key, value) ⇒ key → Map[String, Any]("count" → value.values.size)
     } toMap)
-  ))
+  )
 
   protected def all[A <: Artifact: ClassTag]: List[A] = {
     val `type` = classTag[A].runtimeClass
@@ -41,9 +43,9 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
     valuesByType(type2string(`type`)).asInstanceOf[List[A]]
   }
 
-  protected def allArtifacts(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean): ArtifactResponseEnvelope = {
+  protected def allArtifacts[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean): ArtifactResponseEnvelope = {
     log.debug(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
-    val artifacts = valuesByType(type2string(`type`)).filter { artifact ⇒ filter(artifact) }
+    val artifacts = valuesByType(type2string(`type`)).filter { artifact ⇒ filter(artifact.asInstanceOf[T]) }
 
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
@@ -60,12 +62,7 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
     } map (_._2.asInstanceOf[A])
   }
 
-  protected def readArtifact(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    log.debug(s"In memory representation: read [${`type`.getSimpleName}] - $name}")
-    store.get(type2string(`type`)).flatMap(_.get(name))
-  }
-
-  protected def setArtifact(artifact: Artifact): Artifact = {
+  protected def setArtifact[T <: Artifact](artifact: T): T = {
     log.debug(s"In memory representation: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
     records += 1
     store.get(type2string(artifact.getClass)) match {
