@@ -1,10 +1,6 @@
 package io.vamp.persistence.zookeeper
 
-import java.io._
-import java.net.Socket
-
-import io.vamp.common.akka._
-import io.vamp.common.{ ClassMapper, Config }
+import io.vamp.common.ClassMapper
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.zookeeper.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
@@ -16,80 +12,45 @@ class ZooKeeperStoreActorMapper extends ClassMapper {
   val clazz: Class[ZooKeeperStoreActor] = classOf[ZooKeeperStoreActor]
 }
 
-class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
+object ZooKeeperStoreActor {
+  val config = "vamp.persistence.key-value-store.zookeeper"
+}
 
-  private val config = "vamp.persistence.key-value-store.zookeeper"
+class ZooKeeperStoreActor extends KeyValueStoreActor {
 
-  private lazy val servers = Config.string(s"$config.servers")()
+  private lazy val client: ZooKeeperClient = ZooKeeperClient.acquire(ZooKeeperConfig())
 
-  private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
-
-  override protected def info(): Future[Any] = zooKeeperClient match {
-    case Some(zk) ⇒ zkVersion(servers) map { version ⇒
-      Map(
-        "type" → "zookeeper",
-        "zookeeper" → (Map("version" → version) ++ (zk.underlying match {
-          case Some(zookeeper) ⇒
-            log.info(s"Getting Zookeeper info for servers: ${servers}")
-            val state = zookeeper.getState
-            Map(
-              "client" → Map(
-                "servers" → servers,
-                "state" → state.toString,
-                "session" → zookeeper.getSessionId,
-                "timeout" → (if (state.isConnected) zookeeper.getSessionTimeout else "")
-              )
-            )
-
-          case _ ⇒ {
-            log.error(s"Zookeeper connection failed to servers: ${servers}")
-            Map("error" → "no connection")
-          }
-        }))
-      )
-    }
-    case None ⇒ Future.successful(None)
-  }
+  override protected def info(): Future[Any] = client.info()
 
   override protected def children(path: List[String]): Future[List[String]] = {
     val zookeeperPath = pathToString(path)
-    log.info(s"Zookeeper get children for path: ${zookeeperPath}")
-    zooKeeperClient match {
-      case Some(zk) ⇒ zk.getChildren(zookeeperPath) recoverWith recoverRetrieval(Nil) map {
-        case node: ChildrenResponse ⇒ node.children.map { child ⇒ (path :+ child).mkString("/") }.toList
-        case _                      ⇒ Nil
-      }
-      case None ⇒ Future.successful(Nil)
+    log.debug(s"Zookeeper get children for path: $zookeeperPath")
+    client.connection.getChildren(zookeeperPath) recoverWith recoverRetrieval(Nil) map {
+      case node: ChildrenResponse ⇒ node.children.map { child ⇒ (path :+ child).mkString("/") }.toList
+      case _                      ⇒ Nil
     }
   }
 
   override protected def get(path: List[String]): Future[Option[String]] = {
     val zookeeperPath = pathToString(path)
-    log.info(s"Zookeeper get value for path ${zookeeperPath}")
-    zooKeeperClient match {
-      case Some(zk) ⇒ zk.get(zookeeperPath) recoverWith recoverRetrieval(None) map {
-        case response: DataResponse ⇒ response.data.map(new String(_))
-        case _                      ⇒ None
-      }
-      case None ⇒ Future.successful(None)
+    log.debug(s"Zookeeper get value for path $zookeeperPath")
+    client.connection.get(zookeeperPath) recoverWith recoverRetrieval(None) map {
+      case response: DataResponse ⇒ response.data.map(new String(_))
+      case _                      ⇒ None
     }
   }
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = {
     val zookeeperPath = pathToString(path)
-    log.info(s"Zookeeper set value for path ${zookeeperPath}")
-    zooKeeperClient match {
-      case Some(zk) ⇒
-        zk.get(zookeeperPath) recoverWith {
-          case _ ⇒ zk.createPath(zookeeperPath)
-        } flatMap { _ ⇒
-          zk.set(zookeeperPath, data.map(_.getBytes)) recoverWith {
-            case failure ⇒
-              log.error(failure, failure.getMessage)
-              Future.failed(failure)
-          }
-        }
-      case _ ⇒ Future.successful(None)
+    log.info(s"Zookeeper set value for path $zookeeperPath")
+    client.connection.get(zookeeperPath) recoverWith {
+      case _ ⇒ client.connection.createPath(zookeeperPath)
+    } flatMap { _ ⇒
+      client.connection.set(zookeeperPath, data.map(_.getBytes)) recoverWith {
+        case failure ⇒
+          log.error(failure, failure.getMessage)
+          Future.failed(failure)
+      }
     }
   }
 
@@ -98,59 +59,12 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     case _ ⇒
       // something is going wrong with the connection
       log.warning("Reconnecting to Zookeeper ...")
-      initClient()
+      ZooKeeperClient.reconnect(client.config)
       Future.successful(default)
   }
 
-  private def initClient(): Unit = {
-    log.info("init Zookeeper client")
-    zooKeeperClient.foreach(_.close())
-    zooKeeperClient = Option {
-      AsyncZooKeeperClient(
-        servers = servers,
-        sessionTimeout = Config.int(s"$config.session-timeout")(),
-        connectTimeout = Config.int(s"$config.connect-timeout")(),
-        basePath = "",
-        watcher = None,
-        eCtx = actorSystem.dispatcher
-      )
-    }
-  }
-
-  override def preStart(): Unit = initClient()
-
-  override def postStop(): Unit = zooKeeperClient.foreach(_.close())
-}
-
-trait ZooKeeperServerStatistics {
-  this: ExecutionContextProvider ⇒
-
-  private val pattern = "^(.*?):(\\d+?)(,|\\z)".r
-
-  def zkVersion(servers: String): Future[String] = Future {
-    servers.split(",").headOption.map {
-      case pattern(host, port, _) ⇒
-        val sock: Socket = new Socket(host, port.toInt)
-        var reader: BufferedReader = null
-
-        try {
-          val out: OutputStream = sock.getOutputStream
-          out.write("stat".getBytes)
-          out.flush()
-          sock.shutdownOutput()
-
-          reader = new BufferedReader(new InputStreamReader(sock.getInputStream))
-          val marker = "Zookeeper version: "
-          var line: String = reader.readLine
-          while (line != null && !line.startsWith(marker)) line = reader.readLine
-          if (line == null) "" else line.substring(marker.length)
-
-        }
-        finally {
-          sock.close()
-          if (reader != null) reader.close()
-        }
-      case _ ⇒ ""
-    }.getOrElse("")
+  override def postStop(): Unit = {
+    ZooKeeperClient.release(client.config)
+    super.postStop()
   }
 }

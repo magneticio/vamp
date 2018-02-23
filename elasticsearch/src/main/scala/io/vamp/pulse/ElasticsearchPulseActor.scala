@@ -3,7 +3,8 @@ package io.vamp.pulse
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-import io.vamp.common.{ ClassMapper, Config, Namespace }
+import akka.actor.Actor
+import io.vamp.common.{ ClassMapper, Config, ConfigMagnet, Namespace }
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.util.HashUtil
@@ -15,9 +16,10 @@ import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterP
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization.{ read, write }
-import org.json4s.{ DefaultFormats, Extraction }
+import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
+import scala.util.Try
 
 class ElasticsearchPulseActorMapper extends ClassMapper {
   val name = "elasticsearch"
@@ -26,11 +28,11 @@ class ElasticsearchPulseActorMapper extends ClassMapper {
 
 object ElasticsearchPulseActor {
 
-  val config = PulseActor.config
+  val config: String = PulseActor.config
 
-  val elasticsearchUrl = Config.string(s"$config.elasticsearch.url")
+  val elasticsearchUrl: ConfigMagnet[String] = Config.string(s"$config.elasticsearch.url")
 
-  val indexName = Config.string(s"$config.elasticsearch.index.name")
+  val indexName: ConfigMagnet[String] = Config.string(s"$config.elasticsearch.index.name")
 
   def indexTimeFormat()(implicit namespace: Namespace): Map[String, String] = {
     Config.entries(s"$config.elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
@@ -44,9 +46,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
 
   lazy val url = ElasticsearchPulseActor.elasticsearchUrl()
 
-  lazy val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName(), lookup = true)
+  lazy val indexName: String = resolveWithNamespace(ElasticsearchPulseActor.indexName(), lookup = true)
 
-  lazy val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
+  lazy val indexTimeFormat: Map[String, String] = ElasticsearchPulseActor.indexTimeFormat()
 
   private lazy val es = new ElasticsearchClient(url)
 
@@ -73,7 +75,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     }
   }
 
-  def receive = {
+  def receive: Actor.Receive = {
 
     case InfoRequest ⇒ reply(info)
 
@@ -95,7 +97,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
   private def info = es.health map { health ⇒ Map[String, Any]("type" → "elasticsearch", "elasticsearch" → health) }
 
   private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = {
-    implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
+    implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
@@ -130,13 +132,16 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     }
   }
 
-  protected def getEvents(query: EventQuery, page: Int, perPage: Int) = {
-    implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
+  protected def getEvents(query: EventQuery, page: Int, perPage: Int): Future[Any] = {
+    implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, EventRequestEnvelope.maxPerPage)
 
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
-        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Option(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id))))), hits.total, p, pp)
+        val events = hits.hits.flatMap { hit ⇒
+          Try(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id)))).toOption
+        }
+        EventResponseEnvelope(events, hits.total, p, pp)
       case other ⇒ reportException(EventQueryError(other))
     }
   }
@@ -162,7 +167,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
             Map("must" → List(
               constructTagQuery(eventQuery.tags),
               constructTypeQuery(eventQuery.`type`),
-              constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get))))))
+              constructTimeRange(eventQuery.timestamp)
+            ).filter(_.isDefined).map(_.get)))
+        )))
 
   private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = {
     if (tags.nonEmpty) Option((for (tag ← tags) yield Map("term" → Map("tags" → tag))).toList) else None
@@ -185,7 +192,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     case _ ⇒ None
   }
 
-  protected def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]) = {
+  protected def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]): Future[Any] = {
     es.aggregate(indexName, constructAggregation(eventQuery, aggregator, field)) map {
       case ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value))) ⇒ DoubleValueAggregationResult(value)
       case other ⇒ reportException(EventQueryError(other))
@@ -212,10 +219,10 @@ trait ElasticsearchPulseEvent {
 
   def indexTimeFormat: Map[String, String]
 
-  def indexTypeName(schema: String = Event.defaultType): (String, String) = {
+  def indexTypeName(schema: String = Event.defaultType, interpolateTime: Boolean = true): (String, String) = {
     val base = schema.toLowerCase
     val format = indexTimeFormat.getOrElse(base, indexTimeFormat.getOrElse(Event.defaultType, "YYYY-MM-dd"))
-    val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
+    val time = if (interpolateTime) OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format)) else s"{$format}"
     s"$indexName-$base-$time" → base
   }
 }

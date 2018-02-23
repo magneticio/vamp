@@ -21,7 +21,5 @@ trait KubernetesArtifact {
     Map("labels" → l)
   }
 
-  protected def labelSelector(labels: Map[String, String]): String = {
-    labels.map { case (k, v) ⇒ s"$k=$v" } mkString ","
-  }
+  protected def labelSelector(labels: Map[String, String]): String = filterLabels(labels).map { case (k, v) ⇒ s"$k=$v" } mkString ","
 }

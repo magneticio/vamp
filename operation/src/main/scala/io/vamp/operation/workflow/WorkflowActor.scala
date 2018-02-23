@@ -2,6 +2,7 @@ package io.vamp.operation.workflow
 
 import akka.actor._
 import akka.pattern.ask
+import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
@@ -30,7 +31,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   import PulseEventTags.Workflows._
   import WorkflowActor._
 
-  implicit val timeout = WorkflowDriverActor.timeout()
+  implicit val timeout: Timeout = WorkflowDriverActor.timeout()
 
   def receive: Receive = {
 
@@ -117,13 +118,15 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   }
 
-  private def undeploy(workflow: Workflow, running: Boolean, update: () ⇒ Unit) = {
+  private def undeploy(workflow: Workflow, running: Boolean, update: () ⇒ Unit): Unit = {
     if (!running) update()
     else workflow.schedule match {
       case DaemonSchedule        ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Unschedule(workflow) else update()
       case TimeSchedule(_, _, _) ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Unschedule(workflow) else update()
-      case EventSchedule(_)      ⇒ IoC.actorFor[PulseActor] ! UnregisterPercolator(WorkflowDriverActor.percolator(workflow))
-      case _                     ⇒
+      case EventSchedule(_) ⇒
+        if (running) IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Unschedule(workflow)
+        IoC.actorFor[PulseActor] ! UnregisterPercolator(WorkflowDriverActor.percolator(workflow))
+      case _ ⇒
     }
   }
 
@@ -132,7 +135,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow, data)
   }
 
-  private def pulse(workflow: Workflow, scheduled: Boolean) = {
+  private def pulse(workflow: Workflow, scheduled: Boolean): Unit = {
     actorFor[PulseActor] ! Publish(Event(Set(s"workflows${Event.tagDelimiter}${workflow.name}", if (scheduled) scheduledTag else unscheduledTag), workflow), publishEventValue = false)
   }
 }

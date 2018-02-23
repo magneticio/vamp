@@ -5,9 +5,11 @@ import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 case class Job(
   name:                 String,
+  group:                String,
   docker:               Docker,
   cpu:                  Double,
   mem:                  Int,
@@ -33,7 +35,7 @@ trait KubernetesJob extends KubernetesArtifact {
           val metadata = new V1ObjectMeta
           request.setMetadata(metadata)
           metadata.setName(job.name)
-          metadata.setLabels(filterLabels(labels + (ContainerDriver.withNamespace("name") → job.name)).asJava)
+          metadata.setLabels(filterLabels(groupLabel(job.group) ++ labels + (ContainerDriver.withNamespace("name") → job.name)).asJava)
 
           val spec = new V1JobSpec
           request.setSpec(spec)
@@ -86,4 +88,27 @@ trait KubernetesJob extends KubernetesArtifact {
           )
       }
   }
+
+  protected def deleteJob(group: String): Unit = {
+    log.info(s"Deleting job group: $group")
+    jobs(group).foreach { job ⇒
+      val name = job.getMetadata.getName
+      k8sClient.cache.writeWithCache(
+        K8sCache.jobs,
+        name,
+        () ⇒ k8sClient.batchV1Api.deleteNamespacedJob(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+      )
+    }
+  }
+
+  protected def jobs(group: String): Seq[V1Job] = {
+    val selector = labelSelector(groupLabel(group))
+    k8sClient.cache.readAllWithCache(
+      K8sCache.jobs,
+      selector,
+      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+    )
+  }
+
+  private def groupLabel(group: String): Map[String, String] = Map(ContainerDriver.withNamespace("group") → group)
 }
