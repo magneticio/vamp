@@ -65,13 +65,21 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
     }
     case Create(artifact, source) ⇒ reply {
       Future {
-        split(artifact, { artifact: Artifact ⇒ archiveCreate(set(artifact), source) })
+        split(artifact, { artifact: Artifact ⇒
+          archiveCreate(
+            set(artifact), source
+          )
+        })
       }
     }
 
     case Update(artifact, source) ⇒ reply {
       Future {
-        split(artifact, { artifact: Artifact ⇒ archiveUpdate(set(artifact), source) })
+        split(artifact, { artifact: Artifact ⇒
+          archiveUpdate(
+            set(artifact), source
+          )
+        })
       }
     }
 

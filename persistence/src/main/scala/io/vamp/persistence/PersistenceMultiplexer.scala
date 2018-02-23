@@ -98,7 +98,7 @@ trait PersistenceMultiplexer {
   private def combine(deployment: Deployment): Option[Deployment] = {
     import DeploymentPersistenceOperations._
 
-    val clusters = deployment.clusters.map { cluster ⇒
+    val clusters = deployment.clusters.flatMap { cluster ⇒
 
       val gateways = cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
         val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
@@ -117,9 +117,9 @@ trait PersistenceMultiplexer {
           environmentVariables = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map(_.environmentVariables).getOrElse(service.environmentVariables),
           health = get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map(_.health)
         )
-      }
+      }.filterNot(_.status.isUndeployed)
 
-      cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = gateways)
+      if (services.nonEmpty) cluster.copy(services = services, gateways = gateways) :: Nil else Nil
     }
 
     if (clusters.nonEmpty) {
