@@ -14,11 +14,9 @@ import scala.concurrent.Future
 private case class DeploymentsStatistics(count: Int, clusters: Int, services: Int)
 
 trait PersistenceStats extends ArtifactPaginationSupport with PersistenceTag {
-  this: CommonProvider ⇒
+  this: PersistenceApi with CommonProvider ⇒
 
   protected implicit def timeout: Timeout
-
-  protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope
 
   protected def stats(): Future[Map[String, Any]] = {
 
@@ -28,7 +26,6 @@ trait PersistenceStats extends ArtifactPaginationSupport with PersistenceTag {
       classOf[Blueprint],
       classOf[Sla],
       classOf[Scale],
-      classOf[DeploymentServiceHealth],
       classOf[Escalation],
       classOf[Route],
       classOf[Condition],

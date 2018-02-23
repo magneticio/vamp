@@ -42,7 +42,7 @@ trait ArtifactExpansionSupport extends ArtifactSupport {
 trait ArtifactExpansion {
   this: NotificationProvider with ExecutionContextProvider ⇒
 
-  protected def readExpanded[T <: Artifact: ClassTag](name: String)(implicit namespace: Namespace): Option[T]
+  protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T]
 
   protected def expandReferences(artifact: Option[Artifact])(implicit namespace: Namespace): Option[Artifact] = {
     if (artifact.isDefined) Option(expandReferences(artifact.get)) else None
@@ -132,6 +132,10 @@ trait ArtifactExpansion {
         case _ ⇒ throwException(ArtifactNotFound(referencedArtifact.name, classTag[D].runtimeClass))
       }
     case defaultArtifact if defaultArtifact.getClass == classTag[D].runtimeClass ⇒ defaultArtifact.asInstanceOf[D]
+  }
+
+  private def readExpanded[T <: Artifact: ClassTag](name: String)(implicit namespace: Namespace): Option[T] = {
+    get(name, classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]).asInstanceOf[Option[T]]
   }
 }
 

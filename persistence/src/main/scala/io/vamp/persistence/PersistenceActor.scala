@@ -5,8 +5,9 @@ import akka.util.Timeout
 import io.vamp.common.{ Artifact, Config, ConfigMagnet }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
-import io.vamp.common.notification.{ ErrorNotification, Notification }
+import io.vamp.common.notification.{ ErrorNotification, Notification, NotificationProvider }
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
+import io.vamp.model.event.Event
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -18,28 +19,67 @@ object ArtifactResponseEnvelope {
 
 case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Artifact]
 
-object PersistenceActor extends CommonPersistenceMessages with DeploymentPersistenceMessages with GatewayPersistenceMessages with WorkflowPersistenceMessages {
+object PersistenceActor extends DeploymentPersistenceMessages with GatewayPersistenceMessages with WorkflowPersistenceMessages {
 
   trait PersistenceMessages
+
+  case class All(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
+
+  case class Create(artifact: Artifact, source: Option[String] = None) extends PersistenceMessages
+
+  case class Read(name: String, `type`: Class[_ <: Artifact], expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
+
+  case class Update(artifact: Artifact, source: Option[String] = None) extends PersistenceMessages
+
+  case class Delete(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
   val timeout: ConfigMagnet[Timeout] = Config.timeout("vamp.persistence.response-timeout")
 }
 
-trait PersistenceActor
-    extends CommonPersistenceOperations
-    with DeploymentPersistenceOperations
-    with GatewayPersistenceOperations
-    with WorkflowPersistenceOperations
-    with PersistenceStats
-    with PulseFailureNotifier
-    with CommonSupportForActors
-    with PersistenceNotificationProvider {
-
-  implicit lazy val timeout: Timeout = PersistenceActor.timeout()
+trait PersistenceApi extends TypeOfArtifact {
+  this: NotificationProvider ⇒
 
   protected def info(): Map[String, Any]
 
-  override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]
+  protected def all[T <: Artifact](kind: String, page: Int, perPage: Int, filter: (T) ⇒ Boolean): ArtifactResponseEnvelope
+
+  protected def get[T <: Artifact](name: String, kind: String): Option[T]
+
+  protected def set[T <: Artifact](artifact: T, kind: String): T
+
+  protected def delete[T <: Artifact](name: String, kind: String): Boolean
+
+  final protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
+    all[T](type2string(`type`), page, perPage, filter)
+  }
+
+  final protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T] = get[T](name, type2string(`type`))
+
+  final protected def get[T <: Artifact](artifact: T): Option[T] = get[T](artifact.name, artifact.getClass.asInstanceOf[Class[T]])
+
+  final protected def set[T <: Artifact](artifact: T): T = set[T](artifact, type2string(artifact.getClass))
+
+  final protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = delete[T](name, type2string(`type`))
+
+  final protected def delete[T <: Artifact](artifact: T): Boolean = delete[T](artifact.name, artifact.getClass.asInstanceOf[Class[T]])
+}
+
+trait PersistenceActor
+    extends CommonPersistenceOperations
+    with PatchPersistenceOperations
+    with DeploymentPersistenceOperations
+    with GatewayPersistenceOperations
+    with WorkflowPersistenceOperations
+    with PersistenceApi
+    with PersistenceStats
+    with PulseFailureNotifier
+    with CommonSupportForActors
+    with CommonProvider
+    with PersistenceNotificationProvider {
+
+  override val typeName = "persistence"
+
+  implicit lazy val timeout: Timeout = PersistenceActor.timeout()
 
   override def receive: Actor.Receive = {
     super[CommonPersistenceOperations].receive orElse
@@ -48,11 +88,29 @@ trait PersistenceActor
       super[WorkflowPersistenceOperations].receive orElse {
         case InfoRequest  ⇒ reply(Future(Map("database" → info(), "archiving" → true)))
         case StatsRequest ⇒ reply(stats())
+        case _: Event     ⇒
         case other        ⇒ unsupported(UnsupportedPersistenceRequest(other))
       }
   }
 
-  override def typeName = "persistence"
+  override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
+}
+
+trait PatchPersistenceOperations {
+  this: PersistenceApi with PersistenceArchive with CommonSupportForActors ⇒
+
+  implicit def timeout: Timeout
+
+  protected def replyUpdate[T <: Artifact](artifact: T): Unit = reply(Future.successful(set[T](artifact)))
+
+  protected def replyUpdate[T <: Artifact](artifact: T, tag: String, source: String): Unit = reply(Future.successful {
+    set[T](artifact)
+    archiveUpdate(tag, source)
+  })
+
+  protected def replyDelete[T <: Artifact](artifact: T): Unit = reply(Future.successful(delete[T](artifact)))
+
+  protected def replyDelete[T <: Artifact](name: String, `type`: Class[T]): Unit = reply(Future.successful(delete[T](name, `type`)))
 }

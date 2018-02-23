@@ -14,12 +14,6 @@ trait TypeOfArtifact {
     case t if classOf[GatewayServiceAddress].isAssignableFrom(t) ⇒ GatewayServiceAddress.kind
     case t if classOf[GatewayDeploymentStatus].isAssignableFrom(t) ⇒ GatewayDeploymentStatus.kind
     case t if classOf[InternalGateway].isAssignableFrom(t) ⇒ InternalGateway.kind
-    // deployment persistence
-    case t if classOf[DeploymentServiceStatus].isAssignableFrom(t) ⇒ DeploymentServiceStatus.kind
-    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ DeploymentServiceScale.kind
-    case t if classOf[DeploymentServiceInstances].isAssignableFrom(t) ⇒ DeploymentServiceInstances.kind
-    case t if classOf[DeploymentServiceEnvironmentVariables].isAssignableFrom(t) ⇒ DeploymentServiceEnvironmentVariables.kind
-    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) ⇒ DeploymentServiceHealth.kind
     // workflow persistence
     case t if classOf[WorkflowBreed].isAssignableFrom(t) ⇒ WorkflowBreed.kind
     case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ WorkflowStatus.kind

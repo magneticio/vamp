@@ -44,7 +44,7 @@ trait MarathonCache {
   private def getOrPutIfAbsent[T](key: String, put: () ⇒ T)(timeToLivePeriod: FiniteDuration): T = synchronized {
     cache.get[T](key) match {
       case Some(result) ⇒
-        log.info(s"cache get: $key")
+        log.debug(s"cache get: $key")
         result
       case None ⇒ this.put[T](key, put)(timeToLivePeriod)
     }
@@ -58,7 +58,7 @@ trait MarathonCache {
   }
 
   private def remove(key: String): Unit = synchronized {
-    log.info(s"cache removal: $key")
+    log.info(s"cache remove: $key")
     cache.remove(key)
   }
 

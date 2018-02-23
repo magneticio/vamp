@@ -3,7 +3,8 @@ package io.vamp.persistence
 import java.time.OffsetDateTime
 
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
-import io.vamp.common.{ Config, Namespace, NamespaceProvider }
+import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.{ Artifact, Config, Namespace, NamespaceProvider }
 import io.vamp.model.Model
 import io.vamp.persistence.notification.UnknownDataFormatException
 import org.json4s.Formats
@@ -52,13 +53,17 @@ trait PersistenceRecordMarshaller {
 }
 
 trait PersistenceDataReader extends PersistenceRecordMarshaller with PersistenceMarshaller {
-  this: InMemoryRepresentationPersistenceActor ⇒
+  this: PersistenceApi with NamespaceProvider with NotificationProvider ⇒
 
-  protected def readData(data: String): Unit = {
+  protected def dataSet(artifact: Artifact, kind: String): Artifact
+
+  protected def dataDelete(name: String, kind: String): Unit
+
+  protected def dataRead(data: String): Unit = {
     val record = unmarshallRecord(data)
     record.artifact match {
-      case Some(content) ⇒ unmarshall(record.kind, content).map(setArtifact).getOrElse(throwException(UnknownDataFormatException(record.kind)))
-      case None          ⇒ deleteArtifact(record.name, record.kind)
+      case Some(content) ⇒ unmarshall(record.kind, content).map(a ⇒ dataSet(a, record.kind)).getOrElse(throwException(UnknownDataFormatException(record.kind)))
+      case None          ⇒ dataDelete(record.name, record.kind)
     }
   }
 }

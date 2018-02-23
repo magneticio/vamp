@@ -47,9 +47,7 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
   }
 
   "InMemoryPersistenceActor" must {
-
     "reply to InfoRequest" in {
-
       val testProbe = TestProbe("test")
 
       val actors = Await.result(IoC.createActor(Props(classOf[InMemoryPersistenceActor])).map(_ :: Nil)(system.dispatcher), 5.seconds)
@@ -57,9 +55,9 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
       val expectedResponse = Map("database" →
         Map(
           "status" → "valid",
-          "records" → 0,
           "artifacts" → Map(),
-          "type" → "in-memory [no persistence]"), "archiving" → true)
+          "type" → "in-memory [no persistence]"
+        ), "archiving" → true)
       testProbe.send(actor, InfoRequest)
       testProbe.expectMsgPF(30.seconds) {
         case response: Map[_, _] ⇒
@@ -71,7 +69,6 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
     }
 
     "reply to Create" in {
-
       val testProbe = TestProbe("test")
       val actors = Await.result(IoC.createActor(Props(classOf[TestInMemoryPersistenceActor])).map(_ :: Nil)(system.dispatcher), 5.seconds)
       val actor = actors.head
@@ -88,5 +85,4 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
       }
     }
   }
-
 }

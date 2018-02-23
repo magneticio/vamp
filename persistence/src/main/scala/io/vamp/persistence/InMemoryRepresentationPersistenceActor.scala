@@ -8,26 +8,32 @@ import scala.collection.mutable
 import scala.language.postfixOps
 import scala.reflect.{ ClassTag, classTag }
 
-trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeOfArtifact {
+trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeOfArtifact with AccessGuard {
 
   private var records = 0
 
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-  protected var validData = true
-
   override def receive: Actor.Receive = query orElse super[PersistenceActor].receive
 
   protected def query: Actor.Receive = PartialFunction.empty
 
-  protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
-    allArtifacts[T](`type`, page, perPage, filter)
-  }
+  //  override protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
+  //    allArtifacts[T](`type`, page, perPage, filter)
+  //  }
 
-  protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T] = {
-    log.debug(s"In memory representation: read [${`type`.getSimpleName}] - $name}")
-    store.get(type2string(`type`)).flatMap(_.get(name)).asInstanceOf[Option[T]]
-  }
+  override protected def all[T <: Artifact](kind: String, page: Int, perPage: Int, filter: T ⇒ Boolean): ArtifactResponseEnvelope = ???
+
+  override protected def get[T <: Artifact](name: String, kind: String): Option[T] = ???
+
+  override protected def set[T <: Artifact](artifact: T, kind: String): T = ???
+
+  override protected def delete[T <: Artifact](name: String, kind: String): Boolean = ???
+
+  //  override protected def get[T <: Artifact](name: String, `type`: Class[T]): Option[T] = {
+  //    log.debug(s"In memory representation: read [${`type`.getSimpleName}] - $name}")
+  //    store.get(type2string(`type`)).flatMap(_.get(name)).asInstanceOf[Option[T]]
+  //  }
 
   protected def info(): Map[String, Any] = Map[String, Any](
     "status" → (if (validData) "valid" else "corrupted"),
@@ -40,12 +46,12 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
   protected def all[A <: Artifact: ClassTag]: List[A] = {
     val `type` = classTag[A].runtimeClass
     log.debug(s"In memory representation: all [${`type`.getSimpleName}]")
-    valuesByType(type2string(`type`)).asInstanceOf[List[A]]
+    allByType(type2string(`type`)).asInstanceOf[List[A]]
   }
 
   protected def allArtifacts[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean): ArtifactResponseEnvelope = {
     log.debug(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
-    val artifacts = valuesByType(type2string(`type`)).filter { artifact ⇒ filter(artifact.asInstanceOf[T]) }
+    val artifacts = allByType(type2string(`type`)).filter { artifact ⇒ filter(artifact.asInstanceOf[T]) }
 
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
@@ -85,5 +91,5 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
     }
   }
 
-  protected def valuesByType(`type`: String): List[Artifact] = store.get(`type`).map(_.values.toList).getOrElse(Nil)
+  protected def allByType(`type`: String): List[Artifact] = store.get(`type`).map(_.values.toList).getOrElse(Nil)
 }

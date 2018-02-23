@@ -4,7 +4,8 @@ import java.io.{ File, FileWriter }
 
 import akka.actor.Actor
 import io.vamp.common.{ Artifact, ClassMapper, Config, ConfigMagnet }
-import io.vamp.persistence.notification.CorruptedDataException
+import io.vamp.persistence.AccessGuard.LoadAll
+import io.vamp.persistence.notification.{ CorruptedDataException, UnknownDataFormatException }
 
 import scala.io.Source
 
@@ -17,7 +18,11 @@ object FilePersistenceActor {
   val directory: ConfigMagnet[String] = Config.string("vamp.persistence.file.directory")
 }
 
-class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceMarshaller with PersistenceDataReader with AccessGuard {
+class FilePersistenceActor
+    extends PersistenceActor
+    with PersistenceRepresentation
+    with PersistenceMarshaller
+    with PersistenceDataReader {
 
   import FilePersistenceActor._
 
@@ -31,49 +36,57 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
     file
   }
 
-  override def receive: Receive = ({
-    case "load" ⇒ read()
-  }: Actor.Receive) orElse super[InMemoryRepresentationPersistenceActor].receive
+  override def receive: Receive = ({ case LoadAll ⇒ read() }: Actor.Receive) orElse super.receive
 
-  override def preStart(): Unit = self ! "load"
+  override def preStart(): Unit = self ! LoadAll
 
   override protected def info(): Map[String, Any] = super.info() + ("type" → "file") + ("file" → file.getAbsolutePath)
 
   protected def read(): Unit = this.synchronized {
-    try {
-      for (line ← Source.fromFile(file).getLines()) {
-        if (line.nonEmpty) readData(line)
+    for (line ← Source.fromFile(file).getLines()) {
+      if (line.nonEmpty) try dataRead(line) catch {
+        case _: UnknownDataFormatException ⇒ // already logged, skip to the next line
+        case c: CorruptedDataException ⇒
+          reportException(c)
+          validData = false
+          throw c
       }
-      removeGuard()
     }
-    catch {
-      case c: CorruptedDataException ⇒
-        reportException(c)
-        validData = false
+    removeGuard()
+  }
+
+  override protected def set[T <: Artifact](artifact: T, kind: String): T = {
+    def store(): T = {
+      write(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
+      super.set[T](artifact, kind)
+    }
+    super.get[T](artifact.name, kind) match {
+      case Some(a) if a != artifact ⇒ store()
+      case Some(_)                  ⇒ artifact
+      case None                     ⇒ store()
     }
   }
 
-  protected def set[T <: Artifact](artifact: T): T = {
-    write(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
-    setArtifact[T](artifact)
+  override protected def delete[T <: Artifact](name: String, kind: String): Boolean = {
+    super.get[T](name, kind) match {
+      case Some(_) ⇒
+        write(PersistenceRecord(name, kind))
+        super.delete(name, kind)
+      case _ ⇒ false
+    }
   }
 
-  protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = super.get[T](name, `type`) match {
-    case Some(_) ⇒
-      write(PersistenceRecord(name, type2string(`type`)))
-      deleteArtifact(name, type2string(`type`)).isDefined
-    case _ ⇒ false
-  }
+  override protected def dataSet(artifact: Artifact, kind: String): Artifact = super.set(artifact, kind)
+
+  override protected def dataDelete(name: String, kind: String): Unit = super.delete(name, kind)
 
   private def write(record: PersistenceRecord): Unit = {
     guard()
     val writer = new FileWriter(file, true)
-    this.synchronized {
-      try {
-        writer.write(s"${marshallRecord(record)}\n")
-        writer.flush()
-      }
-      finally writer.close()
+    try {
+      writer.write(s"${marshallRecord(record)}\n")
+      writer.flush()
     }
+    finally writer.close()
   }
 }

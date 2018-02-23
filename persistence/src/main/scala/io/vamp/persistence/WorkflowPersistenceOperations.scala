@@ -1,14 +1,8 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
-import akka.pattern.ask
-import akka.util.Timeout
-import io.vamp.common.akka.CommonSupportForActors
-import io.vamp.common.akka.IoC.actorFor
 import io.vamp.model.artifact._
 import io.vamp.model.reader.WorkflowStatusReader
-
-import scala.concurrent.Future
 
 trait WorkflowPersistenceMessages {
 
@@ -33,117 +27,58 @@ trait WorkflowPersistenceMessages {
 }
 
 trait WorkflowPersistenceOperations {
-  this: CommonSupportForActors ⇒
+  this: PatchPersistenceOperations ⇒
 
   import PersistenceActor._
 
-  implicit def timeout: Timeout
-
   def receive: Actor.Receive = {
 
-    case o: UpdateWorkflowBreed                ⇒ updateWorkflowBreed(o.workflow, o.breed)
+    case o: UpdateWorkflowBreed                ⇒ replyUpdate(WorkflowBreed(o.workflow.name, o.breed))
+
+    case o: UpdateWorkflowScale                ⇒ replyUpdate(WorkflowScale(o.workflow.name, o.scale))
+
+    case o: UpdateWorkflowNetwork              ⇒ replyUpdate(WorkflowNetwork(o.workflow.name, o.network))
+
+    case o: UpdateWorkflowArguments            ⇒ replyUpdate(WorkflowArguments(o.workflow.name, o.arguments))
+
+    case o: UpdateWorkflowEnvironmentVariables ⇒ replyUpdate(WorkflowEnvironmentVariables(o.workflow.name, o.environmentVariables))
+
+    case o: UpdateWorkflowInstances            ⇒ replyUpdate(WorkflowInstances(o.workflow.name, o.instances))
 
     case o: UpdateWorkflowStatus               ⇒ updateWorkflowStatus(o.workflow, o.status)
 
-    case o: UpdateWorkflowScale                ⇒ updateWorkflowScale(o.workflow, o.scale)
-
-    case o: UpdateWorkflowNetwork              ⇒ updateWorkflowNetwork(o.workflow, o.network)
-
-    case o: UpdateWorkflowArguments            ⇒ updateWorkflowArguments(o.workflow, o.arguments)
-
-    case o: UpdateWorkflowEnvironmentVariables ⇒ updateWorkflowEnvironmentVariables(o.workflow, o.environmentVariables)
-
-    case o: UpdateWorkflowInstances            ⇒ updateWorkflowInstances(o.workflow, o.instances)
-
-    case o: UpdateWorkflowHealth               ⇒ updateWorkflowHealth(o.workflow, o.health)
+    case o: UpdateWorkflowHealth               ⇒ replyUpdate(WorkflowHealth(o.workflow.name, o.health))
 
     case o: ResetWorkflow                      ⇒ resetWorkflow(o.workflow, o.runtime, o.attributes)
   }
 
-  private def updateWorkflowBreed(workflow: Workflow, breed: DefaultBreed) = reply {
-    self ? PersistenceActor.Update(WorkflowBreed(workflow.name, breed))
-  }
-
-  private def updateWorkflowStatus(workflow: Workflow, status: Workflow.Status) = reply {
+  private def updateWorkflowStatus(workflow: Workflow, status: Workflow.Status): Unit = {
     val message = status match {
       case Workflow.Status.Restarting(phase) ⇒ WorkflowStatus(workflow.name, status.toString, phase.map(_.toString))
       case _                                 ⇒ WorkflowStatus(workflow.name, status.toString, None)
     }
-    checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(message.name, classOf[WorkflowStatus])) map {
-      case Some(currentStatus: WorkflowStatus) ⇒
-        if (currentStatus != message) {
-          log.debug("Workflow Status changed, writing to db")
-          self ? PersistenceActor.Update(message, Option(status.describe))
-        }
-        else log.debug("Workflow Status hasn't changed, not writing to db")
-
-      case _ ⇒
-        log.debug("Workflow Status does not exist, writing to db")
-        self ? PersistenceActor.Update(message, Option(status.describe))
-    }
+    replyUpdate(message, "workflow-statuses", status.describe)
   }
 
-  private def updateWorkflowScale(workflow: Workflow, scale: DefaultScale) = reply {
-    self ? PersistenceActor.Update(WorkflowScale(workflow.name, scale))
-  }
-
-  private def updateWorkflowNetwork(workflow: Workflow, network: String) = reply {
-    self ? PersistenceActor.Update(WorkflowNetwork(workflow.name, network))
-  }
-
-  private def updateWorkflowArguments(workflow: Workflow, arguments: List[Argument]) = reply {
-    self ? PersistenceActor.Update(WorkflowArguments(workflow.name, arguments))
-  }
-
-  private def updateWorkflowEnvironmentVariables(workflow: Workflow, environmentVariables: List[EnvironmentVariable]) = reply {
-    self ? PersistenceActor.Update(WorkflowEnvironmentVariables(workflow.name, environmentVariables))
-  }
-
-  private def updateWorkflowInstances(workflow: Workflow, instances: List[Instance]) = reply {
-    self ? PersistenceActor.Update(WorkflowInstances(workflow.name, instances))
-  }
-
-  private def updateWorkflowHealth(workflow: Workflow, health: Option[Health]) = reply {
-    health match {
-      case Some(h: Health) ⇒
-        checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(workflow.name, classOf[WorkflowHealth])) map {
-          case Some(currentHealth: WorkflowHealth) ⇒
-            if (!currentHealth.health.contains(h)) {
-              log.debug("Workflow Health changed, writing to db")
-              self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
-            }
-            else log.debug("Workflow Health hasn't changed, not writing to db")
-          case _ ⇒
-            log.debug("Workflow Health does not exist, writing to db")
-            self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
-        }
-      case None ⇒
-        log.debug("Updating health with None")
-        self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
-    }
-  }
-
-  private def resetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean) = reply {
-
-    val attributeArtifacts = if (attributes) {
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowStatus]) ::
-        PersistenceActor.Delete(workflow.name, classOf[WorkflowScale]) ::
-        PersistenceActor.Delete(workflow.name, classOf[WorkflowNetwork]) ::
-        PersistenceActor.Delete(workflow.name, classOf[WorkflowArguments]) ::
-        PersistenceActor.Delete(workflow.name, classOf[WorkflowEnvironmentVariables]) :: Nil
-    }
+  private def resetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean): Unit = {
+    val attributeArtifacts = if (attributes) List(
+      classOf[WorkflowStatus],
+      classOf[WorkflowScale],
+      classOf[WorkflowNetwork],
+      classOf[WorkflowArguments],
+      classOf[WorkflowEnvironmentVariables]
+    )
     else Nil
 
     val runtimeArtifacts = if (runtime) {
-      val breedReset = PersistenceActor.Delete(workflow.name, classOf[WorkflowBreed]) :: Nil
-      val healthReset = workflow.health.map(_ ⇒ PersistenceActor.Delete(workflow.name, classOf[WorkflowHealth]) :: Nil).getOrElse(Nil)
-      val instancesReset = if (workflow.instances.nonEmpty) PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil else Nil
-
+      val breedReset = classOf[WorkflowBreed] :: Nil
+      val healthReset = workflow.health.map(_ ⇒ classOf[WorkflowHealth] :: Nil).getOrElse(Nil)
+      val instancesReset = if (workflow.instances.nonEmpty) classOf[WorkflowInstances] :: Nil else Nil
       breedReset ++ healthReset ++ instancesReset
     }
     else Nil
 
-    Future.sequence((attributeArtifacts ++ runtimeArtifacts).map(self ? _))
+    (attributeArtifacts ++ runtimeArtifacts).foreach(t ⇒ replyDelete(workflow.name, t))
   }
 }
 
@@ -215,4 +150,3 @@ private[persistence] object WorkflowHealth {
 private[persistence] case class WorkflowHealth(name: String, health: Option[Health]) extends PersistenceArtifact {
   val kind: String = WorkflowHealth.kind
 }
-

@@ -83,32 +83,6 @@ trait PersistenceMarshaller extends TypeOfArtifact {
         InternalGateway(DeployedGatewayReader.read(<<![YamlSourceReader]("gateway")))
       }
     },
-    // deployment persistence
-    DeploymentServiceStatus.kind → new NoNameValidationYamlReader[DeploymentServiceStatus] {
-      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceStatus(name, DeploymentServiceStatusReader.read(<<![YamlSourceReader]("status")))
-    },
-    DeploymentServiceScale.kind → new NoNameValidationYamlReader[DeploymentServiceScale] {
-      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
-    },
-    DeploymentServiceInstances.kind → new NoNameValidationYamlReader[DeploymentServiceInstances] {
-      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceInstances(name, DeploymentReader.parseInstances)
-    },
-    DeploymentServiceHealth.kind → new NoNameValidationYamlReader[DeploymentServiceHealth] {
-      override protected def parse(implicit source: YamlSourceReader) =
-        DeploymentServiceHealth(name, HealthReader.health(<<![YamlSourceReader]("health")))
-    },
-    DeploymentServiceEnvironmentVariables.kind → new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
-
-      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceEnvironmentVariables(name, environmentVariables)
-
-      private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
-        case Some(list: List[_]) ⇒ list.map { el ⇒
-          implicit val source: YamlSourceReader = el.asInstanceOf[YamlSourceReader]
-          EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
-        }
-        case _ ⇒ Nil
-      }
-    },
     // workflow persistence
     WorkflowBreed.kind → new NoNameValidationYamlReader[WorkflowBreed] {
       override protected def parse(implicit source: YamlSourceReader): WorkflowBreed = WorkflowBreed(name, BreedReader.read(<<![YamlSourceReader]("breed")).asInstanceOf[DefaultBreed])

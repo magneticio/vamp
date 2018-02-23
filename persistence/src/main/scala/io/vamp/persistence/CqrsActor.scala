@@ -1,7 +1,6 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
-import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.CqrsActor.ReadAll
@@ -56,36 +55,36 @@ trait CqrsActor extends InMemoryRepresentationPersistenceActor
       schedule(synchronization, delay)
   }
 
-  override protected def set[T <: Artifact](artifact: T): T = {
-    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
-    guard()
-    lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
+  //  override protected def set[T <: Artifact](artifact: T): T = {
+  //    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
+  //    guard()
+  //    lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
+  //
+  //    insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))).collect {
+  //      case Some(id: Long) ⇒ readOrFail(id, () ⇒ artifact, () ⇒ fail[Artifact](failMessage))
+  //    }.getOrElse(fail(failMessage)).asInstanceOf[T]
+  //  }
 
-    insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))).collect {
-      case Some(id: Long) ⇒ readOrFail(id, () ⇒ artifact, () ⇒ fail[Artifact](failMessage))
-    }.getOrElse(fail(failMessage)).asInstanceOf[T]
-  }
+  //  override protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = super.get[T](name, `type`) match {
+  //    case Some(_) ⇒
+  //      log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
+  //      guard()
+  //      val kind: String = type2string(`type`)
+  //      lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
+  //
+  //      insert(PersistenceRecord(name, kind)).collect {
+  //        case Some(id: Long) ⇒ readOrFail(id, () ⇒ true, () ⇒ fail[Boolean](failMessage))
+  //      } getOrElse fail[Boolean](failMessage)
+  //
+  //    case _ ⇒ false
+  //  }
 
-  override protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = super.get[T](name, `type`) match {
-    case Some(_) ⇒
-      log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-      guard()
-      val kind: String = type2string(`type`)
-      lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
-
-      insert(PersistenceRecord(name, kind)).collect {
-        case Some(id: Long) ⇒ readOrFail(id, () ⇒ true, () ⇒ fail[Boolean](failMessage))
-      } getOrElse fail[Boolean](failMessage)
-
-    case _ ⇒ false
-  }
-
-  private def fail[A](message: String): A = throw new RuntimeException(message)
-
-  private def readOrFail[T](id: Long, succeed: () ⇒ T, fail: () ⇒ T): T = {
-    readWrapper()
-    if (id <= lastId) succeed() else fail()
-  }
+  //  private def fail[A](message: String): A = throw new RuntimeException(message)
+  //
+  //  private def readOrFail[T](id: Long, succeed: () ⇒ T, fail: () ⇒ T): T = {
+  //    readWrapper()
+  //    if (id <= lastId) succeed() else fail()
+  //  }
 
   private def readWrapper(): Long = {
     try {

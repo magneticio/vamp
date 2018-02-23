@@ -2,7 +2,7 @@ package io.vamp.persistence
 
 import java.sql.{ ResultSet, Statement }
 
-import io.vamp.common.{ Config, ConfigMagnet }
+import io.vamp.common.{ Artifact, Config, ConfigMagnet }
 import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
@@ -27,6 +27,10 @@ trait SqlPersistenceActor extends CqrsActor with SqlStatementProvider with Persi
     super.info() + ("type" → getClass.getSimpleName.replace("PersistenceActor", "").toLowerCase) + ("url" → url)
   }
 
+  override protected def dataSet(artifact: Artifact, kind: String): Artifact = ???
+
+  override protected def dataDelete(name: String, kind: String): Unit = ???
+
   protected lazy val url: String = resolveWithOptionalNamespace(SqlPersistenceActor.url())._1
   protected lazy val user: String = SqlPersistenceActor.user()
   protected lazy val password: String = SqlPersistenceActor.password()
@@ -49,7 +53,7 @@ trait SqlPersistenceActor extends CqrsActor with SqlStatementProvider with Persi
         while (result.next) {
           val id = result.getLong(1)
           if (id > getLastId) {
-            readData(result.getString(2))
+            dataRead(result.getString(2))
             setLastId(id)
           }
         }

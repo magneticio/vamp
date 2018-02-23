@@ -1,6 +1,5 @@
 package io.vamp.persistence
 
-import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.Artifact
 import io.vamp.common.akka._
@@ -36,16 +35,18 @@ trait PersistenceArchive extends PersistenceTag {
     artifact
   }
 
+  def archiveUpdate(artifactTag: String, source: String): Unit = archive(artifactTag, Option(source), archiveUpdateTag)
+
   def archiveDelete(name: String, `type`: Class[_ <: Artifact]): Unit = archive(name, `type`, None, archiveDeleteTag)
 
   private def archive(name: String, `type`: Class[_ <: Artifact], source: Option[String], archiveTag: String): Unit = {
-    tagFor(name, `type`) match {
-      case Some(artifactTag) ⇒
-        val event = Event(Set(artifactTag, archiveTag), source, `type` = eventType)
-        log.debug(s"Archive event with tags: ${event.tags}")
-        IoC.actorFor[PulseActor] ? PulseActor.Publish(event)
-      case _ ⇒
-    }
+    tagFor(name, `type`) foreach { archive(_, source, archiveTag) }
+  }
+
+  private def archive(artifactTag: String, source: Option[String], archiveTag: String): Unit = {
+    val event = Event(Set(artifactTag, archiveTag), source, `type` = eventType)
+    log.debug(s"Archive event with tags: ${event.tags}")
+    IoC.actorFor[PulseActor] ! PulseActor.Publish(event)
   }
 
   private def tagFor(name: String, `type`: Class[_ <: Artifact]): Option[String] = tagFor(`type`) map { tag ⇒ s"$tag:$name" }
@@ -54,7 +55,6 @@ trait PersistenceArchive extends PersistenceTag {
 trait PersistenceTag {
   protected def tagFor(`type`: Class[_]): Option[String] = `type` match {
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option(Deployment.kind)
-    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option(DeploymentServiceScale.kind)
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option(Gateway.kind)
     case t if classOf[Breed].isAssignableFrom(t) ⇒ Option(Breed.kind)
     case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option(Blueprint.kind)
@@ -64,7 +64,6 @@ trait PersistenceTag {
     case t if classOf[Route].isAssignableFrom(t) ⇒ Option(Route.kind)
     case t if classOf[Condition].isAssignableFrom(t) ⇒ Option(Condition.kind)
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option(Workflow.kind)
-    case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ Option(WorkflowStatus.kind)
     case t if classOf[Template].isAssignableFrom(t) ⇒ Option(Template.kind)
     case _ ⇒ None
   }
