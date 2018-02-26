@@ -1,7 +1,8 @@
 package io.vamp.model.reader
 
-import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.{ Artifact, Lookup }
+import io.vamp.model.artifact.Gateway.Sticky
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
@@ -12,7 +13,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 
   private val nameMatcher = """^[^\s\[\]]+$""".r
 
-  override protected def expand(implicit source: YamlSourceReader) = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     <<?[Any]("routes") match {
       case Some(route: String) ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
       case Some(routes: List[_]) ⇒ routes.foreach {
@@ -53,9 +54,9 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     GatewayService(host, port)
   }
 
-  protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
+  protected def sticky(implicit source: YamlSourceReader): Option[Sticky.Value] = <<?[String]("sticky") match {
     case Some("none") ⇒ None
-    case Some(sticky) ⇒ Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
+    case Some(sticky) ⇒ Option(Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
     case None         ⇒ None
   }
 
@@ -136,13 +137,13 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
     DefaultRoute(name, metadata, Route.noPath, <<?[Percentage]("weight"), condition, <<?[Percentage]("condition_strength"), rewrites, balance)
   }
 
-  override protected def expand(implicit source: YamlSourceReader) = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
 
     def list(name: String) = <<?[Any](name) match {
-      case Some(s: String)     ⇒ expandToList(name)
-      case Some(list: List[_]) ⇒
-      case Some(m)             ⇒ >>(name, List(m))
-      case _                   ⇒
+      case Some(_: String)  ⇒ expandToList(name)
+      case Some(_: List[_]) ⇒
+      case Some(m)          ⇒ >>(name, List(m))
+      case _                ⇒
     }
 
     <<?[Any]("condition") collect {
@@ -164,7 +165,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
     case Some(list: YamlList) ⇒ list.map(RewriteReader.readReferenceOrAnonymous)
   }
 
-  protected def balance(implicit source: YamlSourceReader) = <<?[String]("balance") match {
+  protected def balance(implicit source: YamlSourceReader): Option[String] = <<?[String]("balance") match {
     case Some(value) if value == DefaultRoute.defaultBalance ⇒ None
     case other ⇒ other
   }
@@ -242,9 +243,9 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
 
 object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
 
-  protected val reader = GatewayReader
+  protected val reader: AnonymousYamlReader[Gateway] = GatewayReader
 
-  override protected def expand(implicit source: YamlSourceReader) = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     source.pull().keySet.map { port ⇒
       <<![Any](port :: Nil) match {
         case route: String ⇒ >>(port :: "routes", route)
@@ -267,9 +268,9 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
 
 class InternalGatewayReader(override val acceptPort: Boolean, override val onlyAnonymous: Boolean = true, override val ignoreError: Boolean = false) extends GatewayMappingReader[Gateway] {
 
-  protected val reader = ClusterGatewayReader
+  protected val reader: AnonymousYamlReader[Gateway] = ClusterGatewayReader
 
-  override protected def expand(implicit source: YamlSourceReader) = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
     super.expand
   }

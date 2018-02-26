@@ -1,7 +1,9 @@
 package io.vamp.operation.gateway
 
+import akka.actor.Actor
 import akka.pattern.ask
-import io.vamp.common.{ Config, Namespace }
+import akka.util.Timeout
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
@@ -19,12 +21,12 @@ import scala.util.{ Failure, Success }
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = IoC.actorFor[GatewaySynchronizationActor] ! SynchronizeAll
+  def tick(): Unit = IoC.actorFor[GatewaySynchronizationActor] ! SynchronizeAll
 }
 
 object GatewaySynchronizationActor {
 
-  val timeout = Config.timeout("vamp.operation.gateway.response-timeout")
+  val timeout: ConfigMagnet[Timeout] = Config.timeout("vamp.operation.gateway.response-timeout")
 
   def portRangeLower()(implicit namespace: Namespace): Int = {
     val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
@@ -45,7 +47,7 @@ object GatewaySynchronizationActor {
 }
 
 private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: List[Gateway]) {
-  val all = deployable ++ nonDeployable
+  val all: List[Gateway] = deployable ++ nonDeployable
 }
 
 class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
@@ -55,15 +57,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private var currentPort = portRangeLower - 1
 
-  def receive = {
+  def receive: Actor.Receive = {
     case SynchronizeAll ⇒ synchronize()
     case s: Synchronize ⇒ synchronize(s.gateways, s.deployments, s.marshalled)
     case _              ⇒
   }
 
-  private def synchronize() = {
+  private def synchronize(): Unit = {
     val sendTo = self
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout: Timeout = PersistenceActor.timeout()
     (for {
       gateways ← consume(allArtifacts[Gateway])
       deployments ← consume(allArtifacts[Deployment])
@@ -74,7 +76,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     }
   }
 
-  private def synchronize(gateways: List[Gateway], deployments: List[Deployment], marshalled: List[Gateway]) = {
+  private def synchronize(gateways: List[Gateway], deployments: List[Deployment], marshalled: List[Gateway]): Unit = {
     (portAssignment(deployments) andThen instanceUpdate(deployments) andThen select(marshalled) andThen flush)(gateways)
   }
 
@@ -216,7 +218,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     IoC.actorFor[ContainerDriverActor] ! DeployedGateways(sorted)
   }
 
-  private def sendEvent(gateway: Gateway, event: String) = {
+  private def sendEvent(gateway: Gateway, event: String): Unit = {
     log.info(s"Gateway event: ${gateway.name} - $event")
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
     IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
