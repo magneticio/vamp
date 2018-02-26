@@ -10,9 +10,15 @@ class MySqlPersistenceActorMapper extends ClassMapper {
 
 class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  def insertStatement(): String = s"insert into `$table` (`Record`) values (?)"
+  override val fetchSize: Int = Integer.MIN_VALUE
+
+  override val timeDependent: Boolean = true
 
   def selectStatement(lastId: Long): String = s"SELECT `ID`, `Record` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
 
-  val statementMinValue: Int = Integer.MIN_VALUE
+  def insertStatement(): String = s"insert into `$table` (`Record`) values (?)"
+
+  override def updateStatement(id: Long, record: String): String = s"UPDATE `$table` SET `Record` = ? WHERE `ID` == $id"
+
+  override def deleteStatement(id: Long): String = s"DELETE FROM `$table` WHERE `ID` == $id"
 }

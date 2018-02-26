@@ -7,6 +7,7 @@ import io.vamp.common.notification.NotificationProvider
 
 import scala.collection.mutable
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 
 trait PersistenceRepresentation extends PersistenceApi with AccessGuard {
   this: CommonActorLogging with NotificationProvider ⇒
@@ -55,5 +56,14 @@ trait PersistenceRepresentation extends PersistenceApi with AccessGuard {
       if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: $kind: $name")
       artifact
     } isDefined
+  }
+
+  protected def find[A: ClassTag](p: A ⇒ Boolean, `type`: Class[_ <: Artifact]): Option[A] = {
+    store.get(type2string(`type`)).flatMap {
+      _.find {
+        case (_, artifact: A) ⇒ p(artifact)
+        case _                ⇒ false
+      }
+    } map (_._2.asInstanceOf[A])
   }
 }

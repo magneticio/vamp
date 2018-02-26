@@ -1,8 +1,8 @@
 package io.vamp.persistence
 
-import java.sql.{ ResultSet, Statement }
+import java.sql.{ Connection, PreparedStatement, ResultSet, Statement }
 
-import io.vamp.common.{ Artifact, Config, ConfigMagnet }
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
@@ -20,16 +20,12 @@ object SqlPersistenceActor {
 
 }
 
-trait SqlPersistenceActor extends CqrsActor with SqlStatementProvider with PersistenceDataReader {
+trait SqlPersistenceActor extends CqrsActor with SqlStatementProvider {
 
   override protected def info(): Map[String, Any] = {
     ping()
     super.info() + ("type" → getClass.getSimpleName.replace("PersistenceActor", "").toLowerCase) + ("url" → url)
   }
-
-  override protected def dataSet(artifact: Artifact, kind: String): Artifact = ???
-
-  override protected def dataDelete(name: String, kind: String): Unit = ???
 
   protected lazy val url: String = resolveWithOptionalNamespace(SqlPersistenceActor.url())._1
   protected lazy val user: String = SqlPersistenceActor.user()
@@ -47,7 +43,7 @@ trait SqlPersistenceActor extends CqrsActor with SqlStatementProvider with Persi
         selectStatement(getLastId),
         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
       )
-      statement.setFetchSize(statementMinValue)
+      statement.setFetchSize(fetchSize)
       try {
         val result = statement.executeQuery
         while (result.next) {

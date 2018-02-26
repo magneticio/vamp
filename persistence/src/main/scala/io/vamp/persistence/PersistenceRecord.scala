@@ -22,6 +22,8 @@ case class PersistenceRecord(version: String, instance: String, timestamp: Offse
 
 abstract class PersistenceRecordTransformer(namespace: Namespace) {
 
+  def timeDependent: Boolean = false
+
   def read(input: String): String
 
   def write(input: String): String

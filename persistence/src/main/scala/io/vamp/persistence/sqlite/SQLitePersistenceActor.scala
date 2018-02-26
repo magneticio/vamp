@@ -11,9 +11,7 @@ class SQLitePersistenceActorMapper extends ClassMapper {
 
 class SQLitePersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  def insertStatement(): String = s"""INSERT INTO "$table" ("Record") values (?);"""
-
   def selectStatement(lastId: Long): String = s"""SELECT "ID", "Record" FROM "$table" WHERE "ID" > $lastId ORDER BY "ID" ASC;"""
 
-  override val statementMinValue: Int = 0
+  def insertStatement(): String = s"""INSERT INTO "$table" ("Record") values (?);"""
 }
