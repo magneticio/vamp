@@ -62,11 +62,9 @@ trait CommonPersistenceOperations extends PersistenceArchive with PersistenceMul
 
     case Delete(name, ofType) ⇒ reply {
       Future.successful {
-        remove(name, ofType, { (name, ofType) ⇒
-          val result = delete(name, ofType)
-          if (result) archiveDelete(name, ofType)
-          result
-        })
+        val result = delete(name, ofType)
+        if (result) archiveDelete(name, ofType)
+        result
       }
     }
   }

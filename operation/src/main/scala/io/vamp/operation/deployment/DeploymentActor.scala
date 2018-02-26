@@ -305,9 +305,7 @@ trait DeploymentGatewayOperation {
   }
 
   def resetInternalRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
-    service.breed.ports.foreach { port ⇒
-      actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service, port)
-    }
+    actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service)
   }
 }
 

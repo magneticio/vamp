@@ -21,21 +21,6 @@ trait DeploymentPersistenceMessages {
 
 }
 
-private[persistence] object DeploymentPersistenceOperations {
-
-  def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {
-    GatewayPath(deployment.name :: cluster.name :: Nil).normalized
-  }
-
-  def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): String = {
-    GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
-  }
-
-  def servicePortArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port): String = {
-    GatewayPath(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil).normalized
-  }
-}
-
 trait DeploymentPersistenceOperations {
   this: PersistenceApi with PatchPersistenceOperations ⇒
 
@@ -45,7 +30,7 @@ trait DeploymentPersistenceOperations {
 
     case o: UpdateDeploymentServiceStatus               ⇒ patch(o.deployment, o.cluster, o.service, o.status)
 
-    case o: UpdateDeploymentServiceScale                ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(scale = Option(o.scale)), d ⇒ replyUpdate(d, "deployment-service-scales", o.source))
+    case o: UpdateDeploymentServiceScale                ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(scale = Option(o.scale)), (d, m) ⇒ replyUpdate(d, "deployment-service-scales", o.source, m))
 
     case o: UpdateDeploymentServiceInstances            ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(instances = o.instances))
 
@@ -57,33 +42,41 @@ trait DeploymentPersistenceOperations {
   }
 
   private def patch(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status): Unit = {
+    var modified = false
     get(deployment).map { d ⇒
       d.copy(clusters = d.clusters.map {
         case c if c.name == cluster.name ⇒ c.copy(services = c.services.map {
-          case s if s.breed.name == service.breed.name ⇒ s.copy(status = status)
-          case s                                       ⇒ s
+          case s if s.breed.name == service.breed.name ⇒
+            val ns = s.copy(status = status)
+            modified = ns != s
+            ns
+          case s ⇒ s
         }.filterNot(_.status.isUndeployed))
         case c ⇒ c
       }.filterNot(_.services.isEmpty))
     } foreach { d ⇒
-      if (d.clusters.nonEmpty) {
-        val hosts = d.hosts.filter { host ⇒
-          TraitReference.referenceFor(host.name).flatMap(ref ⇒ d.clusters.find(_.name == ref.cluster)).isDefined
-        }
-        val ports = d.clusters.flatMap { cluster ⇒
-          cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
-          })
-        } map { p ⇒ p.name → p } toMap
-        val environmentVariables = (d.environmentVariables ++ d.clusters.flatMap { cluster ⇒
-          cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
-        }) map { p ⇒ p.name → p } toMap
+      if (modified) {
+        if (d.clusters.nonEmpty) {
+          val hosts = d.hosts.filter { host ⇒
+            TraitReference.referenceFor(host.name).flatMap(ref ⇒ d.clusters.find(_.name == ref.cluster)).isDefined
+          }
+          val ports = d.clusters.flatMap { cluster ⇒
+            cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
+              Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
+            })
+          } map { p ⇒ p.name → p } toMap
+          val environmentVariables = (d.environmentVariables ++ d.clusters.flatMap { cluster ⇒
+            cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
+          }) map { p ⇒ p.name → p } toMap
 
-        replyUpdate(
-          d.copy(gateways = Nil, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList)
-        )
+          replyUpdate(
+            d.copy(gateways = Nil, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList),
+            update = true
+          )
+        }
+        else replyDelete(d, remove = true)
       }
-      else replyDelete(d)
+      else replyUpdate(d, update = false)
     }
   }
 
@@ -94,20 +87,24 @@ trait DeploymentPersistenceOperations {
   }
 
   private def patch(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, using: DeploymentService ⇒ DeploymentService): Unit = {
-    patch(deployment, cluster, service, using, d ⇒ replyUpdate(d))
+    patch(deployment, cluster, service, using, (d, m) ⇒ replyUpdate(d, m))
   }
 
-  private def patch(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, using: DeploymentService ⇒ DeploymentService, store: Deployment ⇒ Unit): Unit = {
+  private def patch(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, using: DeploymentService ⇒ DeploymentService, update: (Deployment, Boolean) ⇒ Unit): Unit = {
+    var modified = false
     get(deployment).map { d ⇒
       d.copy(clusters = d.clusters.map {
         case c if c.name == cluster.name ⇒ c.copy(services = c.services.map {
-          case s if s.breed.name == service.breed.name ⇒ using(s)
-          case s                                       ⇒ s
+          case s if s.breed.name == service.breed.name ⇒
+            val ns = using(s)
+            modified = ns != s
+            ns
+          case s ⇒ s
         })
         case c ⇒ c
       })
-    } foreach {
-      store
+    } foreach { d ⇒
+      update(d, modified)
     }
   }
 }

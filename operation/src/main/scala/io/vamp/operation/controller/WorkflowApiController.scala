@@ -40,7 +40,7 @@ trait WorkflowApiController extends AbstractController {
       }
     } map {
       case list: List[_] ⇒
-        if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
+        if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow) }
         list
       case any ⇒ any
     }

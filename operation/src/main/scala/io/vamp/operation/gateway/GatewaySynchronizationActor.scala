@@ -106,7 +106,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
         case route: DefaultRoute ⇒
           val routeTargets = targets(pipeline.deployable, deployments, route)
           val targetMatch = routeTargets == route.targets
-          if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(route, routeTargets)
+          if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
           route.copy(targets = routeTargets)
         case route ⇒ route
       }

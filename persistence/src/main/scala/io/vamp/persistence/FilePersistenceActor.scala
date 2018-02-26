@@ -3,6 +3,7 @@ package io.vamp.persistence
 import java.io.{ File, FileWriter }
 
 import akka.actor.Actor
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.{ Artifact, ClassMapper, Config, ConfigMagnet }
 import io.vamp.persistence.AccessGuard.LoadAll
 import io.vamp.persistence.notification.{ CorruptedDataException, UnknownDataFormatException }
@@ -36,7 +37,9 @@ class FilePersistenceActor
     file
   }
 
-  override def receive: Receive = ({ case LoadAll ⇒ read() }: Actor.Receive) orElse super.receive
+  override def receive: Receive = ({
+    case LoadAll ⇒ read()
+  }: Actor.Receive) orElse super.receive
 
   override def preStart(): Unit = self ! LoadAll
 
@@ -45,7 +48,7 @@ class FilePersistenceActor
   protected def read(): Unit = this.synchronized {
     for (line ← Source.fromFile(file).getLines()) {
       if (line.nonEmpty) try dataRead(line) catch {
-        case _: UnknownDataFormatException ⇒ // already logged, skip to the next line
+        case NotificationErrorException(_: UnknownDataFormatException, _) ⇒ // already logged, skip to the next line
         case c: CorruptedDataException ⇒
           reportException(c)
           validData = false
@@ -60,6 +63,7 @@ class FilePersistenceActor
       write(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
       super.set[T](artifact, kind)
     }
+
     super.get[T](artifact.name, kind) match {
       case Some(a) if a != artifact ⇒ store()
       case Some(_)                  ⇒ artifact

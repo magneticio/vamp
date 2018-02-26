@@ -2,11 +2,11 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import akka.util.Timeout
-import io.vamp.common.{ Artifact, Config, ConfigMagnet }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.{ ErrorNotification, Notification, NotificationProvider }
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
+import io.vamp.common.{ Artifact, Config, ConfigMagnet }
 import io.vamp.model.event.Event
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -96,21 +96,4 @@ trait PersistenceActor
   override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
-}
-
-trait PatchPersistenceOperations {
-  this: PersistenceApi with PersistenceArchive with CommonSupportForActors ⇒
-
-  implicit def timeout: Timeout
-
-  protected def replyUpdate[T <: Artifact](artifact: T): Unit = reply(Future.successful(set[T](artifact)))
-
-  protected def replyUpdate[T <: Artifact](artifact: T, tag: String, source: String): Unit = reply(Future.successful {
-    set[T](artifact)
-    archiveUpdate(tag, source)
-  })
-
-  protected def replyDelete[T <: Artifact](artifact: T): Unit = reply(Future.successful(delete[T](artifact)))
-
-  protected def replyDelete[T <: Artifact](name: String, `type`: Class[T]): Unit = reply(Future.successful(delete[T](name, `type`)))
 }
