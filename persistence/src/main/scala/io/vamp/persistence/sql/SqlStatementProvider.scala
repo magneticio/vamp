@@ -1,10 +1,8 @@
-package io.vamp.persistence
+package io.vamp.persistence.sql
 
 trait SqlStatementProvider {
 
   def fetchSize: Int = 0
-
-  def timeDependent: Boolean = true
 
   def selectStatement(lastId: Long): String
 

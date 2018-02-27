@@ -68,6 +68,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
 
       list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JNull)
       list += JField("virtual_hosts", Extraction.decompose(gateway.virtualHosts))
+      list += JField("selector", gateway.selector.map(s ⇒ JString(s.definition)).getOrElse(JNull))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
           (route.path.segments match {
@@ -102,6 +103,7 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
       }
 
       list += JField(Lookup.entry, JString(lookup().getOrElse(route.lookupName)))
+      list += JField("selector", if (route.selector.isDefined) JString(route.selector.get.definition) else JNull)
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("balance", if (route.balance.isDefined) JString(route.balance.get) else JString(DefaultRoute.defaultBalance))
       list += JField("condition", if (route.condition.isDefined) serializeCondition(full = false)(format)(route.condition.get) else JNull)
@@ -115,7 +117,7 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
 }
 
 class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with RouteDecomposer {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeRoute(full = true)
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeRoute()
 }
 
 class RouteTargetFieldSerializer extends ArtifactFieldSerializer[RouteTarget] {

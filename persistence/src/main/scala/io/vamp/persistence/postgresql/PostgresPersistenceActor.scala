@@ -1,7 +1,7 @@
 package io.vamp.persistence.postgresql
 
 import io.vamp.common.ClassMapper
-import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
+import io.vamp.persistence.sql.{ SqlPersistenceActor, SqlStatementProvider }
 
 class PostgresPersistenceActorMapper extends ClassMapper {
   val name = "postgres"

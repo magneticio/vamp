@@ -58,3 +58,9 @@ case class UnresolvedPortReferenceError(portReference: String) extends Notificat
 case class NegativeFailuresNumberError(number: Int) extends Notification
 
 case class UnsupportedProtocolError(protocol: String) extends Notification
+
+object RouteSelectorAndRoutesDefinedError extends Notification
+
+case class InvalidRouteSelectorError(definition: String) extends Notification
+
+object RouteSelectorOnlyRouteError extends Notification

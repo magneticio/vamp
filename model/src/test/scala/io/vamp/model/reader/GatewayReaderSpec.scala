@@ -1,7 +1,7 @@
 package io.vamp.model.reader
 
 import io.vamp.model.artifact._
-import io.vamp.model.notification._
+import io.vamp.model.notification.{ RouteSelectorOnlyRouteError, _ }
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -14,7 +14,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
       'sticky(Some(Gateway.Sticky.Route)),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), None, Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), None, Some(Percentage(50)), None, None, Nil, None)))
     )
   }
 
@@ -23,7 +23,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("sava/web"),
       'port(Port("8080", None, Some("8080/tcp"))),
       'sticky(None),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("web/port", List("web", "port")), Some(Percentage(100)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("web/port", List("web", "port")), None, Some(Percentage(100)), None, None, Nil, None)))
     )
   }
 
@@ -49,8 +49,8 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'port(Port("8080", None, Some("8080/tcp"))),
       'sticky(None),
       'routes(List(
-        DefaultRoute("", Map(), GatewayPath("web/port1", List("web", "port1")), Some(Percentage(40)), None, None, Nil, Some("custom 1")),
-        DefaultRoute("", Map(), GatewayPath("web/port2", List("web", "port2")), Some(Percentage(60)), None, None, Nil, Some("custom 2"))
+        DefaultRoute("", Map(), GatewayPath("web/port1", List("web", "port1")), None, Some(Percentage(40)), None, None, Nil, Some("custom 1")),
+        DefaultRoute("", Map(), GatewayPath("web/port2", List("web", "port2")), None, Some(Percentage(60)), None, None, Nil, Some("custom 2"))
       ))
     )
   }
@@ -61,8 +61,8 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'port(Port("8080", None, Some("8080"))),
       'sticky(None),
       'routes(List(
-        DefaultRoute("", Map(), GatewayPath("web/port1", List("web", "port1")), None, None, None, List(PathRewrite("", "a", "b")), None),
-        DefaultRoute("", Map(), GatewayPath("web/port2", List("web", "port2")), Some(Percentage(100)), None, None, Nil, None)
+        DefaultRoute("", Map(), GatewayPath("web/port1", List("web", "port1")), None, None, None, None, List(PathRewrite("", "a", "b")), None),
+        DefaultRoute("", Map(), GatewayPath("web/port2", List("web", "port2")), None, Some(Percentage(100)), None, None, Nil, None)
       ))
     )
   }
@@ -72,7 +72,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
       'sticky(Some(Gateway.Sticky.Route)),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), None, Some(Percentage(100)), None, None, Nil, None)))
     )
   }
 
@@ -81,7 +81,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("sava"),
       'port(Port("8080", None, Some("8080"))),
       'virtualHosts(List("a.b.c", "test")),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), None, Some(Percentage(100)), None, None, Nil, None)))
     )
   }
 
@@ -90,7 +90,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("sava"),
       'port(Port("8080", None, Some("8080"))),
       'virtualHosts(Nil),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), None, Some(Percentage(100)), None, None, Nil, None)))
     )
   }
 
@@ -99,7 +99,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("sava"),
       'port(Port("8080", None, Some("8080"))),
       'virtualHosts(List("inline")),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("[external/1/2]", List("[external/1/2]")), None, Some(Percentage(100)), None, None, Nil, None)))
     )
   }
 
@@ -115,7 +115,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'port(Port("8080", None, Some("8080/http"))),
       'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234/http"))))),
       'sticky(Some(Gateway.Sticky.Route)),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), None, Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), None, Some(Percentage(50)), None, None, Nil, None)))
     )
   }
 
@@ -125,7 +125,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'port(Port("8080", None, Some("8080/http"))),
       'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234/tcp"))))),
       'sticky(Some(Gateway.Sticky.Route)),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), None, Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), None, Some(Percentage(50)), None, None, Nil, None)))
     )
   }
 
@@ -133,9 +133,10 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     GatewayReader.read(res("gateway/gateway14.yml")) should have(
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
+      'selector(None),
       'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234"))))),
       'sticky(Some(Gateway.Sticky.Route)),
-      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, None, Nil, None)))
+      'routes(List(DefaultRoute("", Map(), GatewayPath("sava1", List("sava1")), None, Some(Percentage(50)), None, None, Nil, None), DefaultRoute("", Map(), GatewayPath("sava2/v1", List("sava2", "v1")), None, Some(Percentage(50)), None, None, Nil, None)))
     )
   }
 
@@ -148,6 +149,70 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "fail on multiple routes and invalid total weight != 0 or != 100" in {
     expectedError[GatewayRouteWeightError]({
       GatewayReader.read(res("gateway/gateway16.yml"))
+    })
+  }
+
+  it should "parse empty selector" in {
+    GatewayReader.read(res("gateway/gateway17.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'selector(None)
+    )
+  }
+
+  it should "parse null selector" in {
+    GatewayReader.read(res("gateway/gateway18.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'selector(None)
+    )
+  }
+
+  it should "parse selector" in {
+    GatewayReader.read(res("gateway/gateway19.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'selector(Option(RouteSelector("label(winter) and id(cold)")))
+    )
+  }
+
+  it should "fail if selector and routes are defined" in {
+    expectedError[RouteSelectorAndRoutesDefinedError.type]({
+      GatewayReader.read(res("gateway/gateway20.yml"))
+    })
+  }
+
+  it should "fail if selector is invalid" in {
+    expectedError[InvalidRouteSelectorError]({
+      GatewayReader.read(res("gateway/gateway21.yml"))
+    })
+  }
+
+  it should "parse route null selector" in {
+    GatewayReader.read(res("gateway/gateway22.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'routes(List(DefaultRoute("", Map(), GatewayPath("web", List("web")), None, None, None, None, Nil, None)))
+    )
+  }
+
+  it should "parse route selector" in {
+    GatewayReader.read(res("gateway/gateway23.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'routes(List(DefaultRoute("", Map(), GatewayPath("web", List("web")), Option(RouteSelector("image(winter)")), None, None, None, Nil, None)))
+    )
+  }
+
+  it should "fail if route selector is invalid" in {
+    expectedError[InvalidRouteSelectorError]({
+      GatewayReader.read(res("gateway/gateway24.yml"))
+    })
+  }
+
+  it should "fail if route selector is defined and path length != 1" in {
+    expectedError[RouteSelectorOnlyRouteError.type]({
+      GatewayReader.read(res("gateway/gateway25.yml"))
     })
   }
 }

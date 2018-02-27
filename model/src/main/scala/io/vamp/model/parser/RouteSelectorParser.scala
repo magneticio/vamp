@@ -10,7 +10,7 @@ case class ImageSelector(value: String) extends RouteSelectorOperand
 
 case class LabelSelector(value: String) extends RouteSelectorOperand
 
-trait RouteSelectorParser extends Parser[AstNode] {
+class RouteSelectorParser extends Parser[AstNode] {
   override def parser(expression: String) = new RouteSelectorParboiledParser(expression)
 }
 

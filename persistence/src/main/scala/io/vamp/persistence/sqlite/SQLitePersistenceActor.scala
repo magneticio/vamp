@@ -1,7 +1,7 @@
 package io.vamp.persistence.sqlite
 
 import io.vamp.common.ClassMapper
-import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
+import io.vamp.persistence.sql.{ SqlPersistenceActor, SqlStatementProvider }
 
 class SQLitePersistenceActorMapper extends ClassMapper {
   override def name: String = "sqlite"

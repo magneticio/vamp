@@ -1,7 +1,7 @@
 package io.vamp.persistence.sqlserver
 
 import io.vamp.common.ClassMapper
-import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
+import io.vamp.persistence.sql.{ SqlPersistenceActor, SqlStatementProvider }
 
 class SQLServerPersistenceActorMapper extends ClassMapper {
   val name = "sqlserver"

@@ -1,10 +1,11 @@
-package io.vamp.persistence
+package io.vamp.persistence.sql
 
 import akka.actor.Actor
 import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.AccessGuard.LoadAll
+import io.vamp.persistence._
 import io.vamp.persistence.notification.CorruptedDataException
 
 import scala.concurrent.duration.FiniteDuration
@@ -18,11 +19,7 @@ trait CqrsActor
     with NamespaceValueResolver
     with SchedulerActor {
 
-  private var lastId: Long = 0
-
-  protected def getLastId: Long = this.lastId
-
-  protected def setLastId(newLastId: Long): Unit = this.lastId = newLastId
+  protected var lastId: Long = 0
 
   protected def read(): Long
 

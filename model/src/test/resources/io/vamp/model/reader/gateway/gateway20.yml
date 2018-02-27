@@ -1,0 +1,4 @@
+name: sava
+port: 8080/http
+selector: label(winter) and id(cold)
+routes: [localhost]

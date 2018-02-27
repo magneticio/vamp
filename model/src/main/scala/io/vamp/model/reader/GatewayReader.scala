@@ -8,6 +8,7 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
+import scala.util.Try
 
 trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader[Gateway] with GatewayRouteValidation {
 
@@ -35,7 +36,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   override protected def parse(implicit source: YamlSourceReader): Gateway = {
     source.find[String]("proxy")
     source.find[String]("internal")
-    Gateway(name, metadata, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
+    Gateway(name, metadata, port, service, sticky, virtualHosts, selector, routes(splitPath = true), deployed)
   }
 
   protected def port(implicit source: YamlSourceReader): Port = <<?[Any]("port") match {
@@ -60,6 +61,8 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     case None         ⇒ None
   }
 
+  protected def selector(implicit source: YamlSourceReader): Option[RouteSelector] = <<?[String]("selector").map(RouteSelector)
+
   protected def virtualHosts(implicit source: YamlSourceReader): List[String] = <<?[List[_]]("virtual_hosts") map {
     _.map {
       case host: String ⇒ host
@@ -83,7 +86,18 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 
     if (gateway.port.number < 0 || gateway.port.number > 65535) throwException(InvalidGatewayPortError(gateway.port.number))
 
+    if (gateway.selector.isDefined && gateway.routes.nonEmpty) throwException(RouteSelectorAndRoutesDefinedError)
+
+    gateway.selector.foreach { selector ⇒
+      Try(selector.nodes).getOrElse(throwException(InvalidRouteSelectorError(selector.definition)))
+    }
+
     gateway.routes.foreach(route ⇒ if (route.length < 1 || route.length > 4) throwException(UnsupportedRoutePathError(route.path)))
+
+    gateway.routes.foreach {
+      case route: DefaultRoute ⇒ if (route.selector.isDefined && route.length != 1) throwException(RouteSelectorOnlyRouteError)
+      case _                   ⇒
+    }
 
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
 
@@ -108,7 +122,9 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 object GatewayReader extends AbstractGatewayReader
 
 object ClusterGatewayReader extends AbstractGatewayReader {
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, metadata, Port(<<![String]("port"), None, None), service, sticky, virtualHosts, routes(splitPath = false), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = {
+    Gateway(name, metadata, Port(<<![String]("port"), None, None), service, sticky, virtualHosts, selector, routes(splitPath = false), deployed)
+  }
 }
 
 object DeployedGatewayReader extends AbstractGatewayReader {
@@ -134,7 +150,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.find[String](Lookup.entry)
     source.flatten({ entry ⇒ entry == "targets" })
-    DefaultRoute(name, metadata, Route.noPath, <<?[Percentage]("weight"), condition, <<?[Percentage]("condition_strength"), rewrites, balance)
+    DefaultRoute(name, metadata, Route.noPath, selector, <<?[Percentage]("weight"), condition, <<?[Percentage]("condition_strength"), rewrites, balance)
   }
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
@@ -156,6 +172,8 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
     super.expand
   }
 
+  protected def selector(implicit source: YamlSourceReader): Option[RouteSelector] = <<?[String]("selector").map(RouteSelector)
+
   protected def condition(implicit source: YamlSourceReader): Option[Condition] = {
     <<?[Any]("condition") map WeakConditionReader.readReferenceOrAnonymous
   }
@@ -171,6 +189,17 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   }
 
   override def validateName(name: String): String = if (GatewayPath.external(name)) name else super.validateName(name)
+
+  override protected def validate(route: Route): Route = {
+    route match {
+      case r: DefaultRoute ⇒
+        r.selector.foreach { selector ⇒
+          Try(selector.nodes).getOrElse(throwException(InvalidRouteSelectorError(selector.definition)))
+        }
+      case _ ⇒
+    }
+    route
+  }
 }
 
 trait AbstractConditionReader extends YamlReader[Condition] {

@@ -1,7 +1,7 @@
 package io.vamp.persistence.mysql
 
 import io.vamp.common.ClassMapper
-import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
+import io.vamp.persistence.sql.{ SqlPersistenceActor, SqlStatementProvider }
 
 class MySqlPersistenceActorMapper extends ClassMapper {
   val name = "mysql"
@@ -11,8 +11,6 @@ class MySqlPersistenceActorMapper extends ClassMapper {
 class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
   override val fetchSize: Int = Integer.MIN_VALUE
-
-  override val timeDependent: Boolean = true
 
   def selectStatement(lastId: Long): String = s"SELECT `ID`, `Record` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
 

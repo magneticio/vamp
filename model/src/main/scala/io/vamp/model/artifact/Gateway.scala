@@ -1,6 +1,7 @@
 package io.vamp.model.artifact
 
 import io.vamp.common.{ Artifact, Lookup, Reference }
+import io.vamp.model.parser.{ AstNode, RouteSelectorParser }
 import io.vamp.model.reader.Percentage
 
 import scala.language.implicitConversions
@@ -30,6 +31,7 @@ case class Gateway(
     service:      Option[GatewayService],
     sticky:       Option[Gateway.Sticky.Value],
     virtualHosts: List[String],
+    selector:     Option[RouteSelector],
     routes:       List[Route],
     deployed:     Boolean                      = false
 ) extends Artifact with Lookup {
@@ -103,7 +105,18 @@ object DefaultRoute {
   val defaultBalance = "default"
 }
 
-case class DefaultRoute(name: String, metadata: Map[String, Any], path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(
+    name:              String,
+    metadata:          Map[String, Any],
+    path:              GatewayPath,
+    selector:          Option[RouteSelector],
+    weight:            Option[Percentage],
+    condition:         Option[Condition],
+    conditionStrength: Option[Percentage],
+    rewrites:          List[Rewrite],
+    balance:           Option[String],
+    targets:           List[RouteTarget]     = Nil
+) extends Route {
 
   def definedCondition: Boolean = condition.isDefined && condition.forall(_.isInstanceOf[DefaultCondition])
 
@@ -186,4 +199,11 @@ object GatewayLookup {
     case some if some.size < 4 ⇒ expand(some :+ "*")
     case _                     ⇒ path
   }
+}
+
+case class RouteSelector(definition: String) {
+
+  lazy val nodes: AstNode = new RouteSelectorParser().parse(definition)
+
+  override def toString: String = definition
 }

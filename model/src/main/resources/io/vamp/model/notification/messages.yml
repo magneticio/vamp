@@ -52,7 +52,9 @@ UnresolvedPortReferenceError           : "Unresolved port reference: {portRefere
 NegativeFailuresNumberError            : "Failures can not be negative: {number}."
 UnsupportedProtocolError               : "Unsupported protocol: {protocol}"
 InvalidGatewayPortError                : "Invalid gateway port: {port}."
-
+RouteSelectorAndRoutesDefinedError$    : "Either route selector or routes can be defined."
+InvalidRouteSelectorError              : "Invalid route selector: {definition}."
+RouteSelectorOnlyRouteError$           : "If route selector is defined, route path must not contain '/'."
 # SLA
 
 Escalate                               : "Escalate '{deployment.name}/{cluster.name}'."
