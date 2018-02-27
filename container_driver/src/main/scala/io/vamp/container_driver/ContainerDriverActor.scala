@@ -23,6 +23,8 @@ object ContainerDriverActor {
 
   sealed trait ContainerDriveMessage
 
+  object GetRoutingGroups extends ContainerDriveMessage
+
   case class Get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest) extends ContainerDriveMessage
 
   case class Deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) extends ContainerDriveMessage
@@ -118,3 +120,14 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }
+
+case class RoutingGroup(
+  name:      String,
+  kind:      String,
+  namespace: String,
+  labels:    Map[String, String],
+  image:     Option[String],
+  instances: List[RoutingInstance]
+)
+
+case class RoutingInstance(ip: String, ports: Map[Int, Int])

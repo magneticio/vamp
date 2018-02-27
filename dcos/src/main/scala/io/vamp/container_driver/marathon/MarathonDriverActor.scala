@@ -112,6 +112,8 @@ class MarathonDriverActor
 
     case InfoRequest                    ⇒ reply(info)
 
+    case GetRoutingGroups               ⇒ reply(routingGroups)
+
     case Get(services, equality)        ⇒ get(services, equality)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
@@ -124,6 +126,7 @@ class MarathonDriverActor
     case event: ServerSentEvent         ⇒ process(event)
     case a: DeployMarathonApp           ⇒ reply(deploy(a.request))
     case a: UnDeployMarathonApp         ⇒ reply(undeploy(a.request))
+
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -157,6 +160,45 @@ class MarathonDriverActor
 
       ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(f, s), marathon))
     }
+  }
+
+  private def routingGroups: Future[List[RoutingGroup]] = {
+    httpClient
+      .get[AppsResponse](s"$appsUrl?embed=apps.tasks", headers, logError = false)
+      .recover {
+        case t: Throwable ⇒
+          log.error(t, s"Error while getting apps ⇒ ${t.getMessage}")
+          AppsResponse(Nil)
+        case _ ⇒
+          log.warning(s"Unknown error while getting apps.")
+          AppsResponse(Nil)
+      }
+      .map(_.apps).map {
+        _.flatMap { app ⇒
+          (app.id.split('/').filterNot(_.isEmpty).toList match {
+            case group :: id :: Nil ⇒ Option(group → id)
+            case id :: Nil          ⇒ Option("" → id)
+            case _                  ⇒ None
+          }) map {
+            case (group, id) ⇒
+              val containers = instances(app)
+              val ports = app.container.flatMap(_.docker).map(_.portMappings.map(_.containerPort)).getOrElse(Nil).flatten
+              RoutingGroup(
+                name = id,
+                kind = "app",
+                namespace = group,
+                labels = app.labels,
+                image = app.container.flatMap(_.docker).map(_.image),
+                instances = containers.map { container ⇒
+                  RoutingInstance(
+                    ip = container.host,
+                    ports = ports.zip(container.ports).toMap
+                  )
+                }
+              )
+          }
+        }
+      }
   }
 
   private def get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Unit = {
@@ -550,28 +592,29 @@ class MarathonDriverActor
   private def containers(app: App): Containers = {
     log.info("[Marathon Driver . containers]")
     val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
-    val instances = app.tasks.map(task ⇒ {
-      val portsAndIpForUserNetwork = for {
-        container ← app.container
-        docker ← container.docker
-        networkName ← Option(docker.network.getOrElse("")) // This is a hack to support 1.4 and 1.5 at the same time
-        ipAddressToUse ← task.ipAddresses.headOption
-        if (networkName == "USER"
-          || app.networks.map(_.mode).contains("container"))
-      } yield (ipAddressToUse.ipAddress,
-        docker.portMappings.flatMap(_.containerPort) ++ container.portMappings.flatMap(_.containerPort))
-      portsAndIpForUserNetwork match {
-        case None ⇒
-          val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          log.info(s"Ports for ${task.id} => ${task.ports} network: $network")
-          ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
-        case Some(portsAndIp) ⇒
-          val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-          log.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
-          ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
-      }
-    })
-    Containers(scale, instances)
+    Containers(scale, instances(app))
+  }
+
+  private def instances(app: App): List[ContainerInstance] = app.tasks.map { task ⇒
+    val portsAndIpForUserNetwork = for {
+      container ← app.container
+      docker ← container.docker
+      networkName ← Option(docker.network.getOrElse("")) // This is a hack to support 1.4 and 1.5 at the same time
+      ipAddressToUse ← task.ipAddresses.headOption
+      if (networkName == "USER"
+        || app.networks.map(_.mode).contains("container"))
+    } yield (ipAddressToUse.ipAddress,
+      docker.portMappings.flatMap(_.containerPort) ++ container.portMappings.flatMap(_.containerPort))
+    portsAndIpForUserNetwork match {
+      case None ⇒
+        val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
+        log.info(s"Ports for ${task.id} => ${task.ports} network: $network")
+        ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
+      case Some(portsAndIp) ⇒
+        val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
+        log.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
+        ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
+    }
   }
 
   private def deploy(request: AnyRef): Future[Any] = {

@@ -94,7 +94,7 @@ case class DeploymentCluster(
 ) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
-    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map {
+    gateways.find { gateway ⇒ gateway.port.name == name } map {
       _.port.number
     }
   }

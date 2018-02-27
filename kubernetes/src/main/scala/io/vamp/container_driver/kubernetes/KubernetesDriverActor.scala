@@ -79,6 +79,8 @@ class KubernetesDriverActor
 
     case InfoRequest                    ⇒ reply(Future(info()))
 
+    case GetRoutingGroups               ⇒ reply(Future.successful(Nil))
+
     case Get(services, equality)        ⇒ get(services, equality)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))

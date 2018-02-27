@@ -17,7 +17,8 @@ case class App(
   tasks:        List[Task]                = Nil,
   healthChecks: List[MarathonHealthCheck] = Nil,
   taskStats:    Option[MarathonTaskStats] = None,
-  networks:     List[AppNetwork]          = Nil
+  networks:     List[AppNetwork]          = Nil,
+  labels:       Map[String, String]       = Map()
 )
 
 case class AppContainer(docker: Option[DockerAppContainer], portMappings: List[DockerAppContainerPort])
