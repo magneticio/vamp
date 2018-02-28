@@ -53,7 +53,7 @@ NegativeFailuresNumberError            : "Failures can not be negative: {number}
 UnsupportedProtocolError               : "Unsupported protocol: {protocol}"
 InvalidGatewayPortError                : "Invalid gateway port: {port}."
 RouteSelectorAndRoutesDefinedError$    : "Either route selector or routes can be defined."
-InvalidRouteSelectorError              : "Invalid route selector: '{definition}'."
+InvalidSelectorError                   : "Invalid selector: '{definition}'."
 RouteSelectorOnlyRouteError$           : "If route selector is defined, route path must not contain '/'."
 RouteSelectorExternalTargetError$      : "Route selector cannot be defined for an external target."
 

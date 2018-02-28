@@ -13,8 +13,12 @@ trait SchedulerRoute extends AbstractRoute with SchedulerController with Executi
 
   def routingRoutes(implicit namespace: Namespace, timeout: Timeout): Route = get {
     path("scheduler" / "routing") {
-      onSuccess(routing) {
-        result ⇒ respondWith(OK, result)
+      pageAndPerPage() { (page, perPage) ⇒
+        parameters('selector.?) { selector ⇒
+          onSuccess(routing(selector)(page, perPage)) {
+            result ⇒ respondWith(OK, result)
+          }
+        }
       }
     }
   }

@@ -3,21 +3,24 @@ package io.vamp.operation.gateway
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.common.akka._
-import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup }
+import io.vamp.common.util.HashUtil
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.container_driver.ContainerDriverActor.{ DeployedGateways, GetRoutingGroups }
+import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup }
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
+import io.vamp.model.notification.InvalidSelectorError
+import io.vamp.model.reader.NameValidator
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -26,7 +29,7 @@ class GatewaySynchronizationSchedulerActor extends SchedulerActor with Operation
 
 object GatewaySynchronizationActor {
 
-  val timeout: ConfigMagnet[Timeout] = Config.timeout("vamp.operation.gateway.response-timeout")
+  val selector: ConfigMagnet[String] = Config.string("vamp.operation.gateway.selector")
 
   def portRangeLower()(implicit namespace: Namespace): Int = {
     val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
@@ -50,12 +53,20 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
   val all: List[Gateway] = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
+class GatewaySynchronizationActor extends CommonSupportForActors with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
-  import PersistenceActor._
   import GatewaySynchronizationActor._
+  import PersistenceActor._
 
   private var currentPort = portRangeLower - 1
+  private val selector: Option[RouteSelector] = {
+    Try(RouteSelector(GatewaySynchronizationActor.selector()).verified).toOption match {
+      case Some(s) ⇒ Option(s)
+      case None ⇒
+        reportException(InvalidSelectorError(GatewaySynchronizationActor.selector()))
+        None
+    }
+  }
 
   def receive: Actor.Receive = {
     case SynchronizeAll ⇒ synchronize()
@@ -104,7 +115,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def instanceUpdate(deployments: List[Deployment], routingGroups: List[RoutingGroup]): GatewayPipeline ⇒ GatewayPipeline = { pipeline ⇒
     val (passThrough, withoutRoutes) = pipeline.deployable.map { gateway ⇒
-      gateway.copy(routes = routes(gateway, deployments, routingGroups, pipeline))
+      routes(gateway, deployments, routingGroups, pipeline)
     } partition { gateway ⇒
       gateway.selector.isDefined || gateway.routes.exists {
         case route: DefaultRoute ⇒ route.selector.isDefined || route.targets.nonEmpty
@@ -117,18 +128,44 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
 
-  private def routes(gateway: Gateway, deployments: List[Deployment], routingGroups: List[RoutingGroup], pipeline: GatewayPipeline): List[Route] = {
-    gateway.routes.map {
-      case route: DefaultRoute ⇒
-        val routeTargets = route.selector match {
-          case Some(selector) ⇒ RouteSelectionProcessor.execute(selector, routingGroups)
-          case _              ⇒ targets(pipeline.deployable, deployments, route)
-
+  private def routes(gateway: Gateway, deployments: List[Deployment], routingGroups: List[RoutingGroup], pipeline: GatewayPipeline): Gateway = {
+    gateway.selector match {
+      case Some(s) ⇒
+        val groups = RouteSelectionProcessor.groups(s, routingGroups, selector).map {
+          case (n, v) ⇒ Try(validateName(n)).getOrElse(HashUtil.hexSha1(n)) → v
         }
-        val targetMatch = routeTargets == route.targets
-        if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
-        route.copy(targets = routeTargets)
-      case route ⇒ route
+        val routes = gateway.routes.map(route ⇒ route.name → route).toMap
+
+        val updated = gateway.routes.filter(route ⇒ groups.contains(route.name)).map {
+          case route: DefaultRoute ⇒ route.copy(targets = groups(route.name))
+          case route               ⇒ route
+        } ++ groups.filterNot {
+          case (n, _) ⇒ routes.contains(n)
+        }.map {
+          case (n, t) ⇒ DefaultRoute("", Map("groups" → n), GatewayPath(n), None, None, None, None, Nil, None, t)
+        }
+
+        if (updated != gateway.routes) {
+          val ng = gateway.copy(routes = updated)
+          IoC.actorFor[PersistenceActor] ! Update(ng)
+          ng
+        }
+        else gateway
+
+      case None ⇒
+        val routes = gateway.routes.map {
+          case route: DefaultRoute ⇒
+            val routeTargets = route.selector match {
+              case Some(s) ⇒ RouteSelectionProcessor.targets(s, routingGroups, selector)
+              case _       ⇒ targets(pipeline.deployable, deployments, route)
+
+            }
+            val targetMatch = routeTargets == route.targets
+            if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
+            route.copy(targets = routeTargets)
+          case route ⇒ route
+        }
+        gateway.copy(routes = routes)
     }
   }
 

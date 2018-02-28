@@ -6,7 +6,7 @@ import scala.util.matching.Regex
 
 sealed trait RouteSelectorOperand[T] extends Operand {
 
-  def matches(input: T): Boolean
+  def matches(input: T): Either[Boolean, String]
 }
 
 trait RouteRegExpSelectorOperand extends RouteSelectorOperand[String] {
@@ -15,9 +15,10 @@ trait RouteRegExpSelectorOperand extends RouteSelectorOperand[String] {
 
   private val valueMatcher: Regex = s"$value".r
 
-  def matches(input: String): Boolean = input match {
-    case valueMatcher(_*) ⇒ true
-    case _                ⇒ false
+  def matches(input: String): Either[Boolean, String] = input match {
+    case valueMatcher(group) ⇒ Right(group)
+    case valueMatcher(_*)    ⇒ Left(true)
+    case _                   ⇒ Left(false)
   }
 }
 
@@ -35,10 +36,23 @@ case class LabelSelector(name: String, value: String) extends RouteSelectorOpera
 
   private val valueMatcher: Regex = s"$value".r
 
-  def matches(input: (String, String)): Boolean = {
-    (input._1, input._2) match {
-      case (nameMatcher(_*), valueMatcher(_*)) ⇒ true
-      case _                                   ⇒ false
+  def matches(input: (String, String)): Either[Boolean, String] = {
+    val name = input._1 match {
+      case nameMatcher(group) ⇒ Right(group)
+      case nameMatcher(_*)    ⇒ Left(true)
+      case _                  ⇒ Left(false)
+    }
+    val value = input._2 match {
+      case valueMatcher(group) ⇒ Right(group)
+      case valueMatcher(_*)    ⇒ Left(true)
+      case _                   ⇒ Left(false)
+    }
+    (name, value) match {
+      case (Right(n), Right(v))     ⇒ Right(s"$n=$v")
+      case (Right(n), Left(true))   ⇒ Right(s"$n")
+      case (Left(true), Right(v))   ⇒ Right(s"$v")
+      case (Left(true), Left(true)) ⇒ Left(true)
+      case _                        ⇒ Left(false)
     }
   }
 }
@@ -46,11 +60,11 @@ case class LabelSelector(name: String, value: String) extends RouteSelectorOpera
 case class IpSelector(value: String) extends RouteRegExpSelectorOperand
 
 case class PortSelector(port: Int) extends RouteSelectorOperand[Int] {
-  def matches(input: Int): Boolean = input == port
+  def matches(input: Int): Either[Boolean, String] = Left(input == port)
 }
 
 case class PortIndexSelector(index: Int) extends RouteSelectorOperand[Int] {
-  def matches(input: Int): Boolean = false
+  def matches(input: Int): Either[Boolean, String] = Left(index == input)
 }
 
 class RouteSelectorParser extends Parser[AstNode] {

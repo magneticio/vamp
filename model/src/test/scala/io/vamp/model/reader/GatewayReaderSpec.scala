@@ -183,7 +183,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   }
 
   it should "fail if selector is invalid" in {
-    expectedError[InvalidRouteSelectorError]({
+    expectedError[InvalidSelectorError]({
       GatewayReader.read(res("gateway/gateway21.yml"))
     })
   }
@@ -205,7 +205,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   }
 
   it should "fail if route selector is invalid" in {
-    expectedError[InvalidRouteSelectorError]({
+    expectedError[InvalidSelectorError]({
       GatewayReader.read(res("gateway/gateway24.yml"))
     })
   }
@@ -223,7 +223,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   }
 
   it should "fail if route selector is invalid regexp" in {
-    expectedError[InvalidRouteSelectorError]({
+    expectedError[InvalidSelectorError]({
       GatewayReader.read(res("gateway/gateway27.yml"))
     })
   }

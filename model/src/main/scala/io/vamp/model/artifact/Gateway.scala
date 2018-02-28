@@ -205,5 +205,10 @@ case class RouteSelector(definition: String) {
 
   lazy val node: AstNode = new RouteSelectorParser().parse(definition)
 
+  def verified: RouteSelector = {
+    node // parse to verify
+    this
+  }
+
   override def toString: String = definition
 }
