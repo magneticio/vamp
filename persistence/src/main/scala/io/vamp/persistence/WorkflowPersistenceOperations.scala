@@ -68,11 +68,12 @@ trait WorkflowPersistenceOperations {
   private def patch(name: String, using: Workflow ⇒ Workflow): Unit = patch(name, using, (w, m) ⇒ replyUpdate(w, m))
 
   private def patch(name: String, using: Workflow ⇒ Workflow, update: (Workflow, Boolean) ⇒ Unit): Unit = {
-    var modified = false
-    get(name, classOf[Workflow]).map { w ⇒
-      val nw = using(w)
-      modified = nw != w
-      nw
-    } foreach { w ⇒ update(w, modified) }
+    get(name, classOf[Workflow]) match {
+      case Some(w) ⇒
+        val nw = using(w)
+        val modified = nw != w
+        update(nw, modified)
+      case None ⇒ replyNone()
+    }
   }
 }

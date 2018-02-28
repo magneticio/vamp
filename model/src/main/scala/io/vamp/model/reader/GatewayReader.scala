@@ -89,14 +89,16 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     if (gateway.selector.isDefined && gateway.routes.nonEmpty) throwException(RouteSelectorAndRoutesDefinedError)
 
     gateway.selector.foreach { selector ⇒
-      Try(selector.nodes).getOrElse(throwException(InvalidRouteSelectorError(selector.definition)))
+      Try(selector.node).getOrElse(throwException(InvalidRouteSelectorError(selector.definition)))
     }
 
     gateway.routes.foreach(route ⇒ if (route.length < 1 || route.length > 4) throwException(UnsupportedRoutePathError(route.path)))
 
     gateway.routes.foreach {
-      case route: DefaultRoute ⇒ if (route.selector.isDefined && route.length != 1) throwException(RouteSelectorOnlyRouteError)
-      case _                   ⇒
+      case route: DefaultRoute if route.selector.isDefined ⇒
+        if (route.length != 1) throwException(RouteSelectorOnlyRouteError)
+        if (route.external) throwException(RouteSelectorExternalTargetError)
+      case _ ⇒
     }
 
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
@@ -194,7 +196,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
     route match {
       case r: DefaultRoute ⇒
         r.selector.foreach { selector ⇒
-          Try(selector.nodes).getOrElse(throwException(InvalidRouteSelectorError(selector.definition)))
+          Try(selector.node).getOrElse(throwException(InvalidRouteSelectorError(selector.definition)))
         }
       case _ ⇒
     }

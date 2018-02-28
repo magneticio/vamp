@@ -136,7 +136,7 @@ case class InternalRouteTarget(name: String, host: Option[String], port: Int) ex
   val metadata = Map()
 }
 
-case class ExternalRouteTarget(url: String, metadata: Map[String, Any]) extends RouteTarget {
+case class ExternalRouteTarget(url: String, metadata: Map[String, Any] = Map()) extends RouteTarget {
   val name: String = url
 }
 
@@ -203,7 +203,7 @@ object GatewayLookup {
 
 case class RouteSelector(definition: String) {
 
-  lazy val nodes: AstNode = new RouteSelectorParser().parse(definition)
+  lazy val node: AstNode = new RouteSelectorParser().parse(definition)
 
   override def toString: String = definition
 }

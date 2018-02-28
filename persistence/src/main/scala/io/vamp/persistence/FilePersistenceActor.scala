@@ -46,8 +46,8 @@ class FilePersistenceActor
   override protected def info(): Map[String, Any] = super.info() + ("type" → "file") + ("file" → file.getAbsolutePath)
 
   protected def read(): Unit = this.synchronized {
-    for (line ← Source.fromFile(file).getLines()) {
-      if (line.nonEmpty) try dataRead(line) catch {
+    for (line ← Source.fromFile(file).getLines().map(_.trim)) {
+      if (line.nonEmpty && !line.startsWith("#") && !line.startsWith("//")) try dataRead(line) catch {
         case NotificationErrorException(_: UnknownDataFormatException, _) ⇒ // already logged, skip to the next line
         case c: CorruptedDataException ⇒
           reportException(c)

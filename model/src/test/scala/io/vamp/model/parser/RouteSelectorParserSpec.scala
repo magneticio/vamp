@@ -50,30 +50,56 @@ class RouteSelectorParserSpec extends FlatSpec with Matchers {
       PortSelector(8080)
     }
 
-    parser.parse("label(water)") shouldBe {
-      LabelSelector("water")
+    parser.parse("label(water)(ice)") shouldBe {
+      LabelSelector("water", "ice")
     }
 
-    parser.parse("label(^water:(.*)$)") shouldBe {
-      LabelSelector("^water:(.*)$")
+    parser.parse("label (water) (ice) ") shouldBe {
+      LabelSelector("water", "ice")
+    }
+
+    parser.parse("index(0)") shouldBe {
+      PortIndexSelector(0)
+    }
+
+    parser.parse("port_index(0)") shouldBe {
+      PortIndexSelector(0)
+    }
+  }
+
+  it should "parse with single group" in {
+    parser.parse("image(^water:(.*)$)") shouldBe {
+      ImageSelector("^water:(.*)$")
+    }
+
+    parser.parse("image((.*)$)") shouldBe {
+      ImageSelector("(.*)$")
+    }
+
+    parser.parse("image(^(.*))") shouldBe {
+      ImageSelector("^(.*)")
+    }
+
+    parser.parse("image((.*))") shouldBe {
+      ImageSelector("(.*)")
     }
   }
 
   it should "parse an expression" in {
-    parser.parse("id(water) and label(ice)") shouldBe {
-      And(NameSelector("water"), LabelSelector("ice"))
+    parser.parse("id(water) and image(ice)") shouldBe {
+      And(NameSelector("water"), ImageSelector("ice"))
     }
 
-    parser.parse("id(water) or not label(ice)") shouldBe {
-      Or(NameSelector("water"), Negation(LabelSelector("ice")))
+    parser.parse("id(water) or not image(ice)") shouldBe {
+      Or(NameSelector("water"), Negation(ImageSelector("ice")))
     }
 
-    parser.parse("(id(water) and not label(ice)) or image(solid)") shouldBe {
-      Or(And(NameSelector("water"), Negation(LabelSelector("ice"))), ImageSelector("solid"))
+    parser.parse("(id(water) and not label(water)(ice)) or image(solid)") shouldBe {
+      Or(And(NameSelector("water"), Negation(LabelSelector("water", "ice"))), ImageSelector("solid"))
     }
 
-    parser.parse("id(^water:(.*)$) or label(^ice:(.*)$)") shouldBe {
-      Or(NameSelector("^water:(.*)$"), LabelSelector("^ice:(.*)$"))
+    parser.parse("id(^water:(.*)$) or image(^ice:(.*)$)") shouldBe {
+      Or(NameSelector("^water:(.*)$"), ImageSelector("^ice:(.*)$"))
     }
   }
 

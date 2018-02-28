@@ -11,6 +11,8 @@ trait PatchPersistenceOperations {
 
   implicit def timeout: Timeout
 
+  protected def replyNone(): Unit = reply(Future.successful(None))
+
   protected def replyUpdate[T <: Artifact](artifact: T, update: Boolean): Unit = {
     if (update) reply(Future.successful(set[T](artifact))) else reply(Future.successful(artifact))
   }

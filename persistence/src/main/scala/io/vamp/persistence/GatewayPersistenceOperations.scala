@@ -58,18 +58,21 @@ trait GatewayPersistenceOperations {
   private def resetGateway(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
     var modified = false
     val name = GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
-    get(deployment).map { d ⇒
-      d.copy(clusters = d.clusters.map {
-        case c if c.name == cluster.name ⇒
-          val gateways = {
-            val ng = c.gateways.filterNot(_.name == name)
-            modified = ng != c.gateways
-            ng
-          }
-          c.copy(gateways = gateways)
-        case c ⇒ c
-      })
-    } foreach { d ⇒ replyUpdate(d, modified) }
+    get(deployment) match {
+      case Some(d) ⇒
+        d.copy(clusters = d.clusters.map {
+          case c if c.name == cluster.name ⇒
+            val gateways = {
+              val ng = c.gateways.filterNot(_.name == name)
+              modified = ng != c.gateways
+              ng
+            }
+            c.copy(gateways = gateways)
+          case c ⇒ c
+        })
+        replyUpdate(d, modified)
+      case _ ⇒ replyNone()
+    }
   }
 
   private def patchInternalGateway(gateway: Gateway): Unit = {
@@ -93,25 +96,29 @@ trait GatewayPersistenceOperations {
               case c ⇒ c
             })
             replyUpdate(d, modified)
-          case None ⇒ replyUpdate(gateway, update = true)
+          case None ⇒ replyNone()
         }
-      case None ⇒ replyUpdate(gateway, update = true)
+      case None ⇒ replyNone()
     }
   }
 
   private def deleteInternalGateway(name: String): Unit = {
-    deploymentCluster(name).foreach {
-      case (dName, cName) ⇒
-        var modified = false
-        get(dName, classOf[Deployment]).map { d ⇒
-          d.copy(clusters = d.clusters.map {
-            case c if c.name == cName ⇒
-              val gateways = c.gateways.filterNot(_.name == name)
-              modified = gateways != c.gateways
-              c.copy(gateways = gateways)
-            case c ⇒ c
-          })
-        } foreach { d ⇒ replyUpdate(d, modified) }
+    deploymentCluster(name) match {
+      case Some((dName, cName)) ⇒
+        get(dName, classOf[Deployment]) match {
+          case Some(d) ⇒
+            var modified = false
+            d.copy(clusters = d.clusters.map {
+              case c if c.name == cName ⇒
+                val gateways = c.gateways.filterNot(_.name == name)
+                modified = gateways != c.gateways
+                c.copy(gateways = gateways)
+              case c ⇒ c
+            })
+            replyUpdate(d, modified)
+          case _ ⇒ replyNone()
+        }
+      case _ ⇒ replyNone()
     }
   }
 
@@ -156,12 +163,13 @@ trait GatewayPersistenceOperations {
   }
 
   private def patch(name: String, using: Gateway ⇒ Gateway): Unit = {
-    var modified = false
-    get(name, classOf[Gateway]).map { g ⇒
-      val ng = using(g)
-      modified = ng != g
-      ng
-    } foreach { g ⇒ replyUpdate(g, modified) }
+    get(name, classOf[Gateway]) match {
+      case Some(g) ⇒
+        val ng = using(g)
+        val modified = ng != g
+        replyUpdate(ng, modified)
+      case None ⇒ replyNone()
+    }
   }
 
   private def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): String = {

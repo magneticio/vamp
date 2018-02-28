@@ -130,4 +130,6 @@ case class RoutingGroup(
   instances: List[RoutingInstance]
 )
 
-case class RoutingInstance(ip: String, ports: Map[Int, Int])
+case class RoutingInstance(ip: String, ports: List[RoutingInstancePort])
+
+case class RoutingInstancePort(host: Int, container: Int)

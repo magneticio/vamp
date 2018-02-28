@@ -2,21 +2,56 @@ package io.vamp.model.parser
 
 import akka.parboiled2._
 
-sealed trait RouteSelectorOperand extends Operand
+import scala.util.matching.Regex
 
-case class NameSelector(value: String) extends RouteSelectorOperand
+sealed trait RouteSelectorOperand[T] extends Operand {
 
-case class KindSelector(value: String) extends RouteSelectorOperand
+  def matches(input: T): Boolean
+}
 
-case class NamespaceSelector(value: String) extends RouteSelectorOperand
+trait RouteRegExpSelectorOperand extends RouteSelectorOperand[String] {
 
-case class ImageSelector(value: String) extends RouteSelectorOperand
+  def value: String
 
-case class LabelSelector(value: String) extends RouteSelectorOperand
+  private val valueMatcher: Regex = s"$value".r
 
-case class IpSelector(value: String) extends RouteSelectorOperand
+  def matches(input: String): Boolean = input match {
+    case valueMatcher(_*) ⇒ true
+    case _                ⇒ false
+  }
+}
 
-case class PortSelector(value: Int) extends RouteSelectorOperand
+case class NameSelector(value: String) extends RouteRegExpSelectorOperand
+
+case class KindSelector(value: String) extends RouteRegExpSelectorOperand
+
+case class NamespaceSelector(value: String) extends RouteRegExpSelectorOperand
+
+case class ImageSelector(value: String) extends RouteRegExpSelectorOperand
+
+case class LabelSelector(name: String, value: String) extends RouteSelectorOperand[(String, String)] {
+
+  private val nameMatcher: Regex = s"$name".r
+
+  private val valueMatcher: Regex = s"$value".r
+
+  def matches(input: (String, String)): Boolean = {
+    (input._1, input._2) match {
+      case (nameMatcher(_*), valueMatcher(_*)) ⇒ true
+      case _                                   ⇒ false
+    }
+  }
+}
+
+case class IpSelector(value: String) extends RouteRegExpSelectorOperand
+
+case class PortSelector(port: Int) extends RouteSelectorOperand[Int] {
+  def matches(input: Int): Boolean = input == port
+}
+
+case class PortIndexSelector(index: Int) extends RouteSelectorOperand[Int] {
+  def matches(input: Int): Boolean = false
+}
 
 class RouteSelectorParser extends Parser[AstNode] {
   override def parser(expression: String) = new RouteSelectorParboiledParser(expression)
@@ -25,42 +60,46 @@ class RouteSelectorParser extends Parser[AstNode] {
 class RouteSelectorParboiledParser(override val input: ParserInput) extends BooleanParboiledParser(input) {
 
   override def Operand: Rule1[AstNode] = rule {
-    NamespaceOperand | NameOperand | KindOperand | ImageOperand | LabelOperand | IpOperand | PortOperand
+    NamespaceOperand | NameOperand | KindOperand | ImageOperand | LabelOperand | IpOperand | PortOperand | PortIndexOperand | TrueConstant | FalseConstant
   }
 
-  def NameOperand = rule {
+  private def NameOperand = rule {
     OWS ~ ("name" | "id") ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((value: String) ⇒ NameSelector(value))
   }
 
-  def KindOperand = rule {
+  private def KindOperand = rule {
     OWS ~ ("kind" | "type") ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((value: String) ⇒ KindSelector(value))
   }
 
-  def NamespaceOperand = rule {
+  private def NamespaceOperand = rule {
     OWS ~ ("namespace" | "group") ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((value: String) ⇒ NamespaceSelector(value))
   }
 
-  def ImageOperand = rule {
+  private def ImageOperand = rule {
     OWS ~ "image" ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((value: String) ⇒ ImageSelector(value))
   }
 
-  def LabelOperand = rule {
-    OWS ~ "label" ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((value: String) ⇒ LabelSelector(value))
+  private def LabelOperand = rule {
+    OWS ~ "label" ~ OWS ~ "(" ~ capture(Value) ~ ")" ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((name: String, value: String) ⇒ LabelSelector(name, value))
   }
 
-  def IpOperand = rule {
+  private def IpOperand = rule {
     OWS ~ ("ip" | "host") ~ OWS ~ "(" ~ capture(Value) ~ ")" ~> ((value: String) ⇒ IpSelector(value))
   }
 
-  def PortOperand = rule {
+  private def PortOperand = rule {
     OWS ~ "port" ~ OWS ~ "(" ~ capture(oneOrMore(CharPredicate.Digit)) ~ ")" ~> ((value: String) ⇒ PortSelector(value.toInt))
   }
 
-  def Value = rule {
-    ValuePart ~ optional('(' ~ ValuePart ~ ')' ~ ValuePart)
+  private def PortIndexOperand = rule {
+    OWS ~ ("port_index" | "index") ~ OWS ~ "(" ~ capture(oneOrMore(CharPredicate.Digit)) ~ ")" ~> ((value: String) ⇒ PortIndexSelector(value.toInt))
   }
 
-  def ValuePart = rule {
+  private def Value = rule {
+    optional(ValuePart) ~ '(' ~ ValuePart ~ ')' ~ optional(ValuePart) | ValuePart
+  }
+
+  private def ValuePart = rule {
     oneOrMore(CharPredicate.Printable -- '(' -- ')')
   }
 }

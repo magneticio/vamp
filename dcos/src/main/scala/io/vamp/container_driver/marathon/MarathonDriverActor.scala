@@ -192,7 +192,7 @@ class MarathonDriverActor
                 instances = containers.map { container ⇒
                   RoutingInstance(
                     ip = container.host,
-                    ports = ports.zip(container.ports).toMap
+                    ports = ports.zip(container.ports).map(port ⇒ RoutingInstancePort(port._1, port._2))
                   )
                 }
               )
@@ -608,11 +608,11 @@ class MarathonDriverActor
     portsAndIpForUserNetwork match {
       case None ⇒
         val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-        log.info(s"Ports for ${task.id} => ${task.ports} network: $network")
+        log.debug(s"Ports for ${task.id} => ${task.ports} network: $network")
         ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
       case Some(portsAndIp) ⇒
         val network = Try(app.container.get.docker.get.network.get).getOrElse("Empty")
-        log.info(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
+        log.debug(s"Ports (USER network) for ${task.id} => ${portsAndIp._2} network: $network")
         ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
     }
   }

@@ -172,7 +172,7 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     GatewayReader.read(res("gateway/gateway19.yml")) should have(
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
-      'selector(Option(RouteSelector("label(winter) and id(cold)")))
+      'selector(Option(RouteSelector("label(winter)(cold) and id(cold)")))
     )
   }
 
@@ -213,6 +213,18 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "fail if route selector is defined and path length != 1" in {
     expectedError[RouteSelectorOnlyRouteError.type]({
       GatewayReader.read(res("gateway/gateway25.yml"))
+    })
+  }
+
+  it should "fail if route selector is defined for an external route target" in {
+    expectedError[RouteSelectorExternalTargetError.type]({
+      GatewayReader.read(res("gateway/gateway26.yml"))
+    })
+  }
+
+  it should "fail if route selector is invalid regexp" in {
+    expectedError[InvalidRouteSelectorError]({
+      GatewayReader.read(res("gateway/gateway27.yml"))
     })
   }
 }

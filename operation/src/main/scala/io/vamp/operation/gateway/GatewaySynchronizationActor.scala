@@ -5,8 +5,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.common.akka._
-import io.vamp.container_driver.ContainerDriverActor
-import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
+import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup }
+import io.vamp.container_driver.ContainerDriverActor.{ DeployedGateways, GetRoutingGroups }
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
 import io.vamp.model.artifact._
@@ -42,7 +42,7 @@ object GatewaySynchronizationActor {
 
   object SynchronizeAll extends GatewayMessages
 
-  case class Synchronize(gateways: List[Gateway], deployments: List[Deployment], marshalled: List[Gateway]) extends GatewayMessages
+  case class Synchronize(gateways: List[Gateway], deployments: List[Deployment], routingGroups: List[RoutingGroup], marshalled: List[Gateway]) extends GatewayMessages
 
 }
 
@@ -59,7 +59,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   def receive: Actor.Receive = {
     case SynchronizeAll ⇒ synchronize()
-    case s: Synchronize ⇒ synchronize(s.gateways, s.deployments, s.marshalled)
+    case s: Synchronize ⇒ synchronize(s.gateways, s.deployments, s.routingGroups, s.marshalled)
     case _              ⇒
   }
 
@@ -69,15 +69,16 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     (for {
       gateways ← consume(allArtifacts[Gateway])
       deployments ← consume(allArtifacts[Deployment])
+      routingGroups ← checked[List[RoutingGroup]](IoC.actorFor[ContainerDriverActor] ? GetRoutingGroups)
       marshalled ← checked[List[Gateway]](IoC.actorFor[GatewayDriverActor] ? Pull)
-    } yield (gateways, deployments, marshalled)) onComplete {
-      case Success((gateways, deployments, marshalled)) ⇒ sendTo ! Synchronize(gateways, deployments, marshalled)
-      case Failure(error)                               ⇒ reportException(InternalServerError(error))
+    } yield (gateways, deployments, routingGroups, marshalled)) onComplete {
+      case Success((gateways, deployments, routingGroups, marshalled)) ⇒ sendTo ! Synchronize(gateways, deployments, routingGroups, marshalled)
+      case Failure(error) ⇒ reportException(InternalServerError(error))
     }
   }
 
-  private def synchronize(gateways: List[Gateway], deployments: List[Deployment], marshalled: List[Gateway]): Unit = {
-    (portAssignment(deployments) andThen instanceUpdate(deployments) andThen select(marshalled) andThen flush)(gateways)
+  private def synchronize(gateways: List[Gateway], deployments: List[Deployment], routingGroups: List[RoutingGroup], marshalled: List[Gateway]): Unit = {
+    (portAssignment(deployments) andThen instanceUpdate(deployments, routingGroups) andThen select(marshalled) andThen flush)(gateways)
   }
 
   private def portAssignment(deployments: List[Deployment]): List[Gateway] ⇒ GatewayPipeline = { gateways ⇒
@@ -101,37 +102,39 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     GatewayPipeline(otherGateways, noPortGateways)
   }
 
-  private def instanceUpdate(deployments: List[Deployment]): GatewayPipeline ⇒ GatewayPipeline = { pipeline ⇒
-
+  private def instanceUpdate(deployments: List[Deployment], routingGroups: List[RoutingGroup]): GatewayPipeline ⇒ GatewayPipeline = { pipeline ⇒
     val (passThrough, withoutRoutes) = pipeline.deployable.map { gateway ⇒
-      val routes = gateway.routes.map {
-        case route: DefaultRoute ⇒
-          val routeTargets = targets(pipeline.deployable, deployments, route)
-          val targetMatch = routeTargets == route.targets
-          if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
-          route.copy(targets = routeTargets)
-        case route ⇒ route
-      }
-
-      gateway.copy(routes = routes)
-
+      gateway.copy(routes = routes(gateway, deployments, routingGroups, pipeline))
     } partition { gateway ⇒
-      gateway.routes.exists {
-        case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
-        case _ ⇒ false
+      gateway.selector.isDefined || gateway.routes.exists {
+        case route: DefaultRoute ⇒ route.selector.isDefined || route.targets.nonEmpty
+        case _                   ⇒ false
       } || !gateway.internal
     }
 
     passThrough filter (!_.deployed) foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = true) }
-
     withoutRoutes filter (_.deployed) foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false) }
-
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
+  }
+
+  private def routes(gateway: Gateway, deployments: List[Deployment], routingGroups: List[RoutingGroup], pipeline: GatewayPipeline): List[Route] = {
+    gateway.routes.map {
+      case route: DefaultRoute ⇒
+        val routeTargets = route.selector match {
+          case Some(selector) ⇒ RouteSelectionProcessor.execute(selector, routingGroups)
+          case _              ⇒ targets(pipeline.deployable, deployments, route)
+
+        }
+        val targetMatch = routeTargets == route.targets
+        if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
+        route.copy(targets = routeTargets)
+      case route ⇒ route
+    }
   }
 
   private def targets(gateways: List[Gateway], deployments: List[Deployment], route: DefaultRoute): List[RouteTarget] = {
     route.path.external match {
-      case Some(external) ⇒ ExternalRouteTarget(external, Map()) :: Nil
+      case Some(external) ⇒ ExternalRouteTarget(external) :: Nil
       case _ ⇒
 
         val targets = route.path.segments match {

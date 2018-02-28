@@ -11,6 +11,8 @@ import org.json4s.Formats
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.write
 
+import scala.util.Try
+
 object PersistenceRecord {
 
   def apply(name: String, kind: String): PersistenceRecord = PersistenceRecord(Model.version, Model.uuid, OffsetDateTime.now(), name, kind, None)
@@ -62,7 +64,7 @@ trait PersistenceDataReader extends PersistenceRecordMarshaller with Persistence
   protected def dataDelete(name: String, kind: String): Unit
 
   protected def dataRead(data: String): Unit = {
-    val record = unmarshallRecord(data)
+    val record = Try(unmarshallRecord(data)).getOrElse(throwException(UnknownDataFormatException("")))
     record.artifact match {
       case Some(content) ⇒ unmarshall(record.kind, content).map(a ⇒ dataSet(a, record.kind)).getOrElse(throwException(UnknownDataFormatException(record.kind)))
       case None          ⇒ dataDelete(record.name, record.kind)

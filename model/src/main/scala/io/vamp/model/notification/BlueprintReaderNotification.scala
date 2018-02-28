@@ -64,3 +64,5 @@ object RouteSelectorAndRoutesDefinedError extends Notification
 case class InvalidRouteSelectorError(definition: String) extends Notification
 
 object RouteSelectorOnlyRouteError extends Notification
+
+object RouteSelectorExternalTargetError extends Notification

@@ -1,0 +1,5 @@
+name: sava
+port: 8080/http
+routes:
+  [external/1/2]:
+    selector: image(.*)
