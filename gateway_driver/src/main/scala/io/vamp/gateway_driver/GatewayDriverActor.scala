@@ -15,6 +15,7 @@ import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
+import scala.util.Try
 
 object GatewayDriverActor {
 

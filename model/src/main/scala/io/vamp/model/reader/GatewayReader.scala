@@ -125,7 +125,9 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   }
 }
 
-object GatewayReader extends AbstractGatewayReader
+object GatewayReader extends AbstractGatewayReader {
+  protected override def name(implicit source: YamlSourceReader): String = validateName(<<![String]("name"))
+}
 
 object ClusterGatewayReader extends AbstractGatewayReader {
   override protected def parse(implicit source: YamlSourceReader): Gateway = {
@@ -280,7 +282,7 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
 
 object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
 
-  protected val reader: AnonymousYamlReader[Gateway] = GatewayReader
+  protected val reader: AnonymousYamlReader[Gateway] = new AbstractGatewayReader {}
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     source.pull().keySet.map { port ⇒

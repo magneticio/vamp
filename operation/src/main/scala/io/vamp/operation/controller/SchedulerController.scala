@@ -18,9 +18,7 @@ import scala.util.Try
 trait SchedulerController extends ReplyCheck with AbstractController {
 
   def routing(selector: Option[String])(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[OffsetResponseEnvelope[RoutingGroup]] = {
-
-    val filter = selector.map(s ⇒ Try(RouteSelector(s)).getOrElse(throwException(InvalidSelectorError(selector.get))))
-
+    val filter = selector.map(s ⇒ Try(RouteSelector(s).verified).getOrElse(throwException(InvalidSelectorError(selector.get))))
     checked[List[RoutingGroup]](IoC.actorFor[ContainerDriverActor] ? GetRoutingGroups).map { routingGroups ⇒
       val targets = RouteSelectionProcessor.targets(
         Try(RouteSelector(GatewaySynchronizationActor.selector()).verified).getOrElse(RouteSelector("false")), routingGroups, filter
