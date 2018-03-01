@@ -1,5 +1,6 @@
 package io.vamp.operation.gateway
 
+import io.vamp.common.Namespace
 import io.vamp.container_driver.RoutingGroup
 import io.vamp.model.artifact.{ ExternalRouteTarget, RouteSelector }
 import io.vamp.model.parser._
@@ -20,27 +21,36 @@ private case class PortTarget(name: Int, value: Int, index: Int)
 
 object RouteSelectionProcessor {
 
-  def targets(selector: RouteSelector, routingGroups: List[RoutingGroup], filter: Option[RouteSelector]): List[ExternalRouteTarget] = {
+  def targets(selector: RouteSelector, routingGroups: List[RoutingGroup], filter: Option[RouteSelector])(implicit namespace: Namespace): List[ExternalRouteTarget] = {
     execute(combine(selector, filter), flatten(routingGroups)).map(external).distinct
   }
 
-  def groups(selector: RouteSelector, routingGroups: List[RoutingGroup], filter: Option[RouteSelector]): Map[String, List[ExternalRouteTarget]] = {
+  def groups(selector: RouteSelector, routingGroups: List[RoutingGroup], filter: Option[RouteSelector])(implicit namespace: Namespace): Map[String, List[ExternalRouteTarget]] = {
     execute(combine(selector, filter), flatten(routingGroups))
-      .groupBy(target ⇒ target.groups.toList.map(g ⇒ s"($g)").sorted.mkString(","))
-      .mapValues(list ⇒ list.map(external).distinct)
+      .groupBy { target ⇒
+        val group = target.groups.toList.map(g ⇒ s"($g)").sorted.mkString(",")
+        if (group.isEmpty) "()" else group
+      }
+      .mapValues { list ⇒ list.map(external).distinct }
   }
 
-  private def execute(node: AstNode, targets: List[GroupRouteTarget]): List[GroupRouteTarget] = {
+  private def execute(node: AstNode, targets: List[GroupRouteTarget])(implicit namespace: Namespace): List[GroupRouteTarget] = {
     def filter(target: GroupRouteTarget, matches: Either[Boolean, String]): List[GroupRouteTarget] = matches match {
       case Left(b)  ⇒ if (b) target :: Nil else Nil
       case Right(g) ⇒ target.copy(groups = target.groups + g) :: Nil
     }
 
     node match {
-      case s: NameSelector      ⇒ targets.flatMap(target ⇒ filter(target, s.matches(target.name)))
-      case s: KindSelector      ⇒ targets.flatMap(target ⇒ filter(target, s.matches(target.kind)))
-      case s: NamespaceSelector ⇒ targets.flatMap(target ⇒ filter(target, s.matches(target.namespace)))
-      case s: ImageSelector     ⇒ targets.flatMap(target ⇒ if (target.image.isEmpty) Nil else filter(target, s.matches(target.image.get)))
+      case s: NameSelector  ⇒ targets.flatMap(target ⇒ filter(target, s.matches(target.name)))
+      case s: KindSelector  ⇒ targets.flatMap(target ⇒ filter(target, s.matches(target.kind)))
+      case s: ImageSelector ⇒ targets.flatMap(target ⇒ if (target.image.isEmpty) Nil else filter(target, s.matches(target.image.get)))
+      case s: NamespaceSelector ⇒
+        targets.flatMap { target ⇒
+          if (s.value == s"$$namespace" || s.value == s"$${namespace}") {
+            if (target.namespace == namespace.name) target :: Nil else Nil
+          }
+          else filter(target, s.matches(target.namespace))
+        }
       case s: LabelSelector ⇒
         targets.flatMap { target ⇒
           var nt: Option[GroupRouteTarget] = None
@@ -88,7 +98,7 @@ object RouteSelectionProcessor {
       group.instances.flatMap { instance ⇒
         instance.ports.zipWithIndex.map {
           case (port, index) ⇒ GroupRouteTarget(
-            s"${group.name}/${instance.ip}:${port.host}",
+            s"${group.name}/${instance.ip}:${port.container}",
             group.name,
             group.kind,
             group.namespace,

@@ -1,5 +1,6 @@
 package io.vamp.operation.gateway
 
+import io.vamp.common.Namespace
 import io.vamp.container_driver.{ RoutingGroup, RoutingInstance, RoutingInstancePort }
 import io.vamp.model.artifact.RouteSelector
 import org.junit.runner.RunWith
@@ -117,6 +118,24 @@ class RouteSelectionProcessorSpec extends FlatSpec with Matchers {
       )
     )
   }
+
+  it should "group by namespace" in {
+    groups(s"namespace(default) and true") should be(
+      Map(
+        "()" → Set("172.17.0.1:8180", "172.17.0.1:8181", "172.17.0.2:8280", "172.17.0.2:8281")
+      )
+    )
+  }
+
+  it should "group by current namespace" in {
+    groups(s"namespace($$namespace)") should be(
+      Map(
+        "()" → Set("172.17.0.1:8180", "172.17.0.1:8181", "172.17.0.2:8280", "172.17.0.2:8281")
+      )
+    )
+  }
+
+  private implicit val namespace: Namespace = Namespace("default")
 
   private val routingGroups = RoutingGroup(
     name = "sava:1.0",
