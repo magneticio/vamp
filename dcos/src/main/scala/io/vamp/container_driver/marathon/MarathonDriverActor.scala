@@ -1,7 +1,7 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.{ Actor, ActorRef }
-import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.event.LoggingAdapter
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
@@ -19,7 +19,6 @@ import org.json4s._
 import org.json4s.native.JsonMethods.parse
 
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 class MarathonDriverActorMapper extends ClassMapper {
@@ -29,28 +28,11 @@ class MarathonDriverActorMapper extends ClassMapper {
 
 object MarathonDriverActor {
 
-  private val config = "vamp.container-driver"
-  private val marathonConfig = "vamp.container-driver.marathon"
+  val mesosConfig = "vamp.container-driver.mesos"
 
-  val mesosUrl: ConfigMagnet[String] = Config.string(s"$config.mesos.url")
-  val marathonUrl: ConfigMagnet[String] = Config.string(s"$marathonConfig.url")
-
-  val apiUser: ConfigMagnet[String] = Config.string(s"$marathonConfig.user")
-  val apiPassword: ConfigMagnet[String] = Config.string(s"$marathonConfig.password")
-  val apiToken: ConfigMagnet[String] = Config.string(s"$marathonConfig.token")
-
-  val sse: ConfigMagnet[Boolean] = Config.boolean(s"$marathonConfig.sse")
-
-  val readTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.read-time-to-live")
-  val writeTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.write-time-to-live")
-  val failureTimeToLivePeriod: ConfigMagnet[FiniteDuration] = Config.duration(s"$marathonConfig.cache.failure-time-to-live")
+  val marathonConfig = "vamp.container-driver.marathon"
 
   val namespaceConstraint: ConfigMagnet[List[String]] = Config.stringList(s"$marathonConfig.namespace-constraint")
-
-  val tenantIdOverride: ConfigMagnet[String] = Config.string(s"$marathonConfig.tenant-id-override")
-  val tenantIdWorkflowOverride: ConfigMagnet[String] = Config.string(s"$marathonConfig.tenant-id-workflow-override")
-
-  val useBreedNameForServiceName: ConfigMagnet[Boolean] = Config.boolean(s"$marathonConfig.use-breed-name-for-service-name")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -73,8 +55,6 @@ case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 class MarathonDriverActor
     extends ContainerDriverActor
     with MarathonNamespace
-    with MarathonCache
-    with MarathonSse
     with ActorExecutionContextProvider
     with ContainerDriver
     with HealthCheckMerger
@@ -82,29 +62,15 @@ class MarathonDriverActor
 
   import ContainerDriverActor._
 
-  lazy val tenantIdOverride: Option[String] = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
-
-  lazy val tenantIdWorkflowOverride: Option[String] = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdWorkflowOverride()))).getOrElse(None)
-
-  lazy val useBreedNameForServiceName: Option[Boolean] = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
-
-  private val sse: Boolean = MarathonDriverActor.sse()
-
-  private val url = MarathonDriverActor.marathonUrl()
-
-  private val infoUrl = s"$url/v2/info"
-  private val appsUrl = s"$url/v2/apps"
-  private val eventsUrl = s"$url/v2/events"
-
-  private val headers: List[(String, String)] = {
-    val token = MarathonDriverActor.apiToken()
-    if (token.isEmpty)
-      HttpClient.basicAuthorization(MarathonDriverActor.apiUser(), MarathonDriverActor.apiPassword())
-    else
-      List("Authorization" → s"token=$token")
-  }
-
   private implicit val formats: Formats = DefaultFormats
+
+  private implicit val loggingAdapter: LoggingAdapter = log
+
+  private implicit lazy val httpClient: HttpClient = new HttpClient
+
+  private lazy val config = MarathonClientConfig()
+
+  private lazy val client: MarathonClient = MarathonClient.acquire(config)
 
   override protected def supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: CommandDeployableType :: Nil
 
@@ -123,106 +89,70 @@ class MarathonDriverActor
     case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
-    case event: ServerSentEvent         ⇒ process(event)
     case a: DeployMarathonApp           ⇒ reply(deploy(a.request))
     case a: UnDeployMarathonApp         ⇒ reply(undeploy(a.request))
 
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
-  override def preStart(): Unit = if (sse) openSseStream(eventsUrl, headers, tlsCheck = httpClient.tlsCheck)
+  override def postStop(): Unit = MarathonClient.release(config)
 
-  override def postStop(): Unit = {
-    closeCache()
-    if (sse) closeSseStream()
-  }
-
-  private def info: Future[Any] = {
-
-    def remove(key: String): Any ⇒ Any = {
-      case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, _) ⇒ k == key } map { case (k, v) ⇒ k → remove(key)(v) }
-      case l: List[_]   ⇒ l.map(remove(key))
-      case any          ⇒ any
-    }
-
-    for {
-      slaves ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/slaves", headers)
-      frameworks ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/frameworks", headers)
-      marathon ← httpClient.get[Any](infoUrl, headers)
-    } yield {
-
-      val s: Any = slaves match {
-        case s: Map[_, _] ⇒ s.asInstanceOf[Map[String, _]].getOrElse("slaves", Nil)
-        case _            ⇒ Nil
-      }
-
-      val f = (remove("tasks") andThen remove("completed_tasks"))(frameworks)
-
-      ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(f, s), marathon))
-    }
-  }
+  private def info: Future[ContainerInfo] = client.info
 
   private def routingGroups: Future[List[RoutingGroup]] = {
-    httpClient
-      .get[AppsResponse](s"$appsUrl?embed=apps.tasks", headers, logError = false)
-      .recover {
-        case t: Throwable ⇒
-          log.error(t, s"Error while getting apps ⇒ ${t.getMessage}")
-          AppsResponse(Nil)
-        case _ ⇒
-          log.warning(s"Unknown error while getting apps.")
-          AppsResponse(Nil)
-      }
-      .map(_.apps).map {
-        _.flatMap { app ⇒
-          (app.id.split('/').filterNot(_.isEmpty).toList match {
-            case group :: id :: Nil ⇒ Option(group → id)
-            case id :: Nil          ⇒ Option("" → id)
-            case _                  ⇒ None
-          }) map {
-            case (group, id) ⇒
-              val containers = instances(app)
-              val ports = app.container.flatMap(_.docker).map(_.portMappings.map(_.containerPort)).getOrElse(Nil).flatten
-              RoutingGroup(
-                name = id,
-                kind = "app",
-                namespace = group,
-                labels = app.labels,
-                image = app.container.flatMap(_.docker).map(_.image),
-                instances = containers.map { container ⇒
-                  RoutingInstance(
-                    ip = container.host,
-                    ports = ports.zip(container.ports).map(port ⇒ RoutingInstancePort(port._1, port._2))
-                  )
-                }
-              )
-          }
+    client.get().map {
+      _.flatMap { app ⇒
+        (app.id.split('/').filterNot(_.isEmpty).toList match {
+          case group :: id :: Nil ⇒ Option(group → id)
+          case id :: Nil          ⇒ Option("" → id)
+          case _                  ⇒ None
+        }) map {
+          case (group, id) ⇒
+            val containers = instances(app)
+            val ports = app.container.flatMap(_.docker).map(_.portMappings.map(_.containerPort)).getOrElse(Nil).flatten
+            RoutingGroup(
+              name = id,
+              kind = "app",
+              namespace = group,
+              labels = app.labels,
+              image = app.container.flatMap(_.docker).map(_.image),
+              instances = containers.map { container ⇒
+                RoutingInstance(
+                  ip = container.host,
+                  ports = ports.zip(container.ports).map(port ⇒ RoutingInstancePort(port._1, port._2))
+                )
+              }
+            )
         }
       }
+    }
   }
 
   private def get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest): Unit = {
     log.info("getting deployment services")
     val replyTo = sender()
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
-      case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
-        case Some(app) ⇒
-          val cluster = deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
-          val equality = ServiceEqualityResponse(
-            deployable = !equalityRequest.deployable || checkDeployable(service, app),
-            ports = !equalityRequest.ports || checkPorts(deployment, cluster, service, app),
-            environmentVariables = !equalityRequest.environmentVariables || checkEnvironmentVariables(deployment, cluster, service, app),
-            health = !equalityRequest.health || checkHealth(deployment, service, app)
-          )
-          replyTo ! ContainerService(
-            deployment,
-            service,
-            Option(containers(app)),
-            app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts)),
-            equality = equality
-          )
-        case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
-      }
+      case (deployment, service) ⇒
+        val id = appId(deployment, service.breed)
+        log.debug(s"marathon sending request: $id")
+        client.get(id).foreach {
+          case Some(app) ⇒
+            val cluster = deployment.clusters.find { c ⇒ c.services.exists { s ⇒ s.breed.name == service.breed.name } }
+            val equality = ServiceEqualityResponse(
+              deployable = !equalityRequest.deployable || checkDeployable(service, app),
+              ports = !equalityRequest.ports || checkPorts(deployment, cluster, service, app),
+              environmentVariables = !equalityRequest.environmentVariables || checkEnvironmentVariables(deployment, cluster, service, app),
+              health = !equalityRequest.health || checkHealth(deployment, service, app)
+            )
+            replyTo ! ContainerService(
+              deployment,
+              service,
+              Option(containers(app)),
+              app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts)),
+              equality = equality
+            )
+          case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
+        }
     }
   }
 
@@ -251,8 +181,8 @@ class MarathonDriverActor
   }
 
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
-    log.debug(s"marathon reconcile workflow: ${workflow.name}")
-    get(appId(workflow)).foreach {
+    log.debug(s"marathon get workflow: ${workflow.name}")
+    client.get(appId(workflow)).foreach {
       case Some(app) if workflow.breed.isInstanceOf[DefaultBreed] ⇒
         replyTo ! ContainerWorkflow(
           workflow,
@@ -261,34 +191,11 @@ class MarathonDriverActor
         )
       case Some(app) if workflow.breed.isInstanceOf[BreedReference] ⇒
         val breedReference = workflow.breed.asInstanceOf[BreedReference]
-        log.warning(s"marathon reconcile workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
+        log.warning(s"marathon get workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
         replyTo ! ContainerWorkflow(workflow, None)
       case _ ⇒ replyTo ! ContainerWorkflow(workflow, None)
     }
   }
-
-  private def get(id: String): Future[Option[App]] = readFromCache(id, () ⇒ {
-    log.info(s"marathon sending request: $id")
-    httpClient.get[AppsResponse](s"$appsUrl?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false)
-      .recover {
-        case t: Throwable ⇒
-          log.error(t, s"Error while getting app id: $id ⇒ ${t.getMessage}")
-          markReadFailure(id)
-          None
-        case _ ⇒
-          log.warning(s"Unknown error while getting app id: $id")
-          markReadFailure(id)
-          None
-      }
-      .map {
-        case apps: AppsResponse ⇒
-          log.debug(s"apps for: $id => $apps")
-          apps.apps.find(app ⇒ app.id == id)
-        case _ ⇒
-          log.info(s"no app for: $id")
-          None
-      }
-  })
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
 
@@ -483,35 +390,20 @@ class MarathonDriverActor
 
   private def deploy(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      get(id).flatMap { response ⇒
+      log.debug(s"marathon sending request: $id")
+      client.get(id).flatMap { response ⇒
         val changed = Extraction.decompose(response).children.headOption match {
           case Some(app) ⇒ app.diff(payload).changed
           case None      ⇒ payload
         }
-        if (changed != JNothing)
-          writeToCache(id, () ⇒ httpClient.put[Any](s"$appsUrl/$id", changed, headers).recover {
-            case t ⇒
-              log.error(t, t.getMessage)
-              markWriteFailure(id)
-              Future.failed(t)
-          })
+        if (changed != JNothing) client.put(id, changed)
         else {
           log.info(s"Nothing has changed in app $id configuration")
           Future.successful(false)
         }
       }
     }
-    else {
-      writeToCache(id, () ⇒ {
-        httpClient.post[Any](appsUrl, payload, headers, logError = false).recover {
-          case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
-          case t ⇒
-            log.error(t, t.getMessage)
-            markWriteFailure(id)
-            Future.failed(t)
-        }
-      })
-    }
+    else client.post(id, payload)
   }
 
   private def container(workflow: Workflow): Option[Container] = {
@@ -572,21 +464,13 @@ class MarathonDriverActor
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    undeployApp(id)
+    client.delete(id)
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    undeployApp(id)
-  }
-
-  private def undeployApp(id: String) = {
-    writeToCache(id, () ⇒ httpClient.delete(s"$appsUrl/$id", headers, logError = false) recover {
-      case _ ⇒
-        markWriteFailure(id)
-        None
-    })
+    client.delete(id)
   }
 
   private def containers(app: App): Containers = {
@@ -629,6 +513,6 @@ class MarathonDriverActor
     implicit val formats: DefaultFormats = DefaultFormats
     val app = parse(StringInput(request.toString)).extract[MarathonApp]
     log.info(s"marathon delete app: ${app.id}")
-    undeployApp(app.id)
+    client.delete(app.id)
   }
 }

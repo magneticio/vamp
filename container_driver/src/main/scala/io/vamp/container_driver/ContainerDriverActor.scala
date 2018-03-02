@@ -3,7 +3,6 @@ package io.vamp.container_driver
 import akka.actor.ActorRef
 import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
@@ -98,8 +97,6 @@ case class ContainerInfo(`type`: String, container: Any)
 trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
   implicit val timeout: Timeout = ContainerDriverActor.timeout()
-
-  lazy protected val httpClient = new HttpClient
 
   lazy val gatewayServiceIp: String = Config.string("vamp.gateway-driver.host")()
 
