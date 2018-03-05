@@ -176,10 +176,13 @@ class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "fail if selector and routes are defined" in {
-    expectedError[RouteSelectorAndRoutesDefinedError.type]({
-      GatewayReader.read(res("gateway/gateway20.yml"))
-    })
+  it should "not fail if selector and routes are defined" in {
+    GatewayReader.read(res("gateway/gateway20.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'selector(Option(RouteSelector("label(winter)(cold) and id(cold)"))),
+      'routes(List(DefaultRoute("", Map(), GatewayPath("localhost", List("localhost")), None, None, None, None, Nil, None, Nil)))
+    )
   }
 
   it should "fail if selector is invalid" in {

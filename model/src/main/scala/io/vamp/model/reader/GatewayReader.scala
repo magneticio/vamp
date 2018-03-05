@@ -86,8 +86,6 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 
     if (gateway.port.number < 0 || gateway.port.number > 65535) throwException(InvalidGatewayPortError(gateway.port.number))
 
-    validateSelectorRoutes(gateway)
-
     gateway.selector.foreach { selector ⇒
       Try(selector.node).getOrElse(throwException(InvalidSelectorError(selector.definition)))
     }
@@ -104,10 +102,6 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
 
     (validateGatewayRouteWeights andThen validateGatewayRouteConditionStrengths)(gateway)
-  }
-
-  def validateSelectorRoutes(gateway: Gateway): Unit = {
-    if (gateway.selector.isDefined && gateway.routes.nonEmpty) throwException(RouteSelectorAndRoutesDefinedError)
   }
 
   override def validateName(name: String): String = {
@@ -147,8 +141,6 @@ object DeployedGatewayReader extends AbstractGatewayReader {
     case Some(value: String) ⇒ Port(value)
     case _                   ⇒ Port("", None, None)
   }
-
-  override def validateSelectorRoutes(gateway: Gateway): Unit = {}
 }
 
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {

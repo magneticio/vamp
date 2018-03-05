@@ -59,8 +59,6 @@ case class NegativeFailuresNumberError(number: Int) extends Notification
 
 case class UnsupportedProtocolError(protocol: String) extends Notification
 
-object RouteSelectorAndRoutesDefinedError extends Notification
-
 case class InvalidSelectorError(definition: String) extends Notification
 
 object RouteSelectorOnlyRouteError extends Notification
