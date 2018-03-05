@@ -13,7 +13,7 @@ import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.notification.InvalidSelectorError
-import io.vamp.model.reader.NameValidator
+import io.vamp.model.reader.{ NameValidator, Percentage }
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
@@ -142,7 +142,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
         } ++ groups.filterNot {
           case (n, _) ⇒ routes.contains(n)
         }.map {
-          case (n, t) ⇒ DefaultRoute("", Map("groups" → n), GatewayPath(n), None, None, None, None, Nil, None, t)
+          case (n, t) ⇒ DefaultRoute("", Map("groups" → n), GatewayPath(n), None, Option(Percentage(0)), None, None, Nil, None, t)
         }
 
         if (updated != gateway.routes) {
