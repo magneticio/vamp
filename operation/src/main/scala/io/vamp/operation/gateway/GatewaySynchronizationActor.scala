@@ -134,10 +134,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
         val groups = RouteSelectionProcessor.groups(s, routingGroups, selector).map {
           case (n, v) ⇒ Try(validateName(n)).getOrElse(HashUtil.hexSha1(n)) → v
         }
-        val routes = gateway.routes.map(route ⇒ route.name → route).toMap
+        val routes = gateway.routes.map(route ⇒ route.path.normalized → route).toMap
 
-        val updated = gateway.routes.filter(route ⇒ groups.contains(route.name)).map {
-          case route: DefaultRoute ⇒ route.copy(targets = groups(route.name))
+        val updated = gateway.routes.filter(route ⇒ groups.contains(route.path.normalized)).map {
+          case route: DefaultRoute ⇒ route.copy(targets = groups(route.path.normalized))
           case route               ⇒ route
         } ++ groups.filterNot {
           case (n, _) ⇒ routes.contains(n)

@@ -129,10 +129,8 @@ class MarathonClient(val config: MarathonClientConfig) {
       if (Config.boolean(s"${MarathonDriverActor.marathonConfig}.sse")()) {
         val listener = MarathonSse(config, namespace, (kind, id) ⇒ kind match {
           case "deployment_success" ⇒
-            if (cache.inCache(id)) {
-              cache.invalidate(id)
-              allAppCache.invalidate
-            }
+            allAppCache.invalidate
+            if (cache.inCache(id)) cache.invalidate(id)
           case _ ⇒
         })
         listener.open()
