@@ -194,15 +194,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
               }
             } :: Nil
 
-          case deployment :: cluster :: port :: Nil ⇒
-            deployments.find {
-              _.name == deployment
-            }.flatMap {
-              _.clusters.find(_.name == cluster)
-            }.flatMap {
-              _.portBy(port)
-            }.flatMap { port ⇒
-              if (port != 0) Option(InternalRouteTarget(route.path.normalized, port)) else None
+          case _ :: _ :: _ :: Nil ⇒
+            gateways.find { gateway ⇒
+              gateway.name == route.path.normalized && gateway.port.number != 0
+            }.flatMap { gateway ⇒
+              Option {
+                InternalRouteTarget(route.path.normalized, gateway.port.number)
+              }
             } :: Nil
 
           case deployment :: cluster :: service :: port :: Nil ⇒
