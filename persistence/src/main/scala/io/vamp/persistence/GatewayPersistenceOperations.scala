@@ -1,6 +1,7 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
+import io.vamp.common.Artifact
 import io.vamp.model.artifact.{ DefaultRoute, _ }
 
 trait GatewayPersistenceMessages {
@@ -53,6 +54,24 @@ trait GatewayPersistenceOperations {
     case o: DeleteGatewayRouteTargets     ⇒ deleteGatewayRouteTargets(serviceArtifactName(o.deployment, o.cluster, o.service))
 
     case o: ResetGateway                  ⇒ resetGateway(o.deployment, o.cluster, o.service)
+  }
+
+  override protected def interceptor[T <: Artifact]: PartialFunction[T, T] = {
+    case gateway: Gateway ⇒
+      get(gateway).map { g ⇒
+        val targets = g.routes.map {
+          case r: DefaultRoute ⇒ r.path.normalized → r.targets
+          case r               ⇒ r.path.normalized → Nil
+        }.toMap
+        val routes = gateway.routes.map {
+          case r: DefaultRoute ⇒ r.copy(targets = targets.getOrElse(r.path.normalized, Nil))
+          case r               ⇒ r
+        }
+        gateway.copy(
+          service = g.service,
+          routes = routes
+        )
+      }.getOrElse(gateway).asInstanceOf[T]
   }
 
   private def resetGateway(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {

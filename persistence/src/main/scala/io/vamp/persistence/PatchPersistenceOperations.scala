@@ -14,12 +14,12 @@ trait PatchPersistenceOperations {
   protected def replyNone(): Unit = reply(Future.successful(None))
 
   protected def replyUpdate[T <: Artifact](artifact: T, update: Boolean): Unit = {
-    if (update) reply(Future.successful(set[T](artifact))) else reply(Future.successful(artifact))
+    if (update) reply(Future.successful(set[T](artifact, type2string(artifact.getClass)))) else reply(Future.successful(artifact))
   }
 
   protected def replyUpdate[T <: Artifact](artifact: T, tag: String, source: String, update: Boolean): Unit = {
     if (update) reply(Future.successful {
-      set[T](artifact)
+      set[T](artifact, type2string(artifact.getClass))
       archiveUpdate(tag, source)
     })
     else reply(Future.successful(artifact))

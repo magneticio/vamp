@@ -158,7 +158,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
             val routeTargets = route.selector match {
               case Some(s) ⇒ RouteSelectionProcessor.targets(s, routingGroups, selector)
               case _       ⇒ targets(pipeline.deployable, deployments, route)
-
             }
             val targetMatch = routeTargets == route.targets
             if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
@@ -173,7 +172,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
     route.path.external match {
       case Some(external) ⇒ ExternalRouteTarget(external) :: Nil
       case _ ⇒
-
         val targets = route.path.segments match {
 
           case reference :: Nil ⇒
@@ -213,12 +211,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
             }.map { service ⇒
               service.instances.map {
                 instance ⇒
-                  {
-                    if (!instance.ports.contains(port))
-                      log.error(s"$port does not exist in instance: ${instance.name} host: ${instance.host} ports: ${instance.ports}")
-                    Option {
-                      InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port))
-                    }
+                  if (!instance.ports.contains(port))
+                    log.error(s"$port does not exist in instance: ${instance.name} host: ${instance.host} ports: ${instance.ports}")
+                  Option {
+                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port))
                   }
               }
             }.getOrElse(Nil)

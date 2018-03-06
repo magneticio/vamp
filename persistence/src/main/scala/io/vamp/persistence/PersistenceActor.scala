@@ -49,6 +49,8 @@ trait PersistenceApi extends TypeOfArtifact {
 
   protected def delete[T <: Artifact](name: String, kind: String): Boolean
 
+  protected def interceptor[T <: Artifact]: PartialFunction[T, T]
+
   final protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
     all[T](type2string(`type`), page, perPage, filter)
   }
@@ -57,7 +59,10 @@ trait PersistenceApi extends TypeOfArtifact {
 
   final protected def get[T <: Artifact](artifact: T): Option[T] = get[T](artifact.name, artifact.getClass.asInstanceOf[Class[T]])
 
-  final protected def set[T <: Artifact](artifact: T): T = set[T](artifact, type2string(artifact.getClass))
+  final protected def set[T <: Artifact](artifact: T): T = {
+    val `type` = type2string(artifact.getClass)
+    set[T](interceptor[T](artifact), `type`)
+  }
 
   final protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = delete[T](name, type2string(`type`))
 
@@ -91,6 +96,13 @@ trait PersistenceActor
         case _: Event     ⇒
         case other        ⇒ unsupported(UnsupportedPersistenceRequest(other))
       }
+  }
+
+  final override protected def interceptor[T <: Artifact]: PartialFunction[T, T] = {
+    super[DeploymentPersistenceOperations].interceptor[T] orElse
+      super[GatewayPersistenceOperations].interceptor[T] orElse
+      super[WorkflowPersistenceOperations].interceptor[T] orElse
+      ({ case artifact ⇒ artifact.asInstanceOf[T] }: PartialFunction[T, T])
   }
 
   override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]

@@ -1,6 +1,7 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
+import io.vamp.common.Artifact
 import io.vamp.model.artifact._
 
 import scala.language.postfixOps
@@ -39,6 +40,10 @@ trait DeploymentPersistenceOperations {
     case o: UpdateDeploymentServiceHealth               ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(health = Option(o.health)))
 
     case o: ResetDeploymentService                      ⇒ reset(o.deployment, o.cluster, o.service)
+  }
+
+  override protected def interceptor[T <: Artifact]: PartialFunction[T, T] = {
+    case deployment: Deployment ⇒ deployment.asInstanceOf[T]
   }
 
   private def patch(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status): Unit = {
