@@ -211,6 +211,14 @@ trait KubernetesDeployment extends KubernetesArtifact {
     )
   }
 
+  protected def podsForAllNamespaces(): Seq[V1Pod] = {
+    k8sClient.cache.readAllWithCache(
+      K8sCache.pods,
+      "*",
+      () ⇒ Try(k8sClient.coreV1Api.listPodForAllNamespaces(null, null, null, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+    )
+  }
+
   protected def pods(id: String, value: String): Seq[V1Pod] = {
     val selector = labelSelector(labels(id, value))
     k8sClient.cache.readAllWithCache(

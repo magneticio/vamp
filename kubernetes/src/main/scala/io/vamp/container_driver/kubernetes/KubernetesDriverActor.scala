@@ -79,7 +79,7 @@ class KubernetesDriverActor
 
     case InfoRequest                    ⇒ reply(Future(info()))
 
-    case GetRoutingGroups               ⇒ reply(Future.successful(Nil))
+    case GetRoutingGroups               ⇒ reply(Future(routingGroups))
 
     case Get(services, equality)        ⇒ get(services, equality)
     case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
@@ -208,5 +208,47 @@ class KubernetesDriverActor
       case l: List[_] ⇒ l.foreach(process)
       case other      ⇒ process(other)
     }
+  }
+
+  private def routingGroups: List[RoutingGroup] = {
+    val services = servicesForAllNamespaces().flatMap { service ⇒
+      Try {
+        RoutingGroup(
+          name = service.getMetadata.getName,
+          kind = "service",
+          namespace = service.getMetadata.getNamespace,
+          labels = service.getMetadata.getLabels.asScala.toMap,
+          image = None,
+          instances = List(
+            RoutingInstance(
+              ip = Option(service.getSpec.getClusterIP).get, // fail if null
+              ports = service.getSpec.getPorts.asScala.map(p ⇒ RoutingInstancePort(p.getPort, p.getTargetPort.toInt)).toList
+            )
+          )
+        )
+      } map (_ :: Nil) getOrElse Nil
+    } toList
+
+    val pods = podsForAllNamespaces().flatMap { pod ⇒
+      pod.getSpec.getContainers.asScala.flatMap { container ⇒
+        Try {
+          RoutingGroup(
+            name = container.getName,
+            kind = "container",
+            namespace = pod.getMetadata.getNamespace,
+            labels = pod.getMetadata.getLabels.asScala.toMap,
+            image = Option(container.getImage),
+            instances = List(
+              RoutingInstance(
+                ip = Option(pod.getStatus.getPodIP).get, // fail if null
+                ports = container.getPorts.asScala.map(p ⇒ RoutingInstancePort(p.getContainerPort, p.getContainerPort)).toList
+              )
+            )
+          )
+        } map (_ :: Nil) getOrElse Nil
+      }
+    } toList
+
+    services ++ pods
   }
 }
