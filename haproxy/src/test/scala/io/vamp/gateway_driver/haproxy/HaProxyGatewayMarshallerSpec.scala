@@ -373,13 +373,13 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ("user-agent = Android", "req.fhdr(User-Agent) -m sub 'Android'"),
       ("user-agent  =  Android", "req.fhdr(User-Agent) -m sub 'Android'"),
       ("user.agent = Ios", "req.fhdr(User-Agent) -m sub 'Ios'"),
-      ("host = www.google.com", "hdr_str(host) www.google.com"),
-      ("host != www.google.com", "hdr_str(host) www.google.com"),
-      ("cookie MYCUSTOMER contains Value=good", "cook_sub(MYCUSTOMER) Value=good"),
-      ("has cookie JSESSIONID", "cook(JSESSIONID) -m found"),
-      ("misses cookie JSESSIONID", "cook_cnt(JSESSIONID) eq 0"),
-      ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0"),
-      ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0")
+      ("host = www.google.com", "req.hdr(host) www.google.com"),
+      ("host != www.google.com", "req.hdr(host) www.google.com"),
+      ("cookie MYCUSTOMER contains Value=good", "req.cook_sub(MYCUSTOMER) Value=good"),
+      ("has cookie JSESSIONID", "req.cook(JSESSIONID) -m found"),
+      ("misses cookie JSESSIONID", "req.cook_cnt(JSESSIONID) eq 0"),
+      ("has header X-SPECIAL", "req.hdr_cnt(X-SPECIAL) gt 0"),
+      ("misses header X-SPECIAL", "req.hdr_cnt(X-SPECIAL) eq 0")
     ) foreach { input ⇒
         marshaller.filter(route.copy(condition = Option(DefaultCondition("", metadata = Map(), input._1))))(backends, Gateway("vamp", metadata = Map(), Port(0), None, None, Nil, None, Nil)) match {
           case Some(Condition(_, _, Some(acls))) ⇒ acls.acls.head.definition shouldBe input._2

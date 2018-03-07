@@ -18,19 +18,19 @@ class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResol
     }
 
     resolve("host == localhost") shouldBe Some {
-      HaProxyAcls(List(Acl("58966872db928351", "hdr_str(host) localhost")), Some("58966872db928351"))
+      HaProxyAcls(List(Acl("63d10221023637c8", "req.hdr(host) localhost")), Some("63d10221023637c8"))
     }
 
     resolve("contains cookie vamp") shouldBe Some {
-      HaProxyAcls(List(Acl("d2c606178591676a", "cook(vamp) -m found")), Some("d2c606178591676a"))
+      HaProxyAcls(List(Acl("c506a28623f9f83d", "req.cook(vamp) -m found")), Some("c506a28623f9f83d"))
     }
 
     resolve("has header page") shouldBe Some {
-      HaProxyAcls(List(Acl("9ff7c12a5a399997", "hdr_cnt(page) gt 0")), Some("9ff7c12a5a399997"))
+      HaProxyAcls(List(Acl("71165113ade1e335", "req.hdr_cnt(page) gt 0")), Some("71165113ade1e335"))
     }
 
     resolve("cookie vamp has 123") shouldBe Some {
-      HaProxyAcls(List(Acl("f243b455cb6f05a8", "cook_sub(vamp) 123")), Some("f243b455cb6f05a8"))
+      HaProxyAcls(List(Acl("60a2a71edc375d21", "req.cook_sub(vamp) 123")), Some("60a2a71edc375d21"))
     }
 
     resolve("header page contains 1") shouldBe Some {
@@ -38,11 +38,11 @@ class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResol
     }
 
     resolve("misses cookie vamp") shouldBe Some {
-      HaProxyAcls(List(Acl("ab767be5e83a8746", "cook_cnt(vamp) eq 0")), Some("ab767be5e83a8746"))
+      HaProxyAcls(List(Acl("85d714c5ede2f624", "req.cook_cnt(vamp) eq 0")), Some("85d714c5ede2f624"))
     }
 
     resolve("misses header page") shouldBe Some {
-      HaProxyAcls(List(Acl("615b1f1c2f9c25c3", "hdr_cnt(page) eq 0")), Some("615b1f1c2f9c25c3"))
+      HaProxyAcls(List(Acl("75f52ab77f4adcfc", "req.hdr_cnt(page) eq 0")), Some("75f52ab77f4adcfc"))
     }
 
     resolve("hdr_sub(user-agent) Android") shouldBe Some {
@@ -86,9 +86,9 @@ class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResol
     resolve("(User-Agent = Chrome OR User-Agent = Firefox) AND has cookie vamp") shouldBe Some {
       HaProxyAcls(
         List(
-          Acl("de0de9d22824714a", "req.fhdr(User-Agent) -m sub 'Chrome'"), Acl("d2c606178591676a", "cook(vamp) -m found"), Acl("7b796e5d25d870c6", "req.fhdr(User-Agent) -m sub 'Firefox'")
+          Acl("de0de9d22824714a", "req.fhdr(User-Agent) -m sub 'Chrome'"), Acl("c506a28623f9f83d", "req.cook(vamp) -m found"), Acl("7b796e5d25d870c6", "req.fhdr(User-Agent) -m sub 'Firefox'")
         ),
-        Some("de0de9d22824714a d2c606178591676a or 7b796e5d25d870c6 d2c606178591676a")
+        Some("de0de9d22824714a c506a28623f9f83d or 7b796e5d25d870c6 c506a28623f9f83d")
       )
     }
 
