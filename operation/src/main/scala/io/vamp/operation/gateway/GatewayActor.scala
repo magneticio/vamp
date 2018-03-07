@@ -176,33 +176,36 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     }
   }
 
-  private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
+  private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = {
+    case gateway if gateway.name.nonEmpty ⇒
 
-    val virtualHosts = if (virtualHostsEnabled()) defaultVirtualHosts(gateway) ++ gateway.virtualHosts else gateway.virtualHosts
+      val virtualHosts = if (virtualHostsEnabled()) defaultVirtualHosts(gateway) ++ gateway.virtualHosts else gateway.virtualHosts
 
-    val g = gateway.copy(virtualHosts = virtualHosts.distinct)
+      val g = gateway.copy(virtualHosts = virtualHosts.distinct)
 
-    val requests = {
+      val requests = {
 
-      (g.internal, promote) match {
+        (g.internal, promote) match {
 
-        case (true, true) ⇒
-          if (create)
-            PersistenceActor.Create(g, source) :: PersistenceActor.CreateInternalGateway(g) :: Nil
-          else
-            PersistenceActor.Update(g, source) :: PersistenceActor.UpdateInternalGateway(g) :: Nil
+          case (true, true) ⇒
+            if (create)
+              PersistenceActor.Create(g, source) :: PersistenceActor.CreateInternalGateway(g) :: Nil
+            else
+              PersistenceActor.Update(g, source) :: PersistenceActor.UpdateInternalGateway(g) :: Nil
 
-        case (true, false) ⇒
-          if (create) PersistenceActor.CreateInternalGateway(g) :: Nil else PersistenceActor.UpdateInternalGateway(g) :: Nil
+          case (true, false) ⇒
+            if (create) PersistenceActor.CreateInternalGateway(g) :: Nil else PersistenceActor.UpdateInternalGateway(g) :: Nil
 
-        case _ ⇒
-          if (create) PersistenceActor.Create(g, source) :: Nil else PersistenceActor.Update(g, source) :: Nil
+          case _ ⇒
+            if (create) PersistenceActor.Create(g, source) :: Nil else PersistenceActor.Update(g, source) :: Nil
+        }
       }
-    }
 
-    Future.sequence(requests.map {
-      request ⇒ actorFor[PersistenceActor] ? request
-    }).map(_ ⇒ g)
+      Future.sequence(requests.map {
+        request ⇒ actorFor[PersistenceActor] ? request
+      }).map(_ ⇒ g)
+
+    case _ ⇒ Future.successful(None)
   }
 
   private def defaultVirtualHosts(gateway: Gateway): List[String] = GatewayPath(gateway.name).segments.map { domain ⇒

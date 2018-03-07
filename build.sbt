@@ -64,15 +64,11 @@ val sql = Seq(
   "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8",
   "org.xerial" % "sqlite-jdbc" % "3.19.3")
 
-val fp = Seq(
-  "org.typelevel" %% "cats" % "0.9.0",
-  "com.chuusai"  %% "shapeless" % "2.3.2")
-
 val caching = Seq("com.github.cb372" %% "scalacache-caffeine" % "0.22.0")
 
-val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
+val config = Seq("com.typesafe"  % "config" % "1.3.1")
 
-val configlbs = Seq("com.typesafe"  % "config" % "1.3.1")
+val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
 
 val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.4.8"
   exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"))
@@ -120,7 +116,6 @@ lazy val root = project.in(file(".")).settings(
   gateway_driver,
   dcos,
   elasticsearch,
-  config,
   haproxy,
   redis,
   zookeeper,
@@ -144,7 +139,6 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   gateway_driver,
   dcos,
   elasticsearch,
-  config,
   haproxy,
   redis,
   zookeeper,
@@ -220,7 +214,7 @@ lazy val common = project.settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ caching ++ testing,
+  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ caching ++ config ++ testing,
   bintrayRepository := "vamp"
 )
 
@@ -228,7 +222,7 @@ lazy val dcos = project.settings(
   description := "Container driver for DCOS and Marathon/Mesos",
   name := "vamp-dcos",
   formatting,
-  libraryDependencies ++= testing ++ fp,
+  libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
@@ -239,14 +233,6 @@ lazy val elasticsearch = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
-
-lazy val config = project.settings(
-  description := "Typelevel config library for VAMP",
-  name := "vamp-config",
-  formatting,
-  libraryDependencies ++= testing ++ fp ++ configlbs,
-  bintrayRepository := "vamp"
-).dependsOn(common)
 
 lazy val haproxy = project.settings(
   description := "HAProxy driver",

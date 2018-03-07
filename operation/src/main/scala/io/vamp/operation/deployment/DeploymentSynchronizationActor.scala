@@ -66,7 +66,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(): Unit = {
-    log.info("Deployment Synchronization started.")
+    log.info(s"deployment synchronization: ${namespace.name}")
     forAll(allArtifacts[Deployment], { deployments ⇒
       val deploymentServices = deployments.map { deployment ⇒
         val services = deployment.clusters.flatMap { cluster ⇒

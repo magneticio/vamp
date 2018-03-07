@@ -1,10 +1,11 @@
 package io.vamp.operation.deployment
 
+import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
@@ -19,7 +20,7 @@ import scala.concurrent.Future
 
 object DeploymentActor {
 
-  val gatewayHost = Config.string("vamp.gateway-driver.host")
+  val gatewayHost: ConfigMagnet[String] = Config.string("vamp.gateway-driver.host")
 
   def defaultScale()(implicit namespace: Namespace) = DefaultScale(
     Quantity.of(Config.double("vamp.operation.deployment.scale.cpu")()),
@@ -27,7 +28,7 @@ object DeploymentActor {
     Config.int("vamp.operation.deployment.scale.instances")()
   )
 
-  def defaultArguments()(implicit namespace: Namespace) = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
+  def defaultArguments()(implicit namespace: Namespace): List[Argument] = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
 
   trait DeploymentMessage
 
@@ -56,7 +57,7 @@ class DeploymentActor
 
   import DeploymentActor._
 
-  def receive = {
+  def receive: Actor.Receive = {
     case Create(blueprint, source, validateOnly) ⇒ reply {
       (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(blueprint.name, create = true))
     }
@@ -143,13 +144,6 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 
   private def arguments(breed: DefaultBreed, service: Service): List[Argument] = {
-    // FIXME dead code!
-    val all = DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
-
-    val (privileged, others) = all.partition(_.privileged)
-
-    privileged.lastOption.map(_ :: others).getOrElse(others)
-    //
     DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
   }
 }
@@ -163,7 +157,7 @@ trait DeploymentValidator {
     val breeds = services.map(_.breed)
 
     breeds.groupBy(_.name.toString).collect {
-      case (name, list) if list.size > 1 ⇒ throwException(NonUniqueBreedReferenceError(list.head))
+      case (_, list) if list.size > 1 ⇒ throwException(NonUniqueBreedReferenceError(list.head))
     }
 
     breeds.foreach { breed ⇒
@@ -191,7 +185,7 @@ trait DeploymentValidator {
     deployment.clusters.map(cluster ⇒
 
       cluster → weightOf(cluster, cluster.services, "")).find({
-      case (cluster, weight) ⇒ weight != 100 && weight != 0
+      case (_, weight) ⇒ weight != 100 && weight != 0
     }).flatMap({
       case (cluster, weight) ⇒ throwException(UnsupportedRouteWeight(deployment, cluster, weight))
     })
@@ -235,7 +229,7 @@ trait DeploymentValidator {
 
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout: Timeout = PersistenceActor.timeout()
 
     consume(allArtifacts[Gateway]) map { gateways ⇒
 
@@ -293,7 +287,7 @@ trait DeploymentGatewayOperation {
 
   def serviceRoutePath(deployment: Deployment, cluster: DeploymentCluster, serviceName: String, portName: String) = GatewayPath(deployment.name :: cluster.name :: serviceName :: portName :: Nil)
 
-  def updateRoutePaths(deployment: Deployment, cluster: DeploymentCluster, gateway: Gateway) = {
+  def updateRoutePaths(deployment: Deployment, cluster: DeploymentCluster, gateway: Gateway): Gateway = {
     gateway.copy(
       name = GatewayPath(deployment.name :: cluster.name :: gateway.port.name :: Nil).normalized,
       routes = gateway.routes.map {
@@ -304,16 +298,14 @@ trait DeploymentGatewayOperation {
     )
   }
 
-  def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.Status = Intention.Deployment) = {
+  def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.Status = Intention.Deployment): Unit = {
     actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, state)
     actorFor[PersistenceActor] ! PersistenceActor.ResetDeploymentService(deployment, cluster, service)
     actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
   }
 
-  def resetInternalRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    service.breed.ports.foreach { port ⇒
-      actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service, port)
-    }
+  def resetInternalRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
+    actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service)
   }
 }
 
@@ -322,11 +314,11 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
   private val refetchBreed = Config.boolean("vamp.operation.synchronization.deployment.refetch-breed-on-update")
 
-  def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
+  def validateBlueprint: (Future[Deployment] ⇒ Future[Deployment]) = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
-  def resolveProperties = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
+  def resolveProperties: (Future[Deployment] ⇒ Future[Deployment]) = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
 
-  def validateMerge = validateServices andThen validateInternalGateways andThen validateScaleEscalations andThen validateGateways
+  def validateMerge: (Deployment ⇒ Future[Deployment]) = validateServices andThen validateInternalGateways andThen validateScaleEscalations andThen validateGateways
 
   def merge(blueprint: Future[Deployment], validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.flatMap { deployment ⇒
@@ -458,7 +450,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
   def newService(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): (List[DeploymentService], List[DeploymentService]) =
     blueprintCluster.services.partition(service ⇒ isNewService(stableCluster, service))
 
-  def isNewService(stableCluster: Option[DeploymentCluster], blueprintService: DeploymentService) = stableCluster match {
+  def isNewService(stableCluster: Option[DeploymentCluster], blueprintService: DeploymentService): Boolean = stableCluster match {
     case None     ⇒ true
     case Some(sc) ⇒ !sc.services.exists(_.breed.name == blueprintService.breed.name)
   }
@@ -467,7 +459,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
     def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.gateways.exists(_.port.name == gateway.port.name))
 
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout: Timeout = PersistenceActor.timeout()
     val routings = resolveRoutings(deployment, blueprintCluster)
     val promote = stableCluster.exists(cluster ⇒ cluster.gateways.size == blueprintCluster.gateways.size)
 
@@ -497,15 +489,15 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+              case None        ⇒ DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, None, Nil, None)
               case Some(route) ⇒ route
             }
           }
           newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
-          Gateway("", Map(), Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
-            DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+          Gateway("", Map(), Port(port.name, None, None, 0, port.`type`), None, None, Nil, None, services.map { service ⇒
+            DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, None, Nil, None)
           })
       }
     }
@@ -569,7 +561,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 trait DeploymentSlicer extends DeploymentOperation {
   this: DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
-  def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster ⇒
+  def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment): Unit = deployment.clusters.foreach { cluster ⇒
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc ⇒
       val services = cluster.services.filterNot(service ⇒ bpc.services.exists(_.breed.name == service.breed.name))
       services.flatMap(_.breed.ports).map(_.name).toSet[String].foreach { port ⇒
@@ -613,7 +605,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 
         val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.status.intention == Intention.Undeployment))
 
-        implicit val timeout = GatewayActor.timeout()
+        implicit val timeout: Timeout = GatewayActor.timeout()
         Future.sequence {
           deleteRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
@@ -645,16 +637,16 @@ trait DeploymentSlicer extends DeploymentOperation {
 trait DeploymentUpdate {
   this: DeploymentValidator with CommonProvider ⇒
 
-  private implicit val timeout = PersistenceActor.timeout()
+  private implicit val timeout: Timeout = PersistenceActor.timeout()
 
-  def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) = {
+  def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean): Future[Any] = {
     if (validateOnly) Future.successful(true) else {
       val clusters = deployment.clusters.map(c ⇒ if (cluster.name == c.name) c.copy(sla = sla) else c)
       actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
     }
   }
 
-  def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String, validateOnly: Boolean) = {
+  def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String, validateOnly: Boolean): Future[Any] = {
     cluster.services.find(_.breed.name == service.breed.name) match {
       case Some(_) ⇒
         if (validateOnly) Future.successful(true)

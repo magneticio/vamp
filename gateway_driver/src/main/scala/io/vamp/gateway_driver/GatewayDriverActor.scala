@@ -15,6 +15,7 @@ import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
+import scala.util.Try
 
 object GatewayDriverActor {
 
@@ -33,6 +34,7 @@ object GatewayDriverActor {
   case class ResetTemplate(`type`: String, name: String) extends GatewayDriverMessage
 
   case class GetConfiguration(`type`: String, name: String) extends GatewayDriverMessage
+
 }
 
 case class GatewayMarshallerDefinition(marshaller: GatewayMarshaller, template: String)
@@ -88,7 +90,7 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
 
   private def pull(): Future[List[Gateway]] = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(rootPath) map {
-      case Some(content: String) ⇒ unmarshall[Gateway](content)
+      case Some(content: String) ⇒ Try(unmarshall[Gateway](content)).getOrElse(Nil)
       case _                     ⇒ Nil
     }
   }

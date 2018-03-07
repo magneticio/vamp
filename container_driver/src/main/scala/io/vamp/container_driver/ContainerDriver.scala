@@ -1,26 +1,23 @@
 package io.vamp.container_driver
 
+import io.vamp.common._
 import io.vamp.common.akka.ExecutionContextProvider
-import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.common.{ Artifact, Config, Namespace, NamespaceProvider }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.{ DeploymentValueResolver, WorkflowValueResolver }
 
 object ContainerDriver {
 
-  val labelNamespace = Config.string("vamp.container-driver.label-namespace")
+  val labelNamespace: ConfigMagnet[String] = Config.string("vamp.container-driver.label-namespace")
 
-  def withNamespace(label: String)(implicit namespace: Namespace) = {
+  def withNamespace(label: String)(implicit namespace: Namespace): String = {
     val ns = labelNamespace()
     if (ns.isEmpty) label else s"$ns.$label"
   }
 }
 
 trait ContainerDriver extends ContainerDriverMapping with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
-
-  protected def httpClient: HttpClient
 
   protected def appId(workflow: Workflow): String
 
@@ -46,7 +43,8 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
     deployment: Deployment,
     cluster:    DeploymentCluster,
     service:    DeploymentService,
-    network:    String): List[DockerPortMapping] =
+    network:    String
+  ): List[DockerPortMapping] =
     service.breed.ports.map { port ⇒
       val hostPort = network match {
         case "USER" ⇒ None
@@ -154,7 +152,8 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
   )
 }
 
-trait ContainerDriverValidation { this: NamespaceProvider with NotificationProvider ⇒
+trait ContainerDriverValidation {
+  this: NamespaceProvider with NotificationProvider ⇒
 
   protected def supportedDeployableTypes: List[DeployableType]
 

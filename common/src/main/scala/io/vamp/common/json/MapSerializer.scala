@@ -5,7 +5,7 @@ import org.json4s.JsonAST.JObject
 import org.json4s._
 
 object MapSerializer extends SerializationFormat {
-  override def customSerializers = super.customSerializers :+ new MapSerializer()
+  override def customSerializers: List[Serializer[_]] = super.customSerializers :+ new MapSerializer()
 }
 
 class MapSerializer extends Serializer[Map[_, _]] {
@@ -13,7 +13,7 @@ class MapSerializer extends Serializer[Map[_, _]] {
     case map: Map[_, _] ⇒
       new JObject(map.map {
         case (name, value) ⇒
-          val newName = if (name.toString.contains("-") || name.toString.contains("_")) name.toString else TextUtil.toSnakeCase(name.toString, dash = false)
+          val newName = if (name.toString.contains("-") || name.toString.contains("_") || name.toString.contains("/")) name.toString else TextUtil.toSnakeCase(name.toString, dash = false)
           JField(newName, Extraction.decompose(value))
       }.toList)
   }

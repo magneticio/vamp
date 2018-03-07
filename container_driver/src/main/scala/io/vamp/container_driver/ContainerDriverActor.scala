@@ -3,7 +3,6 @@ package io.vamp.container_driver
 import akka.actor.ActorRef
 import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
@@ -22,6 +21,8 @@ object ContainerDriverActor {
   //
 
   sealed trait ContainerDriveMessage
+
+  object GetRoutingGroups extends ContainerDriveMessage
 
   case class Get(deploymentServices: List[DeploymentServices], equalityRequest: ServiceEqualityRequest) extends ContainerDriveMessage
 
@@ -97,8 +98,6 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   implicit val timeout: Timeout = ContainerDriverActor.timeout()
 
-  lazy protected val httpClient = new HttpClient
-
   lazy val gatewayServiceIp: String = Config.string("vamp.gateway-driver.host")()
 
   protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
@@ -118,3 +117,16 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }
+
+case class RoutingGroup(
+  name:      String,
+  kind:      String,
+  namespace: String,
+  labels:    Map[String, String],
+  image:     Option[String],
+  instances: List[RoutingInstance]
+)
+
+case class RoutingInstance(ip: String, ports: List[RoutingInstancePort])
+
+case class RoutingInstancePort(host: Int, container: Int)

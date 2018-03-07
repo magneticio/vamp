@@ -20,6 +20,14 @@ trait KubernetesService extends KubernetesArtifact {
 
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
+  protected def servicesForAllNamespaces(): Seq[V1Service] = {
+    k8sClient.cache.readAllWithCache(
+      K8sCache.services,
+      "*",
+      () ⇒ Try(k8sClient.coreV1Api.listServiceForAllNamespaces(null, null, null, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+    )
+  }
+
   protected def services(labels: Map[String, String] = Map()): Seq[V1Service] = {
     val selector = if (labels.isEmpty) null else labelSelector(labels)
     k8sClient.cache.readAllWithCache(

@@ -52,6 +52,9 @@ UnresolvedPortReferenceError           : "Unresolved port reference: {portRefere
 NegativeFailuresNumberError            : "Failures can not be negative: {number}."
 UnsupportedProtocolError               : "Unsupported protocol: {protocol}"
 InvalidGatewayPortError                : "Invalid gateway port: {port}."
+InvalidSelectorError                   : "Invalid selector: '{definition}'."
+RouteSelectorOnlyRouteError$           : "If route selector is defined, route path must not contain '/'."
+RouteSelectorExternalTargetError$      : "Route selector cannot be defined for an external target."
 
 # SLA
 

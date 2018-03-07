@@ -56,6 +56,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with SystemRoute
     with LogApiRoute
     with ProxyRoute
+    with SchedulerRoute
     with ArtifactPaginationSupport {
 
   protected def crudRoutes(implicit namespace: Namespace, timeout: Timeout) = {
@@ -160,7 +161,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
   }
 
   protected def websocketApiHandler(implicit namespace: Namespace, timeout: Timeout): Route = {
-    infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+    infoRoute ~ routingRoutes ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
   }
 
   def apiRoutes(implicit namespace: Namespace, timeout: Timeout): Route = {
@@ -171,7 +172,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
             encodeResponse {
               sseRoutes ~ sseLogRoutes ~
                 accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-                  infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes
+                  infoRoute ~ statsRoute ~ routingRoutes ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes
                 } ~ systemRoutes ~ mesosConfigRoute ~
                 accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
                   crudRoutes

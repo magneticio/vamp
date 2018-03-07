@@ -1,9 +1,7 @@
 package io.vamp.persistence.mysql
 
 import io.vamp.common.ClassMapper
-import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
-
-import scala.concurrent.Future
+import io.vamp.persistence.sql.{ SqlPersistenceActor, SqlStatementProvider }
 
 class MySqlPersistenceActorMapper extends ClassMapper {
   val name = "mysql"
@@ -12,14 +10,13 @@ class MySqlPersistenceActorMapper extends ClassMapper {
 
 class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  override protected def info(): Future[Map[String, Any]] = for {
-    state ← super.info()
-    db ← dbInfo("mysql")
-  } yield state ++ db
-
-  def insertStatement(): String = s"insert into `$table` (`Record`) values (?)"
+  override val fetchSize: Int = Integer.MIN_VALUE
 
   def selectStatement(lastId: Long): String = s"SELECT `ID`, `Record` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
 
-  val statementMinValue: Int = Integer.MIN_VALUE
+  def insertStatement(): String = s"insert into `$table` (`Record`) values (?)"
+
+  override def updateStatement(id: Long, record: String): String = s"UPDATE `$table` SET `Record` = ? WHERE `ID` == $id"
+
+  override def deleteStatement(id: Long): String = s"DELETE FROM `$table` WHERE `ID` == $id"
 }

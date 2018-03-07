@@ -1,0 +1,5 @@
+name: sava
+port: 8080/http
+routes:
+  web:
+    selector: image(winter)

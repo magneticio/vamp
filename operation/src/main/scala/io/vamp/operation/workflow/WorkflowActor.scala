@@ -73,7 +73,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def stop(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       (actorFor[PersistenceActor] ? PersistenceActor.Delete(workflow.name, classOf[Workflow])).map { _ ⇒
-        actorFor[PersistenceActor] ! ResetWorkflow(workflow, runtime = true, attributes = true)
+        actorFor[PersistenceActor] ! ResetWorkflow(workflow)
         pulse(workflow, scheduled = false)
       }
     })
@@ -86,7 +86,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
           pulse(workflow, scheduled = false)
         }
       }
-      else actorFor[PersistenceActor] ! ResetWorkflow(workflow, runtime = true, attributes = false)
+      else actorFor[PersistenceActor] ! ResetWorkflow(workflow)
     })
   }
 

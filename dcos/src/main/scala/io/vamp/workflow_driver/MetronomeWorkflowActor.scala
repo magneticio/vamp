@@ -11,9 +11,6 @@ import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
 import scala.concurrent.Future
 import scala.util.Try
-import cats.implicits.catsStdInstancesForList
-import cats.implicits.toTraverseOps
-import cats.implicits.catsStdInstancesForFuture
 
 class MetronomeWorkflowActorMapper extends ClassMapper {
   val name = "metronome"
@@ -69,14 +66,14 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
       validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
       workflow.schedule match {
-        case TimeSchedule(period, repeat, start) ⇒
+        case TimeSchedule(period, _, _) ⇒
           for {
             workflowId ← createJobForWorkflowIfNecessary(workflow)
             cronScheduleId = s"${workflowId}cronschedule"
             allSchedules ← allExistingScheduleNames(workflowId)
-            _ ← allSchedules.traverse[Future, Any] { scheduleId ⇒
+            _ ← Future.sequence(allSchedules.map { scheduleId ⇒
               httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId/schedules/$scheduleId")
-            }
+            })
             _ ← httpClient.post[MetronomeScheduleRepresentation](
               s"$metronomeUrl/v1/jobs/$workflowId/schedules",
               getScheduleRepresentation(cronScheduleId, period))
@@ -93,7 +90,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
   }
 
   override protected def unschedule(): PartialFunction[Workflow, Future[Any]] = {
-    case w: Workflow if (w.schedule != DaemonSchedule) ⇒ safelyDeleteWorkflow(w)
+    case w: Workflow if w.schedule != DaemonSchedule ⇒ safelyDeleteWorkflow(w)
   }
 
   private def safelyDeleteWorkflow(workflow: Workflow): Future[Unit] = {
@@ -103,9 +100,9 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
       _ ← if (allExistingWorkflows.contains(workflowId)) {
         for {
           allSchedules ← allExistingScheduleNames(workflowId)
-          _ ← allSchedules.traverse[Future, Any] { scheduleId ⇒
+          _ ← Future.sequence(allSchedules.map { scheduleId ⇒
             httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId/schedules/$scheduleId")
-          }
+          })
           _ ← httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId")
         } yield ()
       }
@@ -143,7 +140,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
       if (networkName == "BRIDGE") "bridge" else networkName
     }
 
-    val commandToRun = s"docker run $environmentVariablesAsString --net=${usedNetworkName} " +
+    val commandToRun = s"docker run $environmentVariablesAsString --net=$usedNetworkName " +
       s"--rm ${workflow.breed.asInstanceOf[DefaultBreed].deployable.definition}"
 
     val workflowAsMetronomeJob = getJobRepresentation(workflowDescription = workflow.name, workflowId = workflowId,
@@ -152,11 +149,11 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     )
 
     for {
-      existingJsonForThisName ← httpClient.get[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs/${workflowId}").map { x ⇒ Some(x) }.recover { case e: HttpClientException ⇒ None }
+      existingJsonForThisName ← httpClient.get[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs/$workflowId").map { x ⇒ Some(x) }.recover { case e: HttpClientException ⇒ None }
 
       _ ← existingJsonForThisName match {
-        case None                                     ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob)
-        case Some(t) if (t == workflowAsMetronomeJob) ⇒ Future.successful(())
+        case None                                   ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob)
+        case Some(t) if t == workflowAsMetronomeJob ⇒ Future.successful(())
         case Some(_) ⇒
           safelyDeleteWorkflow(workflow)
             .flatMap(_ ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob))
