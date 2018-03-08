@@ -181,9 +181,10 @@ class KubernetesDriverActor
       val kind = any.asInstanceOf[Map[String, String]]("kind")
       val request = write(any.asInstanceOf[AnyRef])(DefaultFormats)
       kind match {
-        case "Service"   ⇒ createService(request)
-        case "DaemonSet" ⇒ createDaemonSet(request)
-        case other       ⇒ log.warning(s"Cannot process kind: $other")
+        case "Service"    ⇒ createService(request)
+        case "DaemonSet"  ⇒ createDaemonSet(request)
+        case "Deployment" ⇒ createDeployment(request)
+        case other        ⇒ log.warning(s"Cannot process kind: $other")
       }
     }
 
@@ -198,9 +199,10 @@ class KubernetesDriverActor
       val kind = any.asInstanceOf[Map[String, String]]("kind")
       val name = any.asInstanceOf[Map[String, Map[String, String]]]("metadata")("name")
       kind match {
-        case "Service"   ⇒ deleteService(name)
-        case "DaemonSet" ⇒ deleteDaemonSet(name)
-        case other       ⇒ log.warning(s"Cannot process kind: $other")
+        case "Service"    ⇒ deleteService(name)
+        case "DaemonSet"  ⇒ deleteDaemonSet(name)
+        case "Deployment" ⇒ deleteDeployment(name)
+        case other        ⇒ log.warning(s"Cannot process kind: $other")
       }
     }
 

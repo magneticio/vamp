@@ -136,7 +136,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   protected def undeploy(deployment: Deployment, service: DeploymentService): Unit = {
     val id = appId(deployment, service.breed)
     log.info(s"kubernetes delete app: $id")
-    undeploy(id)
+    deleteDeployment(id)
   }
 
   protected def deploy(workflow: Workflow, update: Boolean): Unit = {
@@ -163,7 +163,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   protected def undeploy(workflow: Workflow): Unit = {
     val id = appId(workflow)
     log.info(s"kubernetes delete workflow: ${workflow.name}")
-    undeploy(id)
+    deleteDeployment(id)
   }
 
   private def deploy(id: String, docker: Docker, scale: DefaultScale, environmentVariables: Map[String, String], labels: Map[String, String], update: Boolean, dialect: Map[String, Any]): Unit = {
@@ -203,14 +203,6 @@ trait KubernetesDeployment extends KubernetesArtifact {
     )
   }
 
-  private def undeploy(id: String): Unit = {
-    k8sClient.cache.writeWithCache(
-      K8sCache.deployments,
-      id,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(id, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
-    )
-  }
-
   protected def podsForAllNamespaces(): Seq[V1Pod] = {
     k8sClient.cache.readAllWithCache(
       K8sCache.pods,
@@ -234,6 +226,24 @@ trait KubernetesDeployment extends KubernetesArtifact {
       K8sCache.replicaSets,
       selector,
       () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+    )
+  }
+
+  protected def createDeployment(request: String): Unit = {
+    log.info(s"Creating Kubernetes deployment")
+    k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
+      namespace.name,
+      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[AppsV1beta1Deployment]() {}.getType),
+      null
+    )
+  }
+
+  protected def deleteDeployment(name: String): Unit = {
+    log.info(s"Deleting Kubernetes deployment $name")
+    k8sClient.cache.writeWithCache(
+      K8sCache.deployments,
+      name,
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
     )
   }
 }
