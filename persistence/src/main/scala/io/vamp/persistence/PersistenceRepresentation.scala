@@ -38,13 +38,20 @@ trait PersistenceRepresentation extends PersistenceApi with AccessGuard {
   }
 
   protected def set[T <: Artifact](artifact: T, kind: String): T = {
+    def put(map: mutable.Map[String, Artifact]) = {
+      map.put(artifact.name, before(
+        artifact
+      ))
+      after(set = true)(artifact)
+    }
+
     log.debug(s"In memory representation: set [$kind] - ${artifact.name}")
     store.get(kind) match {
       case None ⇒
         val map = new mutable.HashMap[String, Artifact]()
-        map.put(artifact.name, artifact)
+        put(map)
         store.put(kind, map)
-      case Some(map) ⇒ map.put(artifact.name, artifact)
+      case Some(map) ⇒ put(map)
     }
     artifact
   }
@@ -52,9 +59,9 @@ trait PersistenceRepresentation extends PersistenceApi with AccessGuard {
   protected def delete[T <: Artifact](name: String, kind: String): Boolean = {
     log.debug(s"In memory representation: delete [$kind] - $name}")
     store.get(kind) flatMap { map ⇒
-      val artifact = map.remove(name)
-      if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: $kind: $name")
-      artifact
+      val result = map.remove(name).map { artifact ⇒ after[T](set = false)(artifact.asInstanceOf[T]) }
+      if (result.isEmpty) log.debug(s"Artifact not found for deletion: $kind: $name")
+      result
     } isDefined
   }
 
@@ -66,4 +73,8 @@ trait PersistenceRepresentation extends PersistenceApi with AccessGuard {
       }
     } map (_._2.asInstanceOf[A])
   }
+
+  protected def before[T <: Artifact](artifact: T): T = artifact
+
+  protected def after[T <: Artifact](set: Boolean)(artifact: T): T = artifact
 }
