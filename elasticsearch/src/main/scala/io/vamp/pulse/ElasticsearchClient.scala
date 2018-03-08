@@ -44,7 +44,7 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
 
   implicit val executionContext: ExecutionContext = system.dispatcher
 
-  private val baseUrl = if (url.endsWith("/")) url.substring(0, url.length - 1) else url
+  val baseUrl: String = if (url.endsWith("/")) url.substring(0, url.length - 1) else url
 
   def health: Future[Any] = httpClient.get[Any](urlOf(url, "_cluster", "health"))
 
