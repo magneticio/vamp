@@ -23,6 +23,7 @@ trait SqlPersistenceActor extends CqrsActor with SqlPersistenceOperations with S
 
   override protected def info(): Map[String, Any] = {
     ping()
-    super.info() + ("type" → getClass.getSimpleName.replace("PersistenceActor", "").toLowerCase) + ("url" → url)
+    val `type` = getClass.getSimpleName.replaceAll("PersistenceActor.*", "").toLowerCase
+    super.info() + ("url" → url) + ("type" → `type`)
   }
 }
