@@ -29,15 +29,15 @@ trait CqrsActor
 
   protected def synchronization: FiniteDuration
 
-  override def tick(): Unit = readWrapper()
+  override def tick(): Unit = readAll()
 
   override def receive: Receive = ({
-    case LoadAll ⇒ sender ! readWrapper()
+    case LoadAll ⇒ sender ! readAll()
     case _: Long ⇒
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[PersistenceActor].receive
 
   override def preStart(): Unit = {
-    readWrapper()
+    readAll()
     if (synchronization.toNanos > 0) schedule(synchronization, delay)
   }
 
@@ -47,8 +47,8 @@ trait CqrsActor
       log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
       guard()
       insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))).collect {
-        case Some(id: Long) ⇒ readOrFail(id, () ⇒ artifact, () ⇒ fail[Artifact](failMessage))
-      }.getOrElse(fail(failMessage)).asInstanceOf[T]
+        case Some(_: Long) ⇒ super.set[T](artifact, kind)
+      }.getOrElse(fail(failMessage))
     }
 
     super.get[T](artifact.name, kind) match {
@@ -61,11 +61,11 @@ trait CqrsActor
   override protected def delete[T <: Artifact](name: String, kind: String): Boolean = {
     super.get[T](name, kind) match {
       case Some(_) ⇒
-        lazy val failMessage = s"Can not delete [$kind] - $name}"
+        lazy val failMessage = s"Cannot delete [$kind] - $name}"
         log.debug(s"${getClass.getSimpleName}: delete [$kind] - $name}")
         guard()
         insert(PersistenceRecord(name, kind)).collect {
-          case Some(id: Long) ⇒ readOrFail(id, () ⇒ true, () ⇒ fail[Boolean](failMessage))
+          case Some(_: Long) ⇒ super.delete[T](name, kind)
         } getOrElse fail[Boolean](failMessage)
       case _ ⇒ false
     }
@@ -77,12 +77,7 @@ trait CqrsActor
 
   private def fail[A](message: String): A = throw new RuntimeException(message)
 
-  private def readOrFail[T](id: Long, succeed: () ⇒ T, fail: () ⇒ T): T = {
-    readWrapper()
-    if (id <= lastId) succeed() else fail()
-  }
-
-  private def readWrapper(): Long = {
+  private def readAll(): Long = {
     try read() catch {
       case c: CorruptedDataException ⇒
         reportException(c)

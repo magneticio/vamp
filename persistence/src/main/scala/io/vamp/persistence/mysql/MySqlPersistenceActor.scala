@@ -1,14 +1,14 @@
 package io.vamp.persistence.mysql
 
 import io.vamp.common.ClassMapper
-import io.vamp.persistence.sql.{ SqlPersistenceActor, SqlStatementProvider }
+import io.vamp.persistence.sql.SqlPersistenceActor
 
 class MySqlPersistenceActorMapper extends ClassMapper {
   val name = "mysql"
   val clazz: Class[_] = classOf[MySqlPersistenceActor]
 }
 
-class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
+class MySqlPersistenceActor extends SqlPersistenceActor {
 
   override val fetchSize: Int = Integer.MIN_VALUE
 

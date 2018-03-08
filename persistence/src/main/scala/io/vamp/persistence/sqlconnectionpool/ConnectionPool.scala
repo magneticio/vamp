@@ -3,11 +3,13 @@ package io.vamp.persistence.sqlconnectionpool
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.dbcp2._
 
+import scala.collection.concurrent.TrieMap
+
 protected case class DataSourceConfiguration(url: String, user: String, password: String)
 
 object ConnectionPool extends LazyLogging {
 
-  protected val dataSources = scala.collection.concurrent.TrieMap[DataSourceConfiguration, BasicDataSource]()
+  protected val dataSources: TrieMap[DataSourceConfiguration, BasicDataSource] = TrieMap[DataSourceConfiguration, BasicDataSource]()
 
   def apply(url: String, user: String, password: String): BasicDataSource = this.synchronized {
     val conf = DataSourceConfiguration(url, user, password)
@@ -20,5 +22,4 @@ object ConnectionPool extends LazyLogging {
       datasource
     })
   }
-
 }
