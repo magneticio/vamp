@@ -233,7 +233,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     log.info(s"Creating Kubernetes deployment")
     k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
       namespace.name,
-      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[AppsV1beta1Deployment]() {}.getType),
+      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
       null
     )
   }
