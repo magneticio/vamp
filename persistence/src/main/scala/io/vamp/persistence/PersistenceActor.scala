@@ -47,9 +47,9 @@ trait PersistenceApi extends TypeOfArtifact {
 
   protected def set[T <: Artifact](artifact: T, kind: String): T
 
-  protected def delete[T <: Artifact](name: String, kind: String): Boolean
+  protected def delete[T <: Artifact](name: String, kind: String): Option[T]
 
-  protected def interceptor[T <: Artifact]: PartialFunction[T, T]
+  protected def interceptor[T <: Artifact](set: Boolean): PartialFunction[T, T] = PartialFunction(artifact ⇒ artifact)
 
   final protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
     all[T](type2string(`type`), page, perPage, filter)
@@ -61,10 +61,12 @@ trait PersistenceApi extends TypeOfArtifact {
 
   final protected def set[T <: Artifact](artifact: T): T = {
     val `type` = type2string(artifact.getClass)
-    set[T](interceptor[T](artifact), `type`)
+    set[T](interceptor[T](set = true)(artifact), `type`)
   }
 
-  final protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = delete[T](name, type2string(`type`))
+  final protected def delete[T <: Artifact](name: String, `type`: Class[T]): Boolean = {
+    delete[T](name, type2string(`type`)).map(interceptor[T](set = false)).isDefined
+  }
 
   final protected def delete[T <: Artifact](artifact: T): Boolean = delete[T](artifact.name, artifact.getClass.asInstanceOf[Class[T]])
 }
@@ -98,11 +100,13 @@ trait PersistenceActor
       }
   }
 
-  final override protected def interceptor[T <: Artifact]: PartialFunction[T, T] = {
-    super[DeploymentPersistenceOperations].interceptor[T] orElse
-      super[GatewayPersistenceOperations].interceptor[T] orElse
-      super[WorkflowPersistenceOperations].interceptor[T] orElse
-      ({ case artifact ⇒ artifact.asInstanceOf[T] }: PartialFunction[T, T])
+  final override protected def interceptor[T <: Artifact](set: Boolean): PartialFunction[T, T] = {
+    super[DeploymentPersistenceOperations].interceptor[T](set) orElse
+      super[GatewayPersistenceOperations].interceptor[T](set) orElse
+      super[WorkflowPersistenceOperations].interceptor[T](set) orElse
+      ({
+        case artifact ⇒ artifact.asInstanceOf[T]
+      }: PartialFunction[T, T])
   }
 
   override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]

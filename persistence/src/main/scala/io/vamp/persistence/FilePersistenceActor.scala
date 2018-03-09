@@ -71,12 +71,12 @@ class FilePersistenceActor
     }
   }
 
-  override protected def delete[T <: Artifact](name: String, kind: String): Boolean = {
+  override protected def delete[T <: Artifact](name: String, kind: String): Option[T] = {
     super.get[T](name, kind) match {
       case Some(_) ⇒
         write(PersistenceRecord(name, kind))
         super.delete(name, kind)
-      case _ ⇒ false
+      case _ ⇒ None
     }
   }
 

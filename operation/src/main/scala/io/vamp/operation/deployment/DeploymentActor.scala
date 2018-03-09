@@ -301,7 +301,6 @@ trait DeploymentGatewayOperation {
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.Status = Intention.Deployment): Unit = {
     actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, state)
     actorFor[PersistenceActor] ! PersistenceActor.ResetDeploymentService(deployment, cluster, service)
-    actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
   }
 
   def resetInternalRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
@@ -337,7 +336,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
               Future.sequence {
                 gateways.map { gateway ⇒
                   if (deployment.gateways.exists(_.name == gateway.name))
-                    actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
+                    actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, force = true)
                   else
                     actorFor[GatewayActor] ? GatewayActor.Create(gateway, None, validateOnly = validateOnly, force = true)
                 }
@@ -461,12 +460,11 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
     implicit val timeout: Timeout = PersistenceActor.timeout()
     val routings = resolveRoutings(deployment, blueprintCluster)
-    val promote = stableCluster.exists(cluster ⇒ cluster.gateways.size == blueprintCluster.gateways.size)
 
     Future.sequence {
       routings.map { gateway ⇒
         if (exists(gateway))
-          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, promote = promote, force = true))
+          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true))
         else
           checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Create(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true))
       } ++ stableCluster.map(cluster ⇒ cluster.gateways.filterNot(routing ⇒ blueprintCluster.gateways.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
@@ -623,7 +621,7 @@ trait DeploymentSlicer extends DeploymentOperation {
                     if (gateway.routes.isEmpty)
                       actorFor[GatewayActor] ? GatewayActor.Delete(gateway.name, validateOnly = validateOnly, force = true)
                     else
-                      actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
+                      actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, force = true)
                 }
               case None ⇒ List.empty[Future[_]]
             }

@@ -1,7 +1,7 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
-import io.vamp.common.Artifact
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 
 trait WorkflowPersistenceMessages {
@@ -26,8 +26,8 @@ trait WorkflowPersistenceMessages {
 
 }
 
-trait WorkflowPersistenceOperations {
-  this: PersistenceApi with PatchPersistenceOperations ⇒
+trait WorkflowPersistenceOperations extends PersistenceApi {
+  this: NotificationProvider with PatchPersistenceOperations ⇒
 
   import PersistenceActor._
 
@@ -50,10 +50,6 @@ trait WorkflowPersistenceOperations {
     case o: UpdateWorkflowHealth               ⇒ patch(o.workflow.name, w ⇒ w.copy(health = o.health))
 
     case o: ResetWorkflow                      ⇒ resetWorkflow(o.workflow)
-  }
-
-  override protected def interceptor[T <: Artifact]: PartialFunction[T, T] = {
-    case workflow: Workflow ⇒ workflow.asInstanceOf[T]
   }
 
   private def updateWorkflowStatus(workflow: Workflow, status: Workflow.Status): Unit = {

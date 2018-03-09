@@ -56,13 +56,13 @@ trait PersistenceRepresentation extends PersistenceApi with AccessGuard {
     artifact
   }
 
-  protected def delete[T <: Artifact](name: String, kind: String): Boolean = {
+  protected def delete[T <: Artifact](name: String, kind: String): Option[T] = {
     log.debug(s"In memory representation: delete [$kind] - $name}")
     store.get(kind) flatMap { map ⇒
       val result = map.remove(name).map { artifact ⇒ after[T](set = false)(artifact.asInstanceOf[T]) }
       if (result.isEmpty) log.debug(s"Artifact not found for deletion: $kind: $name")
       result
-    } isDefined
+    }
   }
 
   protected def find[A: ClassTag](p: A ⇒ Boolean, `type`: Class[_ <: Artifact]): Option[A] = {
