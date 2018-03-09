@@ -58,7 +58,7 @@ trait CqrsActor
     }
   }
 
-  override protected def delete[T <: Artifact](name: String, kind: String): Boolean = {
+  override protected def delete[T <: Artifact](name: String, kind: String): Option[T] = {
     super.get[T](name, kind) match {
       case Some(_) ⇒
         lazy val failMessage = s"Cannot delete [$kind] - $name}"
@@ -66,8 +66,8 @@ trait CqrsActor
         guard()
         insert(PersistenceRecord(name, kind)).collect {
           case Some(_: Long) ⇒ super.delete[T](name, kind)
-        } getOrElse fail[Boolean](failMessage)
-      case _ ⇒ false
+        } getOrElse fail[Option[T]](failMessage)
+      case _ ⇒ None
     }
   }
 

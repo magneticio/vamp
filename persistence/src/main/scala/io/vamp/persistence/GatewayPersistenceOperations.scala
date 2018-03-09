@@ -2,143 +2,42 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import io.vamp.common.Artifact
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.{ DefaultRoute, _ }
 
 trait GatewayPersistenceMessages {
-
-  case class CreateInternalGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
 
   case class CreateGatewayServiceAddress(gateway: Gateway, host: String, port: Int) extends PersistenceActor.PersistenceMessages
 
   case class CreateGatewayPort(gateway: Gateway, port: Int) extends PersistenceActor.PersistenceMessages
 
-  case class UpdateGatewayServiceAddress(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, host: String, port: Int) extends PersistenceActor.PersistenceMessages
-
   case class UpdateGatewayDeploymentStatus(gateway: Gateway, deployed: Boolean) extends PersistenceActor.PersistenceMessages
 
   case class UpdateGatewayRouteTargets(gateway: Gateway, route: DefaultRoute, targets: List[RouteTarget]) extends PersistenceActor.PersistenceMessages
 
-  case class UpdateInternalGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
-
-  case class DeleteInternalGateway(name: String) extends PersistenceActor.PersistenceMessages
-
   case class DeleteGatewayRouteTargets(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) extends PersistenceActor.PersistenceMessages
-
-  case class ResetGateway(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) extends PersistenceActor.PersistenceMessages
-
 }
 
-trait GatewayPersistenceOperations {
-  this: PersistenceApi with PatchPersistenceOperations ⇒
+trait GatewayPersistenceOperations extends PersistenceApi {
+  this: NotificationProvider with PatchPersistenceOperations ⇒
 
   import PersistenceActor._
 
   def receive: Actor.Receive = {
 
-    case o: CreateInternalGateway         ⇒ patchInternalGateway(o.gateway)
-
     case o: CreateGatewayServiceAddress   ⇒ patchGatewayServiceAddress(o.gateway.name, o.host, o.port)
 
     case o: CreateGatewayPort             ⇒ patchGatewayPort(o.gateway.name, o.port)
-
-    case o: UpdateGatewayServiceAddress   ⇒ patchGatewayServiceAddress(serviceArtifactName(o.deployment, o.cluster, o.service), o.host, o.port)
 
     case o: UpdateGatewayDeploymentStatus ⇒ patch(o.gateway.name, g ⇒ g.copy(deployed = o.deployed))
 
     case o: UpdateGatewayRouteTargets     ⇒ patchGatewayRouteTargets(o.gateway, o.route, o.targets)
 
-    case o: UpdateInternalGateway         ⇒ patchInternalGateway(o.gateway)
-
-    case o: DeleteInternalGateway         ⇒ deleteInternalGateway(o.name)
-
-    case o: DeleteGatewayRouteTargets     ⇒ deleteGatewayRouteTargets(serviceArtifactName(o.deployment, o.cluster, o.service))
-
-    case o: ResetGateway                  ⇒ resetGateway(o.deployment, o.cluster, o.service)
+    case o: DeleteGatewayRouteTargets     ⇒ deleteGatewayRouteTargets(o.deployment, o.cluster, o.service)
   }
 
-  override protected def interceptor[T <: Artifact]: PartialFunction[T, T] = {
-    case gateway: Gateway ⇒
-      get(gateway).map { g ⇒
-        val targets = g.routes.map {
-          case r: DefaultRoute ⇒ r.path.normalized → r.targets
-          case r               ⇒ r.path.normalized → Nil
-        }.toMap
-        val routes = gateway.routes.map {
-          case r: DefaultRoute ⇒ r.copy(targets = targets.getOrElse(r.path.normalized, Nil))
-          case r               ⇒ r
-        }
-        gateway.copy(
-          service = g.service,
-          routes = routes
-        )
-      }.getOrElse(gateway).asInstanceOf[T]
-  }
-
-  private def resetGateway(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
-    var modified = false
-    val name = GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
-    get(deployment) match {
-      case Some(d) ⇒
-        d.copy(clusters = d.clusters.map {
-          case c if c.name == cluster.name ⇒
-            val gateways = {
-              val ng = c.gateways.filterNot(_.name == name)
-              modified = ng != c.gateways
-              ng
-            }
-            c.copy(gateways = gateways)
-          case c ⇒ c
-        })
-        replyUpdate(d, modified)
-      case _ ⇒ replyNone()
-    }
-  }
-
-  private def patchInternalGateway(gateway: Gateway): Unit = {
-    deploymentCluster(gateway.name) match {
-      case Some((dName, cName)) ⇒
-        get(dName, classOf[Deployment]) match {
-          case Some(d) ⇒
-            var modified = false
-            d.copy(clusters = d.clusters.map {
-              case c if c.name == cName ⇒
-                val gateways = {
-                  c.gateways.filter(_.routes.nonEmpty).map {
-                    case g if g.name == gateway.name ⇒
-                      val ng = g.copy(port = g.port.copy(name = gateway.port.name))
-                      modified = ng != g
-                      ng
-                    case g ⇒ g
-                  }
-                }
-                c.copy(gateways = gateways)
-              case c ⇒ c
-            })
-            replyUpdate(d, modified)
-          case None ⇒ replyNone()
-        }
-      case None ⇒ replyNone()
-    }
-  }
-
-  private def deleteInternalGateway(name: String): Unit = {
-    deploymentCluster(name) match {
-      case Some((dName, cName)) ⇒
-        get(dName, classOf[Deployment]) match {
-          case Some(d) ⇒
-            var modified = false
-            d.copy(clusters = d.clusters.map {
-              case c if c.name == cName ⇒
-                val gateways = c.gateways.filterNot(_.name == name)
-                modified = gateways != c.gateways
-                c.copy(gateways = gateways)
-              case c ⇒ c
-            })
-            replyUpdate(d, modified)
-          case _ ⇒ replyNone()
-        }
-      case _ ⇒ replyNone()
-    }
+  override protected def interceptor[T <: Artifact](set: Boolean): PartialFunction[T, T] = {
+    case gateway: Gateway ⇒ get(gateway).map(old ⇒ intercept(set)(gateway, old)).getOrElse(gateway).asInstanceOf[T]
   }
 
   private def patchGatewayServiceAddress(name: String, host: String, port: Int): Unit = {
@@ -171,7 +70,69 @@ trait GatewayPersistenceOperations {
     })
   }
 
-  private def deleteGatewayRouteTargets(name: String): Unit = {
+  private def patch(name: String, using: Gateway ⇒ Gateway): Unit = {
+    get(name, classOf[Gateway]) match {
+      case Some(g) ⇒
+        val ng = using(g)
+        val modified = ng != g
+        if (modified) interceptForDeployment(ng, update = true)
+        replyUpdate(ng, modified)
+      case None ⇒ replyNone()
+    }
+  }
+
+  private def intercept(set: Boolean)(newGateway: Gateway, oldGateway: Gateway): Gateway = {
+    if (set) {
+      val gateway = interceptForGateway(newGateway, oldGateway)
+      interceptForDeployment(gateway, set)
+      gateway
+    }
+    else {
+      interceptForDeployment(newGateway, set)
+      newGateway
+    }
+  }
+
+  private def interceptForGateway(newGateway: Gateway, oldGateway: Gateway): Gateway = {
+    val targets = oldGateway.routes.map {
+      case r: DefaultRoute ⇒ r.path.normalized → r.targets
+      case r               ⇒ r.path.normalized → Nil
+    }.toMap
+    val routes = newGateway.routes.map {
+      case r: DefaultRoute ⇒ r.copy(targets = targets.getOrElse(r.path.normalized, Nil))
+      case r               ⇒ r
+    }
+    newGateway.copy(
+      service = oldGateway.service,
+      routes = routes
+    )
+  }
+
+  private def interceptForDeployment(gateway: Gateway, update: Boolean): Unit = {
+    (GatewayPath(gateway.name).segments match {
+      case d :: c :: _ :: Nil ⇒
+        get(d, classOf[Deployment]).flatMap { deployment ⇒
+          deployment.clusters.find(_.name == c).map(cluster ⇒ deployment → cluster)
+        }
+      case _ ⇒ None
+    }).foreach {
+      case (deployment, cluster) ⇒
+        set(deployment.copy(clusters = deployment.clusters.map {
+          case c if c.name == cluster.name ⇒
+            if (update) {
+              cluster.copy(gateways = cluster.gateways.map {
+                case g if g.name == gateway.name ⇒ gateway
+                case g                           ⇒ g
+              })
+            }
+            else cluster.copy(gateways = cluster.gateways.filterNot(_.name == gateway.name))
+          case c ⇒ c
+        }))
+    }
+  }
+
+  private def deleteGatewayRouteTargets(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
+    val name = GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
     patch(name, { g ⇒
       val routes = g.routes.map {
         case r: DefaultRoute ⇒ r.copy(targets = Nil)
@@ -179,26 +140,5 @@ trait GatewayPersistenceOperations {
       }
       g.copy(routes = routes)
     })
-  }
-
-  private def patch(name: String, using: Gateway ⇒ Gateway): Unit = {
-    get(name, classOf[Gateway]) match {
-      case Some(g) ⇒
-        val ng = using(g)
-        val modified = ng != g
-        replyUpdate(ng, modified)
-      case None ⇒ replyNone()
-    }
-  }
-
-  private def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): String = {
-    GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
-  }
-
-  private def deploymentCluster(name: String): Option[(String, String)] = {
-    GatewayPath(name).segments match {
-      case d :: c :: _ :: Nil ⇒ Option(d → c)
-      case _                  ⇒ None
-    }
   }
 }

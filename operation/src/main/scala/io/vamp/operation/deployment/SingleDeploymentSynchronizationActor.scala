@@ -1,14 +1,13 @@
 package io.vamp.operation.deployment
 
+import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
-import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
@@ -35,16 +34,13 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     log.info(s"[SingleDeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
     containerService.deployment.clusters.find { cluster ⇒ cluster.services.exists(_.breed.name == containerService.service.breed.name) } match {
       case Some(cluster) ⇒
-
         val service = containerService.service
         val deployment = containerService.deployment
-
         service.status.intention match {
           case Intention.Deployment   ⇒ deploy(deployment, cluster, service, containerService)
           case Intention.Undeployment ⇒ undeploy(deployment, cluster, service, containerService.containers)
           case _                      ⇒
         }
-
       case _ ⇒
     }
   }
@@ -81,7 +77,6 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       }
       else if (!deploymentService.status.isDone) {
         actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
-        updateGateways(deployment, deploymentCluster)
         publishDeployed(deployment, deploymentCluster, deploymentService)
       }
   }
@@ -202,10 +197,6 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         resetInternalRouteArtifacts(deployment, deploymentCluster, deploymentService)
         publishUndeployed(deployment, deploymentCluster, deploymentService)
     }
-  }
-
-  private def updateGateways(deployment: Deployment, cluster: DeploymentCluster): Unit = cluster.gateways.foreach { gateway ⇒
-    IoC.actorFor[GatewayActor] ! GatewayActor.PromoteInternal(gateway)
   }
 
   private def publishDeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Unit = {
