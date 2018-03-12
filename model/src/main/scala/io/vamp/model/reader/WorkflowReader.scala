@@ -3,11 +3,11 @@ package io.vamp.model.reader
 import java.time.{ OffsetDateTime, ZoneId }
 import java.util.Date
 
+import io.vamp.model.artifact.TimeSchedule.{ RepeatCount, RepeatForever }
+import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.BreedTraitValueValidator
-import io.vamp.model.artifact.TimeSchedule.{ RepeatCount, RepeatForever }
-import io.vamp.model.artifact._
 
 import scala.util.Try
 
@@ -106,14 +106,14 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
 
 object WorkflowStatusReader extends ModelNotificationProvider {
 
-  def status(value: String): Workflow.Status = value match {
-    case s if s.toLowerCase == "starting"   ⇒ Workflow.Status.Starting
-    case s if s.toLowerCase == "running"    ⇒ Workflow.Status.Running
-    case s if s.toLowerCase == "stopping"   ⇒ Workflow.Status.Stopping
-    case s if s.toLowerCase == "suspended"  ⇒ Workflow.Status.Suspended
-    case s if s.toLowerCase == "suspending" ⇒ Workflow.Status.Suspending
-    case s if s.toLowerCase == "restarting" ⇒ Workflow.Status.Restarting(None)
-    case s                                  ⇒ throwException(IllegalWorkflowStatus(s))
+  def status(value: String): Workflow.Status = value.trim.toLowerCase match {
+    case s if s == "starting" || s == "\"starting\"" ⇒ Workflow.Status.Starting
+    case s if s == "running" || s == "\"running\"" ⇒ Workflow.Status.Running
+    case s if s == "stopping" || s == "\"stopping\"" ⇒ Workflow.Status.Stopping
+    case s if s == "suspended" || s == "\"suspended\"" ⇒ Workflow.Status.Suspended
+    case s if s == "suspending" || s == "\"suspending\"" ⇒ Workflow.Status.Suspending
+    case s if s == "restarting" || s == "\"restarting\"" ⇒ Workflow.Status.Restarting(None)
+    case s ⇒ throwException(IllegalWorkflowStatus(s))
   }
 
   def status(value: Option[String]): Workflow.Status = value match {
