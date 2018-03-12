@@ -110,18 +110,18 @@ trait GatewayPersistenceOperations extends PersistenceApi {
 
   private def interceptForDeployment(gateway: Gateway, update: Boolean): Unit = {
     (GatewayPath(gateway.name).segments match {
-      case d :: c :: _ :: Nil ⇒
+      case d :: c :: p :: Nil ⇒
         get(d, classOf[Deployment]).flatMap { deployment ⇒
-          deployment.clusters.find(_.name == c).map(cluster ⇒ deployment → cluster)
+          deployment.clusters.find(_.name == c).map(cluster ⇒ (deployment, cluster, p))
         }
       case _ ⇒ None
     }).foreach {
-      case (deployment, cluster) ⇒
+      case (deployment, cluster, port) ⇒
         set(deployment.copy(clusters = deployment.clusters.map {
           case c if c.name == cluster.name ⇒
             if (update) {
               cluster.copy(gateways = cluster.gateways.map {
-                case g if g.name == gateway.name ⇒ gateway
+                case g if g.name == gateway.name ⇒ gateway.copy(port = gateway.port.copy(name = port))
                 case g                           ⇒ g
               })
             }
