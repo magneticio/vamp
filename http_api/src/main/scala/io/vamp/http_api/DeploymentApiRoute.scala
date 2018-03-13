@@ -1,16 +1,21 @@
 package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.server.Route
 import akka.util.Timeout
 import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.persistence.ArtifactPaginationSupport
 
+import scala.concurrent.Future
+
 trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
   this: ArtifactPaginationSupport with HttpApiDirectives ⇒
 
   private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
+
+  private def slice = parameters('delete.as[Boolean] ? false)
 
   private def deploymentRoute(implicit namespace: Namespace, timeout: Timeout) = pathPrefix("deployments") {
     pathEndOrSingleSlash {
@@ -48,15 +53,15 @@ trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
         } ~ put {
           entity(as[String]) { request ⇒
             validateOnly { validateOnly ⇒
-              onSuccess(updateDeployment(name, request, validateOnly)) { result ⇒
-                respondWith(Accepted, result)
+              slice { slice ⇒
+                onSuccess(update(name, request, validateOnly, slice)) { result ⇒ respondWith(Accepted, result) }
               }
             }
           }
         } ~ delete {
           entity(as[String]) { request ⇒
             validateOnly { validateOnly ⇒
-              onSuccess(deleteDeployment(name, request, validateOnly)) { result ⇒
+              onSuccess(update(name, request, validateOnly, slice = true)) { result ⇒
                 respondWith(Accepted, result)
               }
             }
@@ -64,6 +69,10 @@ trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
         }
       }
     }
+  }
+
+  private def update(name: String, request: String, validateOnly: Boolean, slice: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
+    if (slice) deleteDeployment(name, request, validateOnly) else updateDeployment(name, request, validateOnly)
   }
 
   private def slaRoute(implicit namespace: Namespace, timeout: Timeout) =
@@ -110,5 +119,5 @@ trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
       }
     }
 
-  def deploymentRoutes(implicit namespace: Namespace, timeout: Timeout) = deploymentRoute ~ slaRoute ~ scaleRoute
+  def deploymentRoutes(implicit namespace: Namespace, timeout: Timeout): Route = deploymentRoute ~ slaRoute ~ scaleRoute
 }
