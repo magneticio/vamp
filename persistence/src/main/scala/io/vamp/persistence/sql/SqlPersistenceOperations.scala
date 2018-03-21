@@ -6,6 +6,7 @@ import io.vamp.persistence.PersistenceRecord
 import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
+import scala.collection.mutable
 import scala.util.Try
 
 trait SqlPersistenceOperations {
@@ -15,6 +16,8 @@ trait SqlPersistenceOperations {
   protected lazy val password: String = SqlPersistenceActor.password()
   protected lazy val url: String = resolveWithOptionalNamespace(SqlPersistenceActor.url())._1
   protected lazy val table: String = resolveWithOptionalNamespace(SqlPersistenceActor.table())._1
+
+  private lazy val ids = new mutable.HashMap[String, Long]()
 
   protected def read(): Long = {
     log.debug(s"SQL read for table [$table] with url: $url")
@@ -30,7 +33,8 @@ trait SqlPersistenceOperations {
         while (result.next) {
           val id = result.getLong(1)
           if (id > lastId) {
-            dataRead(result.getString(2))
+            val record = dataRead(result.getString(2))
+            if (modifiable) ids.put(key(record), id)
             lastId = id
           }
         }
@@ -53,6 +57,52 @@ trait SqlPersistenceOperations {
       val statement = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
       try {
         statement.setString(1, marshallRecord(record))
+        statement.executeUpdate
+        val result = statement.getGeneratedKeys
+        if (result.next) {
+          val id = result.getLong(1)
+          if (modifiable) ids.put(key(record), id)
+          Option(id)
+        }
+        else None
+      }
+      finally statement.close()
+    }
+    catch {
+      case e: Exception ⇒ throwException(PersistenceOperationFailure(e))
+    }
+    finally conn.close()
+  }
+
+  protected def update(record: PersistenceRecord): Try[Option[Long]] = Try {
+    log.debug(s"SQL insert for table [$table] with url: $url")
+    val conn = connection()
+    try {
+      val query = updateStatement()
+      val statement = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+      try {
+        statement.setString(1, marshallRecord(record))
+        statement.setLong(2, ids(key(record)))
+        statement.executeUpdate
+        val result = statement.getGeneratedKeys
+        if (result.next) Option(result.getLong(1)) else None
+      }
+      finally statement.close()
+    }
+    catch {
+      case e: Exception ⇒ throwException(PersistenceOperationFailure(e))
+    }
+    finally conn.close()
+  }
+
+  protected def delete(record: PersistenceRecord): Try[Option[Long]] = Try {
+    log.debug(s"SQL delete for table [$table] with url: $url")
+    val conn = connection()
+    try {
+      val query = deleteStatement()
+      val statement = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
+      try {
+        statement.setLong(1, ids(key(record)))
         statement.executeUpdate
         val result = statement.getGeneratedKeys
         if (result.next) Option(result.getLong(1)) else None
@@ -80,6 +130,8 @@ trait SqlPersistenceOperations {
     }
     finally conn.close()
   }
+
+  private def key(record: PersistenceRecord): String = s"${record.kind}/${record.name}"
 
   private def connection() = ConnectionPool(url, user, password).getConnection
 }
