@@ -102,8 +102,10 @@ trait SqlPersistenceOperations {
       val query = deleteStatement()
       val statement = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
       try {
-        statement.setLong(1, ids(key(record)))
+        val id = key(record)
+        statement.setLong(1, ids(id))
         statement.executeUpdate
+        ids.remove(id)
         val result = statement.getGeneratedKeys
         if (result.next) Option(result.getLong(1)) else None
       }
