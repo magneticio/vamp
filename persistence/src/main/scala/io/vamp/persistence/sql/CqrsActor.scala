@@ -23,7 +23,13 @@ trait CqrsActor
 
   protected def read(): Long
 
+  protected def modifiable: Boolean
+
   protected def insert(record: PersistenceRecord): Try[Option[Long]]
+
+  protected def update(record: PersistenceRecord): Try[Option[Long]]
+
+  protected def delete(record: PersistenceRecord): Try[Option[Long]]
 
   protected def delay: FiniteDuration
 
@@ -46,9 +52,17 @@ trait CqrsActor
       lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
       log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
       guard()
-      insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))).collect {
-        case Some(_: Long) ⇒ super.set[T](artifact, kind)
-      }.getOrElse(fail(failMessage))
+      val record = PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))
+      if (!timeDependent && modifiable && super.get(artifact.name, artifact.kind).isDefined) {
+        update(record).collect {
+          case _ ⇒ super.set[T](artifact, kind)
+        }.getOrElse(fail(failMessage))
+      }
+      else {
+        insert(record).collect {
+          case Some(_: Long) ⇒ super.set[T](artifact, kind)
+        }.getOrElse(fail(failMessage))
+      }
     }
 
     super.get[T](artifact.name, kind) match {
@@ -64,9 +78,17 @@ trait CqrsActor
         lazy val failMessage = s"Cannot delete [$kind] - $name}"
         log.debug(s"${getClass.getSimpleName}: delete [$kind] - $name}")
         guard()
-        insert(PersistenceRecord(name, kind)).collect {
-          case Some(_: Long) ⇒ super.delete[T](name, kind)
-        } getOrElse fail[Option[T]](failMessage)
+        val record = PersistenceRecord(name, kind)
+        if (!timeDependent && modifiable) {
+          delete(record).collect {
+            case _ ⇒ super.delete[T](name, kind)
+          } getOrElse fail[Option[T]](failMessage)
+        }
+        else {
+          insert(record).collect {
+            case Some(_: Long) ⇒ super.delete[T](name, kind)
+          } getOrElse fail[Option[T]](failMessage)
+        }
       case _ ⇒ None
     }
   }

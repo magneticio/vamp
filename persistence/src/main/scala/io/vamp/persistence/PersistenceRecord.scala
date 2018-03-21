@@ -44,6 +44,8 @@ trait PersistenceRecordMarshaller {
     }
   }
 
+  lazy val timeDependent: Boolean = transformers.exists(_.timeDependent)
+
   def marshallRecord(record: PersistenceRecord): String = {
     val content = write(record)(SerializationFormat(OffsetDateTimeSerializer))
     transformers.foldLeft[String](content)((input, transformer) ⇒ transformer.write(input))
@@ -63,11 +65,12 @@ trait PersistenceDataReader extends PersistenceRecordMarshaller with Persistence
 
   protected def dataDelete(name: String, kind: String): Unit
 
-  protected def dataRead(data: String): Unit = {
+  protected def dataRead(data: String): PersistenceRecord = {
     val record = Try(unmarshallRecord(data)).getOrElse(throwException(UnknownDataFormatException("")))
     record.artifact match {
       case Some(content) ⇒ unmarshall(record.kind, content).map(a ⇒ dataSet(a, record.kind)).getOrElse(throwException(UnknownDataFormatException(record.kind)))
       case None          ⇒ dataDelete(record.name, record.kind)
     }
+    record
   }
 }

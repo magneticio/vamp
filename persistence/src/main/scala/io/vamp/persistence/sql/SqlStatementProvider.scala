@@ -4,11 +4,13 @@ trait SqlStatementProvider {
 
   def fetchSize: Int = 0
 
+  def modifiable: Boolean = false
+
   def selectStatement(lastId: Long): String
 
   def insertStatement(): String
 
-  def updateStatement(id: Long, record: String): String = throw new NotImplementedError
+  def updateStatement(): String = throw new NotImplementedError
 
-  def deleteStatement(id: Long): String = throw new NotImplementedError
+  def deleteStatement(): String = throw new NotImplementedError
 }
