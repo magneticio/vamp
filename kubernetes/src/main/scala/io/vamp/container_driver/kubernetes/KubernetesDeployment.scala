@@ -183,6 +183,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     if (update)
       k8sClient.cache.writeWithCache(
+        K8sCache.update,
         K8sCache.deployments,
         id,
         () ⇒ k8sClient.extensionsV1beta1Api.replaceNamespacedDeployment(
@@ -193,6 +194,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
         )
       )
     else k8sClient.cache.writeWithCache(
+      K8sCache.create,
       K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
@@ -241,6 +243,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   protected def deleteDeployment(name: String): Unit = {
     log.info(s"Deleting Kubernetes deployment $name")
     k8sClient.cache.writeWithCache(
+      K8sCache.delete,
       K8sCache.deployments,
       name,
       () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)

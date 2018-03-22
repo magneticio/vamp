@@ -97,7 +97,11 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
           _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowNetwork(workflow, network)
           _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
           _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowBreed(workflow, workflowBreed)
-          _ ← actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition))
+          kv ← actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(WorkflowDriver.path(workflow))
+          _ ← kv match {
+            case Some(_) ⇒ Future.successful(kv)
+            case _       ⇒ actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition))
+          }
         } yield workflow.copy(
           breed = workflowBreed,
           scale = Option(scale),

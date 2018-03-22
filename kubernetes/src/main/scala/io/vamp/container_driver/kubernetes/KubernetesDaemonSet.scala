@@ -66,6 +66,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
           resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
 
           k8sClient.cache.writeWithCache(
+            K8sCache.update,
             K8sCache.daemonSets,
             ds.name,
             () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
@@ -85,6 +86,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
   protected def deleteDaemonSet(name: String): Unit = {
     log.info(s"Deleting daemon set $name")
     k8sClient.cache.writeWithCache(
+      K8sCache.delete,
       K8sCache.daemonSets,
       name,
       () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)

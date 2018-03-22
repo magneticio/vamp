@@ -82,6 +82,7 @@ trait KubernetesJob extends KubernetesArtifact {
           context.setPrivileged(job.docker.privileged)
 
           k8sClient.cache.writeWithCache(
+            K8sCache.update,
             K8sCache.jobs,
             job.name,
             () ⇒ k8sClient.batchV1Api.createNamespacedJob(namespace.name, request, null)
@@ -94,6 +95,7 @@ trait KubernetesJob extends KubernetesArtifact {
     jobs(group).foreach { job ⇒
       val name = job.getMetadata.getName
       k8sClient.cache.writeWithCache(
+        K8sCache.delete,
         K8sCache.jobs,
         name,
         () ⇒ k8sClient.batchV1Api.deleteNamespacedJob(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)

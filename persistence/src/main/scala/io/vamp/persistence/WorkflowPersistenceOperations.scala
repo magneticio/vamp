@@ -6,7 +6,7 @@ import io.vamp.model.artifact._
 
 trait WorkflowPersistenceMessages {
 
-  case class UpdateWorkflowBreed(workflow: Workflow, breed: DefaultBreed) extends PersistenceActor.PersistenceMessages
+  case class UpdateWorkflowBreed(workflow: Workflow, breed: Breed) extends PersistenceActor.PersistenceMessages
 
   case class UpdateWorkflowStatus(workflow: Workflow, status: Workflow.Status) extends PersistenceActor.PersistenceMessages
 
