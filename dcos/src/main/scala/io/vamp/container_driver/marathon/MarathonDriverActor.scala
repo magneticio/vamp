@@ -183,16 +183,12 @@ class MarathonDriverActor
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"marathon get workflow: ${workflow.name}")
     client.get(appId(workflow)).foreach {
-      case Some(app) if workflow.breed.isInstanceOf[DefaultBreed] ⇒
+      case Some(app) ⇒
         replyTo ! ContainerWorkflow(
           workflow,
           Option(containers(app)),
           app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
         )
-      case Some(app) if workflow.breed.isInstanceOf[BreedReference] ⇒
-        val breedReference = workflow.breed.asInstanceOf[BreedReference]
-        log.warning(s"marathon get workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
-        replyTo ! ContainerWorkflow(workflow, None)
       case _ ⇒ replyTo ! ContainerWorkflow(workflow, None)
     }
   }

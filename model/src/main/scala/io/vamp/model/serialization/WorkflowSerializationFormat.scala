@@ -10,7 +10,7 @@ import org.json4s._
 import scala.collection.mutable.ArrayBuffer
 
 object WorkflowSerializationFormat extends io.vamp.common.json.SerializationFormat {
-  override def customSerializers = super.customSerializers :+
+  override def customSerializers: List[Serializer[_]] = super.customSerializers :+
     new WorkflowSerializer()
 }
 
@@ -27,7 +27,7 @@ class WorkflowSerializer
       list += JField("name", JString(workflow.name))
       list += JField("kind", JString(workflow.kind))
       list += JField("metadata", Extraction.decompose(workflow.metadata)(DefaultFormats))
-      list += JField("breed", new JObject(JField("reference", JString(workflow.breed.name)) :: Nil))
+      list += JField("breed", Extraction.decompose(workflow.breed))
       list += JField("status", JString(workflow.status.toString))
 
       workflow.schedule match {

@@ -1,6 +1,6 @@
 package io.vamp.workflow_driver
 
-import akka.actor.ActorRef
+import akka.actor.{ Actor, ActorRef }
 import akka.pattern.ask
 import io.vamp.common.akka.IoC.actorFor
 import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
@@ -14,19 +14,22 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
 
   protected def driverActor: ActorRef
 
-  override def receive = super.receive orElse {
+  override def receive: Actor.Receive = super.receive orElse {
     case ContainerWorkflow(workflow, containers, health) ⇒
-      workflow.breed match {
-        case breed: DefaultBreed ⇒
-          if (workflow.health != health) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowHealth(workflow, health)
+      if (workflow.health != health) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowHealth(workflow, health)
 
-          val instances = containers.map(_.instances.map { instance ⇒
-            val ports = breed.ports.map(_.name) zip instance.ports
-            Instance(instance.name, instance.host, ports.toMap, instance.deployed)
-          }).getOrElse(Nil)
-          if (workflow.instances != instances) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
-        case _ ⇒
-      }
+      val instances = containers.map(_.instances.map { instance ⇒
+        val ports = {
+          workflow.breed match {
+            case breed: DefaultBreed ⇒ breed.ports.map(_.name) zip instance.ports
+            case _                   ⇒ Map[String, Int]()
+          }
+        }
+        Instance(instance.name, instance.host, ports.toMap, instance.deployed)
+      }).getOrElse(Nil)
+
+      if (workflow.instances != instances) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
+
     case _ ⇒
   }
 

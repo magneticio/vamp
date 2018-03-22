@@ -87,36 +87,39 @@ class MarathonClient(val config: MarathonClientConfig) {
   }
 
   def post(id: String, body: Any)(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[Any] = {
-    cache.write(id, () ⇒ {
+    val operation = "create"
+    cache.write(operation, id, () ⇒ {
       logger.info(s"marathon sending post request: $id")
       httpClient.post[Any](appsUrl, body, config.headers, logError = false).recover {
         case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
         case t ⇒
           logger.error(t.getMessage, t)
-          cache.writeFailure(id)
+          cache.writeFailure(operation, id)
           Future.failed(t)
       }
     })
   }
 
   def put(id: String, body: Any)(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[Any] = {
-    cache.write(id, () ⇒ {
+    val operation = "update"
+    cache.write(operation, id, () ⇒ {
       logger.info(s"marathon sending put request: $id")
       httpClient.put[Any](s"$appsUrl/$id", body, config.headers).recover {
         case t ⇒
           logger.error(t.getMessage, t)
-          cache.writeFailure(id)
+          cache.writeFailure(operation, id)
           Future.failed(t)
       }
     })
   }
 
   def delete(id: String)(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[Any] = {
-    cache.write(id, () ⇒ {
+    val operation = "delete"
+    cache.write(operation, id, () ⇒ {
       logger.info(s"marathon sending delete request: $id")
       httpClient.delete(s"$appsUrl/$id", config.headers, logError = false) recover {
         case _ ⇒
-          cache.writeFailure(id)
+          cache.writeFailure(operation, id)
           None
       }
     })
