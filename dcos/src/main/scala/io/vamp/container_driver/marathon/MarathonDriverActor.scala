@@ -109,7 +109,9 @@ class MarathonDriverActor
         }) map {
           case (group, id) ⇒
             val containers = instances(app)
-            val ports = app.container.flatMap(_.docker).map(_.portMappings.map(_.containerPort)).getOrElse(Nil).flatten
+            val appPorts = app.container.flatMap(_.docker).map(_.portMappings.map(_.containerPort)).getOrElse(Nil).flatten
+            val containerPorts = app.container.map(_.portMappings.map(_.containerPort)).getOrElse(Nil).flatten
+            val ports = appPorts ++ containerPorts
             RoutingGroup(
               name = id,
               kind = "app",
