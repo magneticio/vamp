@@ -1,6 +1,6 @@
 package io.vamp.model.serialization
 
-import io.vamp.common.Lookup
+import io.vamp.common.{ Lookup, Namespace }
 import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -10,7 +10,7 @@ import scala.language.postfixOps
 
 object GatewaySerializationFormat extends io.vamp.common.json.SerializationFormat {
 
-  override def customSerializers = super.customSerializers :+
+  override def customSerializers: List[Serializer[_]] = super.customSerializers :+
     new GatewaySerializer() :+
     new GatewayStickySerializer() :+
     new RouteSerializer() :+
@@ -18,7 +18,7 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
     new ConditionSerializer() :+
     new RewriteSerializer()
 
-  override def fieldSerializers = super.fieldSerializers :+
+  override def fieldSerializers: List[FieldSerializer[_]] = super.fieldSerializers :+
     new RouteTargetFieldSerializer()
 }
 
@@ -75,7 +75,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
             case _ :: _ :: s :: _ :: Nil if !full ⇒ s
             case _ :: _ :: _ :: Nil if !full      ⇒ GatewayPath(route.path.segments.tail).normalized
             case _                                ⇒ route.path.source
-          }) → serializeRoute(full, () ⇒ { Option(GatewayLookup.lookup(gateway, route.path.segments)) })(format)(route)
+          }) → serializeRoute(full, () ⇒ { Option(GatewayLookup.lookup(gateway, route.path.segments)(Namespace.empty)) })(format)(route)
         } toMap
       })
 

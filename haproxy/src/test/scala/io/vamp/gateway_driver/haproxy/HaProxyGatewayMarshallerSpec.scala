@@ -1,5 +1,6 @@
 package io.vamp.gateway_driver.haproxy
 
+import io.vamp.common.Namespace
 import io.vamp.gateway_driver.haproxy.{ Condition ⇒ HaProxyCondition, Server ⇒ HaProxyServer }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.Percentage
@@ -14,6 +15,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
 
   private val marshaller = new HaProxyGatewayMarshaller
   private val template = Source.fromURL(getClass.getResource("/io/vamp/gateway_driver/haproxy/template.twig")).mkString
+  private implicit val namespace: Namespace = Namespace.empty
 
   "HaProxyConfiguration" should "be serialized to valid HAProxy configuration" in {
 
@@ -381,7 +383,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ("has header X-SPECIAL", "req.hdr_cnt(X-SPECIAL) gt 0"),
       ("misses header X-SPECIAL", "req.hdr_cnt(X-SPECIAL) eq 0")
     ) foreach { input ⇒
-        marshaller.filter(route.copy(condition = Option(DefaultCondition("", metadata = Map(), input._1))))(backends, Gateway("vamp", metadata = Map(), Port(0), None, None, Nil, None, Nil)) match {
+        marshaller.filter(route.copy(condition = Option(DefaultCondition("", metadata = Map(), input._1))))(namespace, backends, Gateway("vamp", metadata = Map(), Port(0), None, None, Nil, None, Nil)) match {
           case Some(Condition(_, _, Some(acls))) ⇒ acls.acls.head.definition shouldBe input._2
           case _                                 ⇒
         }

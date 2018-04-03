@@ -2,6 +2,8 @@ package io.vamp.common
 
 object Namespace {
   val kind: String = "namespaces"
+
+  val empty: Namespace = Namespace("")
 }
 
 case class Namespace(
