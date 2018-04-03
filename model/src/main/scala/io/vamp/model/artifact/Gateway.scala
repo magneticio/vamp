@@ -1,5 +1,6 @@
 package io.vamp.model.artifact
 
+import io.vamp.common.util.HashUtil
 import io.vamp.common.{ Artifact, Lookup, Namespace, Reference }
 import io.vamp.model.parser.{ AstNode, RouteSelectorParser }
 import io.vamp.model.reader.Percentage
@@ -190,7 +191,13 @@ object GatewayLookup {
       case Nil ⇒ artifact.lookupName
       case _   ⇒ artifact.lookup(expand(artifact, path))
     }
-    if (namespace.name == Namespace.empty.name) lookup else namespace.lookupName + lookup
+    if (namespace.name == Namespace.empty.name) lookup
+    else {
+      val bytes = namespace.lookupName.getBytes.zip(lookup.getBytes).map {
+        case (b1, b2) ⇒ (b1 ^ b2).asInstanceOf[Byte]
+      }
+      HashUtil.hex(bytes)
+    }
   }
 
   private def expand(artifact: Lookup, path: List[String]): String = (path match {
