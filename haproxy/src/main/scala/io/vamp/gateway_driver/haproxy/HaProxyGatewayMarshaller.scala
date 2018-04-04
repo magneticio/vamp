@@ -1,6 +1,6 @@
 package io.vamp.gateway_driver.haproxy
 
-import io.vamp.common.{ ClassMapper, Namespace }
+import io.vamp.common.ClassMapper
 import io.vamp.common.util.ObjectUtil._
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.model.artifact._
@@ -25,14 +25,14 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override lazy val info: AnyRef = Map("type" → `type`)
 
-  override def marshall(gateways: List[Gateway], template: String)(implicit namespace: Namespace): String = marshall(convert(gateways), template)
+  override def marshall(gateways: List[Gateway], template: String): String = marshall(convert(gateways), template)
 
   private[haproxy] def marshall(haProxy: HaProxy, template: String): String = {
     val model = JtwigModel.newModel().`with`("haproxy", (unwrap andThen asJava)(haProxy))
     JtwigTemplate.inlineTemplate(template).render(model)
   }
 
-  private[haproxy] def convert(gateways: List[Gateway])(implicit namespace: Namespace): HaProxy = {
+  private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
     gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(
       frontends = m1.frontends ++ m2.frontends,
       backends = m1.backends ++ m2.backends,
@@ -43,17 +43,17 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     )
   }
 
-  private[haproxy] def convert(gateway: Gateway)(implicit namespace: Namespace): HaProxy = {
-    val be = backends(namespace, gateway)
-    val fe = frontends(namespace, be, gateway)
+  private[haproxy] def convert(gateway: Gateway): HaProxy = {
+    val be = backends(gateway)
+    val fe = frontends(be, gateway)
 
-    val vbe = virtualHostsBackends(namespace, gateway)
-    val vfe = virtualHostsFrontends(namespace, vbe, gateway)
+    val vbe = virtualHostsBackends(gateway)
+    val vfe = virtualHostsFrontends(vbe, gateway)
 
     HaProxy(fe, be, vfe, vbe)
   }
 
-  private def frontends(implicit namespace: Namespace, backends: List[Backend], gateway: Gateway): List[Frontend] = {
+  private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
 
     val gatewayFrontend = Frontend(
       name = GatewayLookup.name(gateway),
@@ -96,7 +96,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     gatewayFrontend :: otherFrontend :: routeFrontends
   }
 
-  private def backends(implicit namespace: Namespace, gateway: Gateway): List[Backend] = {
+  private def backends(implicit gateway: Gateway): List[Backend] = {
 
     def unsupported(route: Route) = throw new IllegalArgumentException(s"Unsupported route: $route")
 
@@ -187,11 +187,11 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     otherBackend :: imBackends ++ routeBackends
   }
 
-  private def conditions()(implicit namespace: Namespace, backends: List[Backend], gateway: Gateway): List[Condition] = gateway.routes.collect {
+  private def conditions()(implicit backends: List[Backend], gateway: Gateway): List[Condition] = gateway.routes.collect {
     case route: DefaultRoute if route.condition.nonEmpty ⇒ filter(route)
   } flatten
 
-  private[haproxy] def filter(route: DefaultRoute)(implicit namespace: Namespace, backends: List[Backend], gateway: Gateway): Option[Condition] = {
+  private[haproxy] def filter(route: DefaultRoute)(implicit backends: List[Backend], gateway: Gateway): Option[Condition] = {
     route.condition.filter(_.isInstanceOf[DefaultCondition]).map(_.asInstanceOf[DefaultCondition].definition) map {
       condition ⇒
         backendFor(intermediate, GatewayLookup.lookup(gateway, route.path.segments)) match {
@@ -212,7 +212,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private def unixSocket(id: String)(implicit gateway: Gateway) = s"$id.sock"
 
-  private def virtualHostsFrontends(implicit namespace: Namespace, backends: List[Backend], gateway: Gateway): List[Frontend] = {
+  private def virtualHostsFrontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
     gateway.virtualHosts.map { virtualHost ⇒
       val acl = Acl(s"hdr(host) -i $virtualHost")
       Frontend(
@@ -233,7 +233,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     }
   }
 
-  private def virtualHostsBackends(implicit namespace: Namespace, gateway: Gateway): List[Backend] = {
+  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = {
     if (gateway.virtualHosts.nonEmpty) {
       Backend(
         name = GatewayLookup.name(gateway),
