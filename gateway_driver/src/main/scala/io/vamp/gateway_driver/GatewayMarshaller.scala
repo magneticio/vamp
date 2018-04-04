@@ -1,6 +1,5 @@
 package io.vamp.gateway_driver
 
-import io.vamp.common.Namespace
 import io.vamp.model.artifact._
 
 trait GatewayMarshaller {
@@ -9,5 +8,5 @@ trait GatewayMarshaller {
 
   def `type`: String
 
-  def marshall(gateways: List[Gateway], template: String)(implicit namespace: Namespace): String
+  def marshall(gateways: List[Gateway], template: String): String
 }

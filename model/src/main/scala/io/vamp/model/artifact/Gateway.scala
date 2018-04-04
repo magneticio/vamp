@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{ Artifact, Lookup, Namespace, Reference }
+import io.vamp.common.{ Artifact, Lookup, Reference }
 import io.vamp.model.parser.{ AstNode, RouteSelectorParser }
 import io.vamp.model.reader.Percentage
 
@@ -185,14 +185,9 @@ object GatewayLookup {
     case _   ⇒ s"${artifact.name}//${path.mkString("/")}"
   }
 
-  def lookup(artifact: Lookup, path: List[String] = Nil)(implicit namespace: Namespace): String = {
-    val lookup = path match {
-      case Nil ⇒ artifact.lookupName
-      case _   ⇒ artifact.lookup(expand(artifact, path))
-    }
-    if (namespace.name == Namespace.empty.name) lookup
-    else
-      namespace.lookupName.substring(0, namespace.lookupName.length / 2) + lookup.substring(0, lookup.length / 2)
+  def lookup(artifact: Lookup, path: List[String] = Nil): String = path match {
+    case Nil ⇒ artifact.lookupName
+    case _   ⇒ artifact.lookup(expand(artifact, path))
   }
 
   private def expand(artifact: Lookup, path: List[String]): String = (path match {
