@@ -51,7 +51,7 @@ trait PersistenceApi extends TypeOfArtifact {
 
   protected def interceptor[T <: Artifact](set: Boolean): PartialFunction[T, T] = PartialFunction(artifact ⇒ artifact)
 
-  final protected def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
+  final protected[persistence] def all[T <: Artifact](`type`: Class[T], page: Int, perPage: Int, filter: (T) ⇒ Boolean = (_: T) ⇒ true): ArtifactResponseEnvelope = {
     all[T](type2string(`type`), page, perPage, filter)
   }
 
