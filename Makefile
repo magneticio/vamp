@@ -2,86 +2,53 @@
 SHELL             := bash
 .SHELLFLAGS       := -eu -o pipefail -c
 .DEFAULT_GOAL     := default
-.DELETE_ON_ERROR:
-.SUFFIXES:
+.DELETE_ON_ERROR  :
+.SUFFIXES         :
 
-# Constants, these can be overwritten in your Makefile.local
-PACKER       ?= packer
-BUILD_SERVER := magneticio/buildserver
-DIR_SBT	     := "$(HOME)"/.sbt/boot
-DIR_IVY	     := "$(HOME)"/.ivy2
+STASH     := stash
+PROJECT   := vamp
+BRANCH    := $(shell git rev-parse --abbrev-ref HEAD)
+VERSION   := $(shell git describe --tags)
+FABRICATOR:= magneticio/fabricator:jdk_8u162_scala_2.12.1_sbt_0.13.13
+TARGET    := $$HOME/.stash/$(BRANCH)/$(PROJECT)
 
 # if Makefile.local exists, include it.
 ifneq ("$(wildcard Makefile.local)", "")
 	include Makefile.local
 endif
 
-# Don't change these
-PROJECT   := vamp
-TARGET    := "$(CURDIR)"/bootstrap/target
-VERSION   := $(shell git describe --tags)
-BUILD_CMD := sbt clean test 'project bootstrap' pack
-PACK_CMD  := VAMP_VERSION=katana sbt publish-local && VAMP_VERSION=$(VERSION) sbt 'project bootstrap' pack
+.PHONY: clean
+clean:
+	find "$(CURDIR)" -type d -name "target" | xargs rm -Rf
 
-# Targets
-.PHONY: all
-all: default
+.PHONY: purge
+purge: clean
+	docker volume rm $(STASH) || true
 
-# Using our buildserver which contains all the necessary dependencies
+.PHONY: volume
+volume:
+	docker volume create $(STASH)
+
+.PHONY: local
+local:
+	VAMP_VERSION=katana sbt clean test publish-local
+	VAMP_VERSION=$(VERSION) sbt 'project bootstrap' pack
+
+.PHONY: stash
+stash:
+	rm -Rf $(TARGET) || true
+	mkdir -p $(TARGET)
+	cp -r $(CURDIR)/bootstrap/target/pack/lib $(TARGET)/
+	find $(TARGET)/lib -type f -name "vamp-*.jar" -exec mv {} $(TARGET)/ \;
+
+.PHONY: build
+build:
+	docker run \
+         --rm \
+         --volume $(STASH):/root \
+         --volume $(CURDIR):/$(PROJECT) \
+         --workdir=/$(PROJECT) -it \
+         $(FABRICATOR) make local stash
+
 .PHONY: default
-default:
-	test "$(DEPS_OK)" = "true" || docker pull $(BUILD_SERVER)
-	docker run \
-		--rm \
-		--volume "$(CURDIR)":/srv/src \
-		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
-		--volume $(DIR_IVY):/home/vamp/.ivy2 \
-		--workdir=/srv/src \
-		--env BUILD_UID=$(shell id -u) \
-		--env BUILD_GID=$(shell id -g) \
-		$(BUILD_SERVER) "$(BUILD_CMD)"
-
-.PHONY: pack
-pack:
-	docker volume create $(PACKER)
-	test "$(DEPS_OK)" = "true" || docker pull $(BUILD_SERVER)
-
-	docker run \
-		--rm \
-		--volume "$(CURDIR)":/srv/src \
-		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
-		--volume $(DIR_IVY):/home/vamp/.ivy2 \
-		--workdir=/srv/src \
-		--env BUILD_UID=$(shell id -u) \
-		--env BUILD_GID=$(shell id -g) \
-		$(BUILD_SERVER) "$(PACK_CMD)"
-
-	rm -rf $(TARGET)/$(PROJECT)-*
-	mkdir -p $(TARGET)/$(PROJECT)-$(VERSION)
-	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
-	find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar" -exec mv {} $(TARGET)/$(PROJECT)-$(VERSION)/ \;
-
-	docker run \
-		--rm \
-		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
-		--volume $(PACKER):/usr/local/stash \
-		$(BUILD_SERVER) \
-			push $(PROJECT) $(VERSION)
-
-.PHONY: pack-local
-pack-local:
-	$(PACK_CMD)
-
-	rm -rf $(TARGET)/$(PROJECT)-*
-	mkdir -p $(TARGET)/$(PROJECT)-$(VERSION)
-	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
-	find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar" -exec mv {} $(TARGET)/$(PROJECT)-$(VERSION)/ \;
-
-	docker volume create $(PACKER)
-	test "$(DEPS_OK)" = "true" || docker pull $(BUILD_SERVER)
-	docker run \
-		--rm \
-		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
-		--volume $(PACKER):/usr/local/stash \
-		$(BUILD_SERVER) \
-			push $(PROJECT) $(VERSION)
+default: clean volume build
