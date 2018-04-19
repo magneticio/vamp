@@ -20,14 +20,6 @@ endif
 clean:
 	find "$(CURDIR)" -type d -name "target" | xargs rm -Rf
 
-.PHONY: purge
-purge: clean
-	docker volume rm $(STASH) || true
-
-.PHONY: volume
-volume:
-	docker volume create $(STASH)
-
 .PHONY: local
 local:
 	VAMP_VERSION=katana sbt clean test publish-local
