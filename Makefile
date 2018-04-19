@@ -42,4 +42,4 @@ build:
          $(FABRICATOR) make local stash
 
 .PHONY: default
-default: clean volume build
+default: clean build
