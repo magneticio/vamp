@@ -7,10 +7,9 @@ SHELL             := bash
 
 STASH     := stash
 PROJECT   := vamp
-BRANCH    := $(shell git rev-parse --abbrev-ref HEAD)
 VERSION   := $(shell git describe --tags)
 FABRICATOR:= magneticio/fabricator:jdk_8u162_scala_2.12.1_sbt_0.13.13
-TARGET    := $$HOME/.stash/$(BRANCH)/$(PROJECT)
+TARGET    := $$HOME/.stash/$(PROJECT)
 
 # if Makefile.local exists, include it.
 ifneq ("$(wildcard Makefile.local)", "")
