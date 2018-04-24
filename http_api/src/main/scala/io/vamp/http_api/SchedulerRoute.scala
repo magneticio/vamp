@@ -15,12 +15,20 @@ object SchedulerRoute {
 trait SchedulerRoute extends AbstractRoute with SchedulerController with ExecutionContextProvider {
   this: HttpApiDirectives ⇒
 
-  def routingRoutes(implicit namespace: Namespace, timeout: Timeout): Route = get {
-    path(SchedulerRoute.path / "routing") {
-      pageAndPerPage() { (page, perPage) ⇒
-        parameters('selector.?) { selector ⇒
-          onSuccess(routing(selector)(page, perPage)) {
+  def schedulerRoutes(implicit namespace: Namespace, timeout: Timeout): Route = get {
+    pathPrefix(SchedulerRoute.path) {
+      path("nodes") {
+        pageAndPerPage() { (page, perPage) ⇒
+          onSuccess(nodes(page, perPage)) {
             result ⇒ respondWith(OK, result)
+          }
+        }
+      } ~ path("routing") {
+        pageAndPerPage() { (page, perPage) ⇒
+          parameters('selector.?) { selector ⇒
+            onSuccess(routing(selector)(page, perPage)) {
+              result ⇒ respondWith(OK, result)
+            }
           }
         }
       }

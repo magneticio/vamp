@@ -7,6 +7,7 @@ import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact.{ Deployment, _ }
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -21,6 +22,8 @@ object ContainerDriverActor {
   //
 
   sealed trait ContainerDriveMessage
+
+  object GetNodes extends ContainerDriveMessage
 
   object GetRoutingGroups extends ContainerDriveMessage
 
@@ -117,6 +120,10 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }
+
+case class SchedulerNode(name: String, capacity: SchedulerNodeSize, allocatable: SchedulerNodeSize)
+
+case class SchedulerNodeSize(cpu: Quantity, gpu: Quantity, memory: MegaByte)
 
 case class RoutingGroup(
   name:      String,

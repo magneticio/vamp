@@ -10,6 +10,7 @@ import scala.util.Try
 object K8sCache {
   val jobs = "jobs"
   val pods = "pods"
+  val nodes = "nodes"
   val services = "services"
   val daemonSets = "daemon-sets"
   val deployments = "deployments"
