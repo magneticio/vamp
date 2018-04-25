@@ -343,7 +343,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read scale and route - expanded" in {
     BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("sava1", Map(), Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Nil, Map(), None), Nil, Some(DefaultScale("", Map(), Quantity(0.5), MegaByte(512), 1)), Nil, None)), List(Gateway("", Map(), Port("port", None, None), None, None, Nil, None, List(DefaultRoute("", Map(), "sava1", None, None, Option(DefaultCondition("", Map(), "android")), None, Nil, None)))), None, None))),
+      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("sava1", Map(), Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Nil, Map(), None), Nil, Some(DefaultScale("", Map(), Quantity(0.5), MegaByte(500), 1)), Nil, None)), List(Gateway("", Map(), Port("port", None, None), None, None, Nil, None, List(DefaultRoute("", Map(), "sava1", None, None, Option(DefaultCondition("", Map(), "android")), None, Nil, None)))), None, None))),
       'gateways(List(Gateway("", Map(), Port("8080", None, Some("8080")), None, None, Nil, None, List(DefaultRoute("", Map(), "supersonic/port", None, None, None, None, Nil, None))))),
       'environmentVariables(Nil)
     )

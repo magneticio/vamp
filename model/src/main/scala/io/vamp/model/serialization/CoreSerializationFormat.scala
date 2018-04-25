@@ -8,6 +8,7 @@ object CoreSerializationFormat {
   private val common = List(
     ThrowableSerializer(Some("Internal error.")),
     OffsetDateTimeSerializer,
+    UnitValueSerializationFormat,
     SnakeCaseSerializationFormat,
     MapSerializer,
     BreedSerializationFormat,

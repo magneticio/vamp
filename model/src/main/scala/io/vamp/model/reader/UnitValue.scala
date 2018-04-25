@@ -47,31 +47,45 @@ case class Percentage(value: Int) extends UnitValue[Int] {
 
 object MegaByte {
 
-  private val megaBytePattern1 = """^\s*(.\d+)\s*[M|m]\s*[B|b]{0,1}\s*$""".r
-  private val megaBytePattern2 = """^\s*(\d+.*\d*)\s*[M|m]\s*[B|b]{0,1}\s*$""".r
-  private val megaBytePattern3 = """^\s*(\d+.*\d*)\s*[M|m]\s*[I|i]{0,1}\s*$""".r
-  private val gigaBytePattern1 = """^\s*(.\d+)\s*[G|g]\s*[B|b]{0,1}\s*$""".r
-  private val gigaBytePattern2 = """^\s*(\d+.*\d*)\s*[G|g]\s*[B|b]{0,1}\s*$""".r
+  private val kiloPattern1 = """^\s*(.\d+)\s*[K|k]\s*[B|b]{0,1}\s*$""".r
+  private val kiloPattern2 = """^\s*(\d+.*\d*)\s*[K|k]\s*[B|b]{0,1}\s*$""".r
+  private val kiloPattern3 = """^\s*(.\d*)\s*[K|k]\s*[I|i]{0,1}\s*$""".r
+  private val kiloPattern4 = """^\s*(\d+.*\d*)\s*[K|k]\s*[I|i]{0,1}\s*$""".r
+
+  private val megaPattern1 = """^\s*(.\d+)\s*[M|m]\s*[B|b]{0,1}\s*$""".r
+  private val megaPattern2 = """^\s*(\d+.*\d*)\s*[M|m]\s*[B|b]{0,1}\s*$""".r
+  private val megaPattern3 = """^\s*(.\d*)\s*[M|m]\s*[I|i]{0,1}\s*$""".r
+  private val megaPattern4 = """^\s*(\d+.*\d*)\s*[M|m]\s*[I|i]{0,1}\s*$""".r
+
+  private val gigaPattern1 = """^\s*(.\d+)\s*[G|g]\s*[B|b]{0,1}\s*$""".r
+  private val gigaPattern2 = """^\s*(\d+.*\d*)\s*[G|g]\s*[B|b]{0,1}\s*$""".r
+  private val gigaPattern3 = """^\s*(.\d*)\s*[M|m]\s*[I|i]{0,1}\s*$""".r
+  private val gigaPattern4 = """^\s*(\d+.*\d*)\s*[M|m]\s*[I|i]{0,1}\s*$""".r
 
   def of(source: Any): MegaByte = source match {
     case string: String ⇒ string match {
-      case megaBytePattern1(mb) ⇒ MegaByte(mb.toDouble)
-      case megaBytePattern2(mb) ⇒ MegaByte(mb.toDouble)
-      case megaBytePattern3(mb) ⇒ MegaByte(mb.toDouble)
-      case gigaBytePattern1(gb) ⇒ MegaByte(MegaByte.gigaByte2MegaByte(gb.toDouble))
-      case gigaBytePattern2(gb) ⇒ MegaByte(MegaByte.gigaByte2MegaByte(gb.toDouble))
-      case _                    ⇒ throw new IllegalArgumentException()
+      case kiloPattern1(kb) ⇒ MegaByte(kb.toDouble / 1000)
+      case kiloPattern2(kb) ⇒ MegaByte(kb.toDouble / 1000)
+      case kiloPattern3(kb) ⇒ MegaByte(kb.toDouble / 1024)
+      case kiloPattern4(kb) ⇒ MegaByte(kb.toDouble / 1024)
+      case megaPattern1(mb) ⇒ MegaByte(mb.toDouble)
+      case megaPattern2(mb) ⇒ MegaByte(mb.toDouble)
+      case megaPattern3(mb) ⇒ MegaByte(mb.toDouble * 1.024)
+      case megaPattern4(mb) ⇒ MegaByte(mb.toDouble * 1.024)
+      case gigaPattern1(gb) ⇒ MegaByte(gb.toDouble * 1000)
+      case gigaPattern2(gb) ⇒ MegaByte(gb.toDouble * 1000)
+      case gigaPattern3(gb) ⇒ MegaByte(gb.toDouble * 1024)
+      case gigaPattern4(gb) ⇒ MegaByte(gb.toDouble * 1024)
+      case _                ⇒ throw new IllegalArgumentException()
     }
     case _ ⇒ UnitValue.illegal(source)
   }
 
-  def gigaByte2MegaByte(gb: Double): Double = 1024 * gb
+  def gigaByte2MegaByte(gb: Double): Double = 1000 * gb
 }
 
 case class MegaByte(value: Double) extends UnitValue[Double] {
-  {
-    if (value < 0) UnitValue.illegal(value)
-  }
+  if (value < 0) UnitValue.illegal(value)
 
   def normalized = f"$value%.2fMB"
 }
