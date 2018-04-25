@@ -123,7 +123,7 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
 case class SchedulerNode(name: String, capacity: SchedulerNodeSize, allocatable: SchedulerNodeSize)
 
-case class SchedulerNodeSize(cpu: Quantity, gpu: Quantity, memory: MegaByte)
+case class SchedulerNodeSize(cpu: Quantity, memory: MegaByte)
 
 case class RoutingGroup(
   name:      String,

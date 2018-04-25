@@ -3,8 +3,8 @@ package io.vamp.model.reader
 import io.vamp.model.artifact._
 import io.vamp.model.notification.UnsupportedProtocolError
 import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import org.scalatest._
+import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class ComposeBlueprintReaderSpec
@@ -28,7 +28,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "cart",
             Map(),
@@ -39,7 +40,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "rabbitmq",
             Map(),
@@ -48,7 +50,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "user-sim",
             Map(),
@@ -57,7 +60,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "user-db",
             Map(),
@@ -66,7 +70,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "payment",
             Map(),
@@ -75,7 +80,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "cart-db",
             Map(),
@@ -84,7 +90,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "catalogue",
             Map(),
@@ -93,7 +100,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "orders",
             Map(),
@@ -102,7 +110,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "orders-db",
             Map(),
@@ -111,7 +120,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "user",
             Map(),
@@ -120,7 +130,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "front-end",
             Map(),
@@ -129,7 +140,8 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "shipping",
             Map(),
@@ -138,11 +150,14 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map())
+            Map()
+          )
         ),
         List(),
         List(),
-        Map()))
+        Map()
+      )
+    )
   }
 
   it should "read the wordpress example yml" in {
@@ -159,20 +174,26 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            Map()
+          ),
           Cluster(
             "wordpress",
             Map(),
             List(
-              Service(DefaultBreed("wordpress:1.0.0", Map(), Deployable("container/docker", "wordpress:latest"), List(Port("port_80", None, Some("80"), 80, Port.Type.Http)), List(EnvironmentVariable("WORDPRESS_DB_HOST", None, Some("$db.host:$db.ports.port_3306")), EnvironmentVariable("WORDPRESS_DB_PASSWORD", None, Some("wordpress"))), List(), List(), Map("db" → BreedReference("db:1.0.0")), None), List(), None, List(), None)),
+              Service(DefaultBreed("wordpress:1.0.0", Map(), Deployable("container/docker", "wordpress:latest"), List(Port("port_80", None, Some("80"), 80, Port.Type.Http)), List(EnvironmentVariable("WORDPRESS_DB_HOST", None, Some("$db.host:$db.ports.port_3306")), EnvironmentVariable("WORDPRESS_DB_PASSWORD", None, Some("wordpress"))), List(), List(), Map("db" → BreedReference("db:1.0.0")), None), List(), None, List(), None)
+            ),
             List(),
             None,
             None,
             None,
-            Map())),
+            Map()
+          )
+        ),
         List(),
         List(),
-        Map()))
+        Map()
+      )
+    )
   }
 
   "ComposePortReader" should "parse ports" in {
@@ -185,7 +206,8 @@ class ComposeBlueprintReaderSpec
         Port("port_22", None, Some("22"), 22, Port.Type.Http),
         Port("port_8001", None, Some("8001"), 8001, Port.Type.Http),
         Port("port_5000", None, Some("5000"), 5000, Port.Type.Http),
-        Port("port_6060", None, Some("6060"), 6060, Port.Type.Tcp))
+        Port("port_6060", None, Some("6060"), 6060, Port.Type.Tcp)
+      )
     }
   }
 
