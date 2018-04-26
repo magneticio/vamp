@@ -8,6 +8,7 @@ import io.vamp.container_driver.ContainerInfo
 
 import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Try
 
 private case class SharedMarathonClient(client: MarathonClient, counter: Int)
 
@@ -56,25 +57,35 @@ class MarathonClient(val config: MarathonClientConfig) {
 
   private val sseListeners = mutable.Map[Namespace, MarathonSse]()
 
-  def info(implicit httpClient: HttpClient, executionContext: ExecutionContext): Future[ContainerInfo] = {
+  def info(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[ContainerInfo] = {
+    for {
+      n ← nodes()
+      m ← marathon()
+      f ← frameworks()
+    } yield ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(f, n), m))
+  }
+
+  def marathon()(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[Any] = {
+    httpClient.get[Any](s"$infoUrl", config.headers)
+  }
+
+  def nodes()(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[List[Any]] = {
+    httpClient.get[Any](s"${config.mesosUrl}/master/slaves", config.headers).map { nodes ⇒
+      Try {
+        nodes.asInstanceOf[Map[String, List[Any]]].getOrElse("slaves", Nil)
+      }.getOrElse(Nil)
+    }
+  }
+
+  def frameworks()(implicit httpClient: HttpClient, namespace: Namespace, executionContext: ExecutionContext, logger: LoggingAdapter): Future[Any] = {
     def remove(key: String): Any ⇒ Any = {
       case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, _) ⇒ k == key } map { case (k, v) ⇒ k → remove(key)(v) }
       case l: List[_]   ⇒ l.map(remove(key))
       case any          ⇒ any
     }
 
-    val mesosUrl = s"${config.mesosUrl}/master/slaves"
-    for {
-      slaves ← httpClient.get[Any](s"$mesosUrl/slaves", config.headers)
-      frameworks ← httpClient.get[Any](s"$mesosUrl/frameworks", config.headers)
-      marathon ← httpClient.get[Any](s"$infoUrl", config.headers)
-    } yield {
-      val s: Any = slaves match {
-        case s: Map[_, _] ⇒ s.asInstanceOf[Map[String, _]].getOrElse("slaves", Nil)
-        case _            ⇒ Nil
-      }
-      val f = (remove("tasks") andThen remove("completed_tasks"))(frameworks)
-      ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(f, s), marathon))
+    httpClient.get[Any](s"${config.mesosUrl}/master/frameworks", config.headers).map { frameworks ⇒
+      (remove("tasks") andThen remove("completed_tasks"))(frameworks)
     }
   }
 

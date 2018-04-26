@@ -3,12 +3,13 @@ package io.vamp.container_driver.kubernetes
 import akka.actor.{ Actor, ActorRef }
 import io.kubernetes.client.ApiException
 import io.vamp.common._
-import io.vamp.common.util.YamlUtil
+import io.vamp.common.util.{ HashUtil, YamlUtil }
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.{ Gateway, Workflow }
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization.write
@@ -55,6 +56,7 @@ class KubernetesDriverActor
     with KubernetesDeployment
     with KubernetesService
     with KubernetesJob
+    with KubernetesNode
     with KubernetesDaemonSet
     with KubernetesNamespace
     with NamespaceValueResolver {
@@ -79,6 +81,7 @@ class KubernetesDriverActor
 
     case InfoRequest                    ⇒ reply(Future(info()))
 
+    case GetNodes                       ⇒ reply(Future(schedulerNodes))
     case GetRoutingGroups               ⇒ reply(Future(routingGroups))
 
     case Get(services, equality)        ⇒ get(services, equality)
@@ -211,6 +214,18 @@ class KubernetesDriverActor
       case other      ⇒ process(other)
     }
   }
+
+  private def schedulerNodes: List[SchedulerNode] = super[KubernetesNode].nodes.flatMap { node ⇒
+    Try {
+      val capacity = node.getStatus.getCapacity
+      val allocatable = node.getStatus.getAllocatable
+      SchedulerNode(
+        name = HashUtil.hexSha1(node.getMetadata.getName),
+        capacity = SchedulerNodeSize(Quantity.of(capacity.getOrDefault("cpu", "0")), MegaByte.of(capacity.getOrDefault("memory", "0MB"))),
+        allocatable = SchedulerNodeSize(Quantity.of(allocatable.getOrDefault("cpu", "0")), MegaByte.of(allocatable.getOrDefault("memory", "0MB")))
+      )
+    }.toOption
+  } toList
 
   private def routingGroups: List[RoutingGroup] = {
     val services = servicesForAllNamespaces().flatMap { service ⇒

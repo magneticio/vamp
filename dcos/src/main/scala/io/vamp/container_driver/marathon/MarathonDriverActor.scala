@@ -5,6 +5,7 @@ import akka.event.LoggingAdapter
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
+import io.vamp.common.util.HashUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.common.{ ClassMapper, Config, ConfigMagnet }
 import io.vamp.container_driver._
@@ -78,6 +79,7 @@ class MarathonDriverActor
 
     case InfoRequest                    ⇒ reply(info)
 
+    case GetNodes                       ⇒ reply(schedulerNodes)
     case GetRoutingGroups               ⇒ reply(routingGroups)
 
     case Get(services, equality)        ⇒ get(services, equality)
@@ -98,6 +100,33 @@ class MarathonDriverActor
   override def postStop(): Unit = MarathonClient.release(config)
 
   private def info: Future[ContainerInfo] = client.info
+
+  private def schedulerNodes: Future[List[SchedulerNode]] = client.nodes().map {
+    _.flatMap {
+      case node: Map[_, _] ⇒
+        Try {
+          try {
+            val used = node.asInstanceOf[Map[String, AnyVal]]("used_resources").asInstanceOf[Map[String, AnyVal]]
+            val resources = node.asInstanceOf[Map[String, AnyVal]]("resources").asInstanceOf[Map[String, AnyVal]]
+            val allocatable = Map(
+              "cpus" → (Quantity.of(resources.getOrElse("cpus", 0)).value - Quantity.of(used.getOrElse("cpus", 0)).value),
+              "mem" → (MegaByte.of(s"${resources.getOrElse("mem", "0")}M").value - MegaByte.of(s"${used.getOrElse("mem", "0")}M").value)
+            )
+            SchedulerNode(
+              name = HashUtil.hexSha1(node.asInstanceOf[Map[String, String]]("id")),
+              capacity = SchedulerNodeSize(Quantity.of(resources.getOrElse("cpus", 0)), MegaByte.of(s"${resources.getOrElse("mem", "0")}M")),
+              allocatable = SchedulerNodeSize(Quantity.of(allocatable("cpus")), MegaByte.of(s"${allocatable("mem")}M"))
+            )
+          }
+          catch {
+            case e: Exception ⇒
+              e.printStackTrace()
+              throw e
+          }
+        }.toOption
+      case _ ⇒ None
+    }
+  }
 
   private def routingGroups: Future[List[RoutingGroup]] = {
     client.get().map {
