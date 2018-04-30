@@ -218,11 +218,9 @@ class KubernetesDriverActor
   private def schedulerNodes: List[SchedulerNode] = super[KubernetesNode].nodes.flatMap { node ⇒
     Try {
       val capacity = node.getStatus.getCapacity
-      val allocatable = node.getStatus.getAllocatable
       SchedulerNode(
         name = HashUtil.hexSha1(node.getMetadata.getName),
-        capacity = SchedulerNodeSize(Quantity.of(capacity.getOrDefault("cpu", "0")), MegaByte.of(capacity.getOrDefault("memory", "0MB"))),
-        allocatable = SchedulerNodeSize(Quantity.of(allocatable.getOrDefault("cpu", "0")), MegaByte.of(allocatable.getOrDefault("memory", "0MB")))
+        capacity = SchedulerNodeSize(Quantity.of(capacity.getOrDefault("cpu", "0")), MegaByte.of(capacity.getOrDefault("memory", "0MB")))
       )
     }.toOption
   } toList
