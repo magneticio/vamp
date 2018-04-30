@@ -108,14 +108,10 @@ class MarathonDriverActor
           try {
             val used = node.asInstanceOf[Map[String, AnyVal]]("used_resources").asInstanceOf[Map[String, AnyVal]]
             val resources = node.asInstanceOf[Map[String, AnyVal]]("resources").asInstanceOf[Map[String, AnyVal]]
-            val allocatable = Map(
-              "cpus" → (Quantity.of(resources.getOrElse("cpus", 0)).value - Quantity.of(used.getOrElse("cpus", 0)).value),
-              "mem" → (MegaByte.of(s"${resources.getOrElse("mem", "0")}M").value - MegaByte.of(s"${used.getOrElse("mem", "0")}M").value)
-            )
             SchedulerNode(
               name = HashUtil.hexSha1(node.asInstanceOf[Map[String, String]]("id")),
               capacity = SchedulerNodeSize(Quantity.of(resources.getOrElse("cpus", 0)), MegaByte.of(s"${resources.getOrElse("mem", "0")}M")),
-              allocatable = SchedulerNodeSize(Quantity.of(allocatable("cpus")), MegaByte.of(s"${allocatable("mem")}M"))
+              used = Option(SchedulerNodeSize(Quantity.of(used.getOrElse("cpus", 0)), MegaByte.of(s"${used.getOrElse("mem", "0")}M")))
             )
           }
           catch {

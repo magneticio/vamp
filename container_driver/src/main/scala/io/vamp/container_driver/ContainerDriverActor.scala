@@ -121,7 +121,7 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }
 
-case class SchedulerNode(name: String, capacity: SchedulerNodeSize, allocatable: SchedulerNodeSize)
+case class SchedulerNode(name: String, capacity: SchedulerNodeSize, used: Option[SchedulerNodeSize] = None)
 
 case class SchedulerNodeSize(cpu: Quantity, memory: MegaByte)
 
