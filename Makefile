@@ -34,9 +34,7 @@ stash:
 
 .PHONY: build
 build:
-	test -t 1 && USE_TTY="-it" ; \
 	docker run \
-	       $${USE_TTY} \
          --rm \
          --volume $(STASH):/root \
          --volume $(CURDIR):/$(PROJECT) \
