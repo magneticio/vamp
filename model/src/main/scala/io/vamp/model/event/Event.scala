@@ -17,7 +17,7 @@ object Event {
     }
   }
 
-  def apply(tags: Set[String], value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, tags, value, timestamp, `type`)
+  def apply(tags: Set[String], value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, tags, value, timestamp, `type`, None)
 }
 
-case class Event(id: Option[String], tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String)
+case class Event(id: Option[String], tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String, digest: Option[String])

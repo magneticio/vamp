@@ -117,7 +117,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     }
   }
 
-  private def broadcast(publishEventValue: Boolean): (Future[Any] ⇒ Future[Any]) = _.map {
+  private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
     case event: Event ⇒ percolate(publishEventValue)(event)
     case other        ⇒ other
   }
@@ -139,7 +139,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
         val events = hits.hits.flatMap { hit ⇒
-          Try(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id)))).toOption
+          Try(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id)), digest = hit._source.get("digest").asInstanceOf[Option[String]])).toOption
         }
         EventResponseEnvelope(events, hits.total, p, pp)
       case other ⇒ reportException(EventQueryError(other))
