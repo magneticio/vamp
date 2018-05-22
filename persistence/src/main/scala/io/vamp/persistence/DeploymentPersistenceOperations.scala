@@ -31,7 +31,7 @@ trait DeploymentPersistenceOperations extends PersistenceApi {
 
     case o: UpdateDeploymentServiceStatus               ⇒ patch(o.deployment, o.cluster, o.service, o.status)
 
-    case o: UpdateDeploymentServiceScale                ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(scale = Option(o.scale)), (d, m) ⇒ replyUpdate(d, "deployment-service-scales", o.source, m))
+    case o: UpdateDeploymentServiceScale                ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(scale = Option(o.scale)), (d, m) ⇒ replyUpdate(d, s"deployment-service-scales:${o.deployment.name}", o.source, m))
 
     case o: UpdateDeploymentServiceInstances            ⇒ patch(o.deployment, o.cluster, o.service, s ⇒ s.copy(instances = o.instances))
 
