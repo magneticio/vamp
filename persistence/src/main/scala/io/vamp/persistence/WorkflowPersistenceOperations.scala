@@ -53,7 +53,7 @@ trait WorkflowPersistenceOperations extends PersistenceApi {
   }
 
   private def updateWorkflowStatus(workflow: Workflow, status: Workflow.Status): Unit = {
-    patch(workflow.name, w ⇒ w.copy(status = status), (w, m) ⇒ replyUpdate(w, "workflow-statuses", status.describe, m))
+    patch(workflow.name, w ⇒ w.copy(status = status), (w, m) ⇒ replyUpdate(w, s"workflow-statuses:${workflow.name}", status.describe, m))
   }
 
   private def resetWorkflow(workflow: Workflow): Unit = {
