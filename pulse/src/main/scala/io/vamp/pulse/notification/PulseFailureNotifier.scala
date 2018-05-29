@@ -31,8 +31,18 @@ trait PulseFailureNotifier {
   }
 
   protected def publishFailureNotification(failure: Any): Unit = {
-    implicit val actorSystem: ActorSystem = context.system
-    IoC.actorFor[PulseActor].tell(Publish(failureNotificationEvent(failure)), Actor.noSender)
+    try {
+      implicit val actorSystem: ActorSystem = context.system
+      IoC.actorFor[PulseActor].tell(Publish(failureNotificationEvent(failure)), Actor.noSender)
+    }
+    catch {
+      case e: Exception ⇒
+        failure match {
+          case f: Exception ⇒ f.printStackTrace()
+          case f            ⇒ log.error(f.toString)
+        }
+        e.printStackTrace()
+    }
   }
 
   def typeName: String = TextUtil.toSnakeCase(getClass.getSimpleName.replaceAll("Actor$", ""), dash = false)
