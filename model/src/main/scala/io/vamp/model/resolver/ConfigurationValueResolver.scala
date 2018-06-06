@@ -7,6 +7,7 @@ trait ConfigurationValueResolver extends GlobalValueResolver {
   this: NamespaceProvider ⇒
 
   def valueForReference: PartialFunction[ValueReference, String] = {
-    case GlobalReference("conf" | "config" | "configuration", path) ⇒ Config.string(path)()
+    case GlobalReference("conf" | "config" | "configuration", path)                       ⇒ Config.string(path)()
+    case GlobalReference("env" | "environment" | "env_var" | "environment_variable", env) ⇒ sys.env.getOrElse(env, "")
   }
 }
