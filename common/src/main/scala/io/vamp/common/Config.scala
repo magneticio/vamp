@@ -127,12 +127,7 @@ object Config {
     def apply()(implicit namespace: Namespace): T = {
       values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).get(Type.applied) match {
         case Some(applied) ⇒ process(applied)
-        case _ ⇒ {
-          values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).get(Type.environment) match {
-            case Some(applied) ⇒ process(applied)
-            case _             ⇒ throw new Missing(path)
-          }
-        }
+        case _             ⇒ throw new Missing(path)
       }
     }
   }
