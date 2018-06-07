@@ -134,19 +134,59 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
         val groups = RouteSelectionProcessor.groups(s, routingGroups, selector).map {
           case (n, v) ⇒ Try(validateName(n)).getOrElse(HashUtil.hexSha1(n)) → v
         }
+
         val routes = gateway.routes.map(route ⇒ route.path.normalized → route).toMap
 
-        val updated = gateway.routes.filter(route ⇒ groups.contains(route.path.normalized)).map {
+        val updated: List[Route] = gateway.routes.filter(route ⇒ groups.contains(route.path.normalized)).map {
           case route: DefaultRoute ⇒ route.copy(targets = groups(route.path.normalized))
           case route               ⇒ route
-        } ++ groups.filterNot {
-          case (n, _) ⇒ routes.contains(n)
-        }.map {
-          case (n, t) ⇒ DefaultRoute("", Map("groups" → n), GatewayPath(n), None, Option(Percentage(0)), None, None, Nil, None, t)
         }
 
-        if (updated != gateway.routes) {
-          val ng = gateway.copy(routes = updated)
+        val fresh = groups.filterNot {
+          case (n, _) ⇒ routes.contains(n)
+        }.map {
+          case (n, t) ⇒ DefaultRoute(
+            name = "",
+            metadata = Map("groups" → n, "title" → s"route $n"),
+            path = GatewayPath(n),
+            selector = None,
+            weight = Option(Percentage(0)),
+            condition = None,
+            conditionStrength = None,
+            rewrites = Nil,
+            balance = None,
+            targets = t
+          )
+        }
+
+        val availableWeight = 100 - updated.collect { case route: DefaultRoute ⇒ route.weight.map(_.value).getOrElse(0) }.sum
+        val weight = Try(Math.round(availableWeight / fresh.size)).getOrElse(0)
+
+        var all = updated ++ fresh.zipWithIndex.map {
+          case (route, index) ⇒
+            val calculated = if (index == fresh.size - 1) availableWeight - index * weight else weight
+            route.copy(weight = Option(Percentage(calculated)))
+        }
+
+        val total = all.collect { case route: DefaultRoute ⇒ route.weight.map(_.value).getOrElse(0) }.sum
+
+        if (total < 100) {
+          var usedWeight = 0
+          val factor = 100.0 / total
+          val (const, mut) = all.partition {
+            case r: DefaultRoute if r.weight.exists(_.value > 0) ⇒ false
+            case _ ⇒ true
+          }
+          all = const ++ mut.zipWithIndex.collect {
+            case (route: DefaultRoute, index) ⇒
+              val calculated = if (index == fresh.size - 1) 100 - usedWeight else (route.weight.getOrElse(Percentage(0)).value * factor).toInt
+              usedWeight += calculated
+              route.copy(weight = Option(Percentage(calculated)))
+          }
+        }
+
+        if (all != gateway.routes) {
+          val ng = gateway.copy(routes = all)
           IoC.actorFor[PersistenceActor] ! Update(ng)
           ng
         }

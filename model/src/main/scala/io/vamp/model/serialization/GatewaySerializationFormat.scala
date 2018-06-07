@@ -99,9 +99,9 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
       if (route.name.nonEmpty) {
         list += JField("name", JString(route.name))
         list += JField("kind", JString(route.kind))
-        list += JField("metadata", Extraction.decompose(route.metadata)(DefaultFormats))
       }
 
+      list += JField("metadata", Extraction.decompose(route.metadata)(DefaultFormats))
       list += JField(Lookup.entry, JString(lookup().getOrElse(route.lookupName)))
       list += JField("selector", if (route.selector.isDefined) JString(route.selector.get.definition) else JNull)
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
