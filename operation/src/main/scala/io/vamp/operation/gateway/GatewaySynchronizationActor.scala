@@ -59,7 +59,10 @@ trait GatewaySelectorResolver extends ValueResolver {
     resolve(
       GatewaySynchronizationActor.selector(), new ConfigurationValueResolver with NamespaceProvider {
         override implicit def namespace: Namespace = ns
-      }.valueForReference orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
+      }.valueForReference orElse PartialFunction[ValueReference, String] {
+        case LocalReference("namespace") ⇒ s"$$namespace"
+        case _                           ⇒ ""
+      }
     )
   }
 }
