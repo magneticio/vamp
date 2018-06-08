@@ -9,13 +9,13 @@ import io.vamp.container_driver.ContainerDriverActor.{ GetNodes, GetRoutingGroup
 import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup, SchedulerNode }
 import io.vamp.model.artifact.RouteSelector
 import io.vamp.model.notification.InvalidSelectorError
-import io.vamp.operation.gateway.{ GatewaySynchronizationActor, RouteSelectionProcessor }
+import io.vamp.operation.gateway.{ GatewaySelectorResolver, RouteSelectionProcessor }
 import io.vamp.persistence.ArtifactResponseEnvelope
 
 import scala.concurrent.Future
 import scala.util.Try
 
-trait SchedulerController extends ReplyCheck with AbstractController {
+trait SchedulerController extends ReplyCheck with GatewaySelectorResolver with AbstractController {
 
   def nodes(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[OffsetResponseEnvelope[SchedulerNode]] = {
     checked[List[SchedulerNode]](IoC.actorFor[ContainerDriverActor] ? GetNodes) map paginate(page, perPage)
@@ -25,7 +25,7 @@ trait SchedulerController extends ReplyCheck with AbstractController {
     val filter = selector.map(s ⇒ Try(RouteSelector(s).verified).getOrElse(throwException(InvalidSelectorError(selector.get))))
     checked[List[RoutingGroup]](IoC.actorFor[ContainerDriverActor] ? GetRoutingGroups).map { routingGroups ⇒
       val targets = RouteSelectionProcessor.targets(
-        Try(RouteSelector(GatewaySynchronizationActor.selector()).verified).getOrElse(RouteSelector("false")), routingGroups, filter
+        Try(RouteSelector(defaultSelector()).verified).getOrElse(RouteSelector("false")), routingGroups, filter
       ).map(_.url).toSet
 
       val all = routingGroups.flatMap { group ⇒

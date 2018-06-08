@@ -4,8 +4,9 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.common.util.HashUtil
-import io.vamp.common.{ Config, ConfigMagnet, Namespace }
+import io.vamp.common.{ Config, ConfigMagnet, Namespace, NamespaceProvider }
 import io.vamp.container_driver.ContainerDriverActor.{ DeployedGateways, GetRoutingGroups }
 import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup }
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -14,6 +15,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.notification.InvalidSelectorError
 import io.vamp.model.reader.{ NameValidator, Percentage }
+import io.vamp.model.resolver.{ ConfigurationValueResolver, ValueResolver }
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
@@ -49,21 +51,34 @@ object GatewaySynchronizationActor {
 
 }
 
+trait GatewaySelectorResolver extends ValueResolver {
+  this: NotificationProvider ⇒
+
+  def defaultSelector()(implicit namespace: Namespace): String = {
+    val ns = namespace
+    resolve(
+      GatewaySynchronizationActor.selector(), new ConfigurationValueResolver with NamespaceProvider {
+        override implicit def namespace: Namespace = ns
+      }.valueForReference orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
+    )
+  }
+}
+
 private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: List[Gateway]) {
   val all: List[Gateway] = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
+class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
   import GatewaySynchronizationActor._
   import PersistenceActor._
 
   private var currentPort = portRangeLower - 1
   private val selector: Option[RouteSelector] = {
-    Try(RouteSelector(GatewaySynchronizationActor.selector()).verified).toOption match {
+    Try(RouteSelector(defaultSelector()).verified).toOption match {
       case Some(s) ⇒ Option(s)
       case None ⇒
-        reportException(InvalidSelectorError(GatewaySynchronizationActor.selector()))
+        reportException(InvalidSelectorError(defaultSelector()))
         None
     }
   }
