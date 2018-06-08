@@ -152,7 +152,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
             selector = None,
             weight = Option(Percentage(0)),
             condition = None,
-            conditionStrength = None,
+            conditionStrength = Option(Percentage(0)),
             rewrites = Nil,
             balance = None,
             targets = t
@@ -160,11 +160,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with NameValida
         }
 
         val availableWeight = 100 - updated.collect { case route: DefaultRoute ⇒ route.weight.map(_.value).getOrElse(0) }.sum
-        val weight = Try(Math.round(availableWeight / fresh.size)).getOrElse(0)
 
         var all = updated ++ fresh.zipWithIndex.map {
           case (route, index) ⇒
-            val calculated = if (index == fresh.size - 1) availableWeight - index * weight else weight
+            val calculated = if (index == 0) availableWeight else 0
             route.copy(weight = Option(Percentage(calculated)))
         }
 
