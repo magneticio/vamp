@@ -135,6 +135,6 @@ object EventSource {
 }
 
 object EventStreamUnmarshallingExt extends EventStreamUnmarshalling {
-  override protected lazy val maxEventSize: Int = 64 * 1024
+  override protected lazy val maxEventSize: Int = 8 * 1024 * 1024
   override protected lazy val maxLineSize: Int = maxEventSize
 }
