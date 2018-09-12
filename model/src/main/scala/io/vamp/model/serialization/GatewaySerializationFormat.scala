@@ -30,7 +30,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
 
   def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true, port = true)
 
-  def serializeAnonymousGateway(port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true, port)
+  def serializeAnonymousGateway(port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = false, port)
 
   private def serialize(full: Boolean, port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case gateway: Gateway ⇒
