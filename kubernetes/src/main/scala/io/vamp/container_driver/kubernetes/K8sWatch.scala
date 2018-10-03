@@ -13,12 +13,14 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import ExecutionContext.Implicits.global
 
 class K8sWatch(client: K8sClient)(implicit system: ActorSystem) {
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  private implicit val ec: ExecutionContext = system.dispatcher
+  // Testing using ExecutionContext.Implicits.global instead of system.dispatcher
+  // private implicit val ec: ExecutionContext = system.dispatcher
 
   private var running = true
 
