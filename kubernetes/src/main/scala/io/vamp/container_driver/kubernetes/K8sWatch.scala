@@ -18,7 +18,7 @@ import scala.language.postfixOps
 class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging with Retriable {
 
   //We use a separate dispathcer in order to avoid blocking the whole application
-  implicit val ec = system.dispatchers.lookup("blocking-io-dispatcher")
+  implicit val ec = system.dispatchers.lookup("akka.blocking-io-dispatcher")
 
   case class WatchDefinition(kind: String, call: () ⇒ Call, watch: (Call) ⇒ Watch[AnyRef])
 
