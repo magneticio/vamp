@@ -1,30 +1,31 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.ActorSystem
-import akka.stream.{ ActorMaterializer, Materializer }
-import akka.stream.scaladsl.Source
+import akka.actor.{ ActorSystem, Scheduler }
+import akka.pattern.after
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{ Sink, Source }
 import com.google.gson.reflect.TypeToken
 import com.squareup.okhttp.Call
-import com.typesafe.scalalogging.{ LazyLogging, Logger }
+import com.typesafe.scalalogging.LazyLogging
 import io.kubernetes.client.models._
 import io.kubernetes.client.util.Watch
-import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
-import ExecutionContext.Implicits.global
 
 case class WatchDefinition(kind: String, call: () ⇒ Call, watch: (Call) ⇒ Watch[AnyRef])
 
-class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging {
+class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging with Retriable {
 
   // Testing using ExecutionContext.Implicits.global instead of system.dispatcher
   // private implicit val ec: ExecutionContext = system.dispatcher
 
   implicit val materializer = ActorMaterializer()
+  implicit val scheduler = system.scheduler
   private var running = true
 
   private val retryDelay = 5 seconds
@@ -36,45 +37,45 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
   val futureWatches = Seq(
     WatchDefinition(
       K8sCache.jobs,
-      () ⇒ client.batchV1Api.listJobForAllNamespacesCall(null, null, null, null, 0, true, null, null),
+      () ⇒ client.batchV1Api.listJobForAllNamespacesCall(null, null, null, null, 3, true, null, null),
       (call: Call) ⇒ Watch.createWatch(client.batchV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Job]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.pods,
-      () ⇒ client.coreV1Api.listPodForAllNamespacesCall(null, null, null, null, 0, true, null, null),
+      () ⇒ client.coreV1Api.listPodForAllNamespacesCall(null, null, null, null, 3, true, null, null),
       (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Pod]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.services,
-      () ⇒ client.coreV1Api.listServiceForAllNamespacesCall(null, null, null, null, 0, true, null, null),
+      () ⇒ client.coreV1Api.listServiceForAllNamespacesCall(null, null, null, null, 3, true, null, null),
       (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Service]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.daemonSets,
-      () ⇒ client.extensionsV1beta1Api.listDaemonSetForAllNamespacesCall(null, null, null, null, 0, true, null, null),
+      () ⇒ client.extensionsV1beta1Api.listDaemonSetForAllNamespacesCall(null, null, null, null, 3, true, null, null),
       (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1DaemonSet]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.deployments,
-      () ⇒ client.extensionsV1beta1Api.listDeploymentForAllNamespacesCall(null, null, null, null, 0, true, null, null),
+      () ⇒ client.extensionsV1beta1Api.listDeploymentForAllNamespacesCall(null, null, null, null, 3, true, null, null),
       (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[ExtensionsV1beta1Deployment]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.replicaSets,
-      () ⇒ client.extensionsV1beta1Api.listReplicaSetForAllNamespacesCall(null, null, null, null, 0, true, null, null),
+      () ⇒ client.extensionsV1beta1Api.listReplicaSetForAllNamespacesCall(null, null, null, null, 3, true, null, null),
       (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1ReplicaSet]]() {}.getType)
     )
   )
 
   val doneFuture = Source
     .fromIterator(() ⇒ futureWatches.iterator)
-    .mapAsync(parallelism = 1)(wdef ⇒ watch(wdef.kind, wdef.call, wdef.watch))
-    .runForeach { identity }
+    .mapAsync(parallelism = 1)(wdef ⇒ retryIndefinitely[Unit](watch(wdef.kind, wdef.call, wdef.watch), retryDelay))
+    .runWith(Sink.ignore)
 
   def close(): Unit = {
     logger.info(s"closing Kubernetes watch: ${client.config.url}")
@@ -84,24 +85,24 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
 
   private def watch(kind: String, call: () ⇒ Call, watch: (Call) ⇒ Watch[AnyRef]): Future[Unit] = Future {
 
-    def stream(): Unit = {
-      try {
-        logger.info(s"watching [$kind]: ${client.config.url}")
-        val c = call()
-        watchHandles.put(kind, c)
-        watch(c).iterator().asScala.foreach(handleEvent)
-      }
-      catch {
-        case e: Exception ⇒
-          if (running) {
-            logger.error(s"ERROR: watch $kind: ${e.getMessage}")
-            system.scheduler.scheduleOnce(retryDelay, () ⇒ stream())
-          }
-      }
+    try {
+      logger.info(s"Listing [$kind]: ${client.config.url}")
+      val c = call()
+      logger.info(s"Putting watch handle [$kind]: ${client.config.url}")
+      watchHandles.put(kind, c)
+      logger.info(s"Watching [$kind]: ${client.config.url}")
+      watch(c).iterator().asScala.foreach(handleEvent)
     }
-
-    stream()
-    //    system.scheduler.scheduleOnce(initialDelay, () ⇒ stream())
+    catch {
+      case e: Throwable ⇒
+        if (running) {
+          logger.error(s"ERROR: watch $kind: ${e.getMessage}", e)
+          throw e
+        }
+        else {
+          logger.warn(s"ERROR on stopped watch $kind: ${e.getMessage}")
+        }
+    }
   }
 
   private def handleEvent(event: Watch.Response[_]): Unit = {
@@ -118,4 +119,6 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
       case _                              ⇒
     }
   }
+
 }
+
