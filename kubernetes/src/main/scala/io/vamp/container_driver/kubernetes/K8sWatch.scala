@@ -1,7 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.{ ActorSystem, Scheduler }
-import akka.pattern.after
+import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import com.google.gson.reflect.TypeToken
@@ -16,12 +15,12 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
-case class WatchDefinition(kind: String, call: () ⇒ Call, watch: (Call) ⇒ Watch[AnyRef])
-
 class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging with Retriable {
 
-  // Testing using ExecutionContext.Implicits.global instead of system.dispatcher
-  private implicit val ec: ExecutionContext = system.dispatcher
+  //We use a separate dispathcer in order to avoid blocking the whole application
+  implicit val ec = system.dispatchers.lookup("blocking-io-dispatcher")
+
+  case class WatchDefinition(kind: String, call: () ⇒ Call, watch: (Call) ⇒ Watch[AnyRef])
 
   implicit val materializer = ActorMaterializer()
   implicit val scheduler = system.scheduler
@@ -71,9 +70,10 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
     )
   )
 
+  //We use a single thread for all the futures to avoid locking up all processes
   val doneFuture = Source
     .fromIterator(() ⇒ futureWatches.iterator)
-    .mapAsync(parallelism = 1)(wdef ⇒ retryWithLimit[Unit](watch(wdef.kind, wdef.call, wdef.watch),retryDelay, 0, 5))
+    .mapAsync(parallelism = 1)(wdef ⇒ retryWithLimit[Unit](watch(wdef.kind, wdef.call, wdef.watch), retryDelay, 0, 5))
     .runWith(Sink.ignore)
 
   def close(): Unit = {
@@ -99,7 +99,7 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
           throw e
         }
         else {
-          logger.warn(s"ERROR on stopped watch $kind: ${e.getMessage}")
+          logger.warn(s"ERROR on stopped watch $kind: ${e.getMessage} - this is likely not a problem")
         }
     }
   }
