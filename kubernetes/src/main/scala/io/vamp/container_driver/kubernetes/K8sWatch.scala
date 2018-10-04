@@ -12,7 +12,6 @@ import io.kubernetes.client.util.Watch
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
@@ -22,7 +21,7 @@ case class WatchDefinition(kind: String, call: () ⇒ Call, watch: (Call) ⇒ Wa
 class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging with Retriable {
 
   // Testing using ExecutionContext.Implicits.global instead of system.dispatcher
-  // private implicit val ec: ExecutionContext = system.dispatcher
+  private implicit val ec: ExecutionContext = system.dispatcher
 
   implicit val materializer = ActorMaterializer()
   implicit val scheduler = system.scheduler
@@ -74,7 +73,7 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
 
   val doneFuture = Source
     .fromIterator(() ⇒ futureWatches.iterator)
-    .mapAsync(parallelism = 1)(wdef ⇒ retryIndefinitely[Unit](watch(wdef.kind, wdef.call, wdef.watch), retryDelay))
+    .mapAsync(parallelism = 1)(wdef ⇒ retryWithLimit[Unit](watch(wdef.kind, wdef.call, wdef.watch),retryDelay, 0, 5))
     .runWith(Sink.ignore)
 
   def close(): Unit = {
