@@ -1,6 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import com.google.gson.reflect.TypeToken
+import io.kubernetes.client.custom.Quantity
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
@@ -63,7 +64,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
 
           val resources = new V1ResourceRequirements
           container.setResources(resources)
-          resources.setRequests(Map("cpu" → ds.cpu.toString, "memory" → ds.mem.toString).asJava)
+          resources.setRequests(Map("cpu" → Quantity.fromString(ds.cpu.toString), "memory" → Quantity.fromString(ds.mem.toString)).asJava)
 
           k8sClient.cache.writeWithCache(
             K8sCache.update,

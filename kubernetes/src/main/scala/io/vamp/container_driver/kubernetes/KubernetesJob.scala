@@ -1,5 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
+import io.kubernetes.client.custom.{ Quantity, QuantityFormatter }
 import io.kubernetes.client.models.{ V1SecurityContext, _ }
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
@@ -65,7 +66,7 @@ trait KubernetesJob extends KubernetesArtifact {
 
           val resources = new V1ResourceRequirements
           container.setResources(resources)
-          resources.setRequests(Map("cpu" → job.cpu.toString, "memory" → job.mem.toString).asJava)
+          resources.setRequests(Map("cpu" → new QuantityFormatter().parse(job.cpu.toString), "memory" → Quantity.fromString(job.mem.toString)).asJava)
 
           container.setEnv(job.environmentVariables.map {
             case (k, v) ⇒
@@ -108,7 +109,7 @@ trait KubernetesJob extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.jobs,
       selector,
-      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 

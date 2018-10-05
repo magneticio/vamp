@@ -24,7 +24,7 @@ trait KubernetesService extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.services,
       "*",
-      () ⇒ Try(k8sClient.coreV1Api.listServiceForAllNamespaces(null, null, null, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listServiceForAllNamespaces(null, null, false, null, null, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -33,7 +33,7 @@ trait KubernetesService extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.services,
       selector,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -95,7 +95,7 @@ trait KubernetesService extends KubernetesArtifact {
       K8sCache.delete,
       K8sCache.services,
       name,
-      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(name, namespace.name, null)
+      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(name, namespace.name, null, null, null, false, null)
     )
   }
 

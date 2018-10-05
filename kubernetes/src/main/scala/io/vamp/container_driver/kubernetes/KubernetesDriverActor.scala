@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.{ Actor, ActorRef }
-import io.kubernetes.client.ApiException
+import io.kubernetes.client.{ ApiException, custom }
 import io.vamp.common._
 import io.vamp.common.util.{ HashUtil, YamlUtil }
 import io.vamp.common.vitals.InfoRequest
@@ -220,7 +220,7 @@ class KubernetesDriverActor
       val capacity = node.getStatus.getCapacity
       SchedulerNode(
         name = HashUtil.hexSha1(node.getMetadata.getName),
-        capacity = SchedulerNodeSize(Quantity.of(capacity.getOrDefault("cpu", "0")), MegaByte.of(capacity.getOrDefault("memory", "0MB")))
+        capacity = SchedulerNodeSize(Quantity.of(capacity.getOrDefault("cpu", custom.Quantity.fromString("0"))), MegaByte.of(capacity.getOrDefault("memory", custom.Quantity.fromString("0MB"))))
       )
     }.toOption
   } toList
@@ -237,7 +237,7 @@ class KubernetesDriverActor
           instances = List(
             RoutingInstance(
               ip = Option(service.getSpec.getClusterIP).get, // fail if null
-              ports = service.getSpec.getPorts.asScala.map(p ⇒ RoutingInstancePort(p.getPort, p.getTargetPort.toInt)).toList
+              ports = service.getSpec.getPorts.asScala.map(p ⇒ RoutingInstancePort(p.getPort, p.getTargetPort.getIntValue)).toList
             )
           )
         )

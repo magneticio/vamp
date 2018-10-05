@@ -209,7 +209,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.pods,
       "*",
-      () ⇒ Try(k8sClient.coreV1Api.listPodForAllNamespaces(null, null, null, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listPodForAllNamespaces(null, null, false, null, null, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -218,7 +218,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.pods,
       selector,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -227,7 +227,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.replicaSets,
       selector,
-      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, selector, null, null, null).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
