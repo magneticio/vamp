@@ -67,8 +67,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     client.setVerifyingSsl(config.tlsCheck)
   }
 
-  // Testing the responsiveness without watcher
-  // val watch = new K8sWatch(this)
+  val watch = new K8sWatch(this)
 
   val caches = new mutable.HashSet[K8sCache]()
 
@@ -89,7 +88,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
   def release()(implicit namespace: Namespace): Unit = caches.find(_.namespace.name == namespace.name).foreach(_.close())
 
   def close(): Unit = {
-    // watch.close()
+    watch.close()
     caches.foreach(_.close())
   }
 }
