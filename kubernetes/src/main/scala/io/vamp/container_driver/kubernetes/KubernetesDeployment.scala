@@ -5,9 +5,9 @@ import com.typesafe.scalalogging.LazyLogging
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
-import io.vamp.container_driver.{ContainerDriver, _}
+import io.vamp.container_driver.{ ContainerDriver, _ }
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -92,12 +92,14 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       } yield DefaultScale(Quantity.of(cpu), MegaByte.of(memory), replicas)
     }
     if (scale.isDefined) {
-      val instances = pods(id, selector).map { pod ⇒ {
+      val instances = pods(id, selector).map { pod ⇒
+        {
 
-        logger.info("Scale is defined and pod phase is {} - status {}", pod.getStatus.getPhase, pod.getStatus())
+          logger.info("Scale is defined and pod phase is {} - status {}", pod.getStatus.getPhase, pod.getStatus())
 
-        ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
-      }}.toList
+          ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
+        }
+      }.toList
       Option(Containers(scale.get, instances))
     }
     else None

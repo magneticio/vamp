@@ -1,16 +1,17 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{ Actor, ActorRef }
+import akka.actor.{Actor, ActorRef}
 import akka.pattern.ask
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC.actorFor
-import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
+import io.vamp.container_driver.ContainerDriverActor.{DeployWorkflow, GetWorkflow, UndeployWorkflow}
 import io.vamp.container_driver.ContainerWorkflow
-import io.vamp.model.artifact.{ DaemonSchedule, DefaultBreed, Instance, Workflow }
+import io.vamp.model.artifact.{DaemonSchedule, DefaultBreed, Instance, Workflow}
 import io.vamp.persistence.PersistenceActor
 
 import scala.concurrent.Future
 
-trait DaemonWorkflowDriver extends WorkflowDriver {
+trait DaemonWorkflowDriver extends WorkflowDriver with LazyLogging {
 
   protected def driverActor: ActorRef
 
@@ -41,7 +42,10 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
   }
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
-    case workflow if workflow.schedule == DaemonSchedule ⇒ enrich(workflow, data).flatMap { enriched ⇒ driverActor ? DeployWorkflow(enriched, update = workflow.instances.nonEmpty) }
+    case workflow if workflow.schedule == DaemonSchedule ⇒ {
+      logger.info("DaemonWorkflowDriver - Workflow instance are {}", workflow.instances)
+      enrich(workflow, data).flatMap { enriched ⇒ driverActor ? DeployWorkflow(enriched, update = workflow.instances.nonEmpty) }
+    }
   }
 
   protected override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
