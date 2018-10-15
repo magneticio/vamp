@@ -92,12 +92,12 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       } yield DefaultScale(Quantity.of(cpu), MegaByte.of(memory), replicas)
     }
     if (scale.isDefined) {
-      val instances = pods(id, selector).map { pod ⇒
+      val instances = pods(id, selector).map { pod ⇒ {
 
         logger.info("Scale is defined and pod phase is {} - status {}", pod.getStatus.getPhase, pod.getStatus())
 
         ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
-      }.toList
+      }}.toList
       Option(Containers(scale.get, instances))
     }
     else None
