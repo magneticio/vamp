@@ -1,14 +1,15 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.util.Timeout
-import io.vamp.common.{ ClassProvider, Config, Namespace }
-import io.vamp.common.akka.{ ActorBootstrap, IoC }
-import io.vamp.workflow_driver.notification.{ UnsupportedWorkflowDriverError, WorkflowDriverNotificationProvider }
+import com.typesafe.scalalogging.LazyLogging
+import io.vamp.common.{ClassProvider, Config, Namespace}
+import io.vamp.common.akka.{ActorBootstrap, IoC}
+import io.vamp.workflow_driver.notification.{UnsupportedWorkflowDriverError, WorkflowDriverNotificationProvider}
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
-class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotificationProvider {
+class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotificationProvider with LazyLogging {
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
     implicit val ec: ExecutionContext = actorSystem.dispatcher
@@ -17,7 +18,10 @@ class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotifica
     val drivers: Future[List[ActorRef]] = Future.sequence(types.map { name ⇒
       ClassProvider.find[WorkflowDriver](name) match {
         case Some(clazz) ⇒ IoC.createActor(clazz)
-        case None        ⇒ throwException(UnsupportedWorkflowDriverError(name))
+        case None        ⇒ {
+          logger.info(s"UnsupportedWorkflowDriverError : ${name}")
+          throwException(UnsupportedWorkflowDriverError(name))
+        }
       }
     })
 
