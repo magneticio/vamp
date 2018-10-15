@@ -10,11 +10,11 @@ import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport, KeyValueStoreActor, PersistenceActor}
-import io.vamp.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
+import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, KeyValueStoreActor, PersistenceActor }
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
-import io.vamp.pulse.{PulseActor, PulseEventTags}
-import io.vamp.workflow_driver.{WorkflowDriver, WorkflowDriverActor}
+import io.vamp.pulse.{ PulseActor, PulseEventTags }
+import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
 
 import scala.concurrent.Future
 
@@ -64,7 +64,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def run(workflow: Workflow, running: Boolean): Unit = {
 
-    logger.info("WorkflowActor - Workflow status is {} and running ", workflow.status, running)
+    logger.info("WorkflowActor - Workflow status is {} and running {}", workflow.status, running)
 
     deploy(workflow, running, () ⇒ {
 
