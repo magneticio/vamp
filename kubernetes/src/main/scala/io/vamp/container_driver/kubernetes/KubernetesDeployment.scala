@@ -70,12 +70,19 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
     ).map { deployment ⇒
+        logger.info("KubernetesDeployment - Retrieved workflow deployment")
+        logger.info("KubernetesDeployment - workflow replicas are {}", deployment.getSpec.getReplicas.toString)
+        logger.info("KubernetesDeployment - workflow replicas from status are {}", deployment.getStatus.getReplicas.toString)
         ContainerWorkflow(
           workflow,
           containers(
             id,
             workflowIdLabel,
-            Try(deployment.getSpec.getTemplate.getSpec.getContainers.asScala).toOption.getOrElse(Nil),
+            Try(deployment.getSpec.getTemplate.getSpec.getContainers.asScala).recover {
+              case t ⇒
+                logger.error("Couldn't retrieve containers for WorkFlow", t)
+                null
+            }.toOption.getOrElse(Nil),
             deployment.getSpec.getReplicas
           )
         )
