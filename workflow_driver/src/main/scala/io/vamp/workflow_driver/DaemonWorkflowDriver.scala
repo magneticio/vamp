@@ -1,12 +1,12 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{ Actor, ActorRef }
 import akka.pattern.ask
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC.actorFor
-import io.vamp.container_driver.ContainerDriverActor.{DeployWorkflow, GetWorkflow, UndeployWorkflow}
+import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
 import io.vamp.container_driver.ContainerWorkflow
-import io.vamp.model.artifact.{DaemonSchedule, DefaultBreed, Instance, Workflow}
+import io.vamp.model.artifact.{ DaemonSchedule, DefaultBreed, Instance, Workflow }
 import io.vamp.persistence.PersistenceActor
 
 import scala.concurrent.Future

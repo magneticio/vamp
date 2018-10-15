@@ -64,7 +64,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def run(workflow: Workflow, running: Boolean): Unit = {
 
-    logger.info("WorkflowActor - Workflow status is {} and running {}", workflow.status, running)
+    logger.info("WorkflowActor - Workflow status is {} and running {}", workflow.status.toString, running.toString)
 
     deploy(workflow, running, () ⇒ {
 
