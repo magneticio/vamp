@@ -17,7 +17,7 @@ class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotifica
     val drivers: Future[List[ActorRef]] = Future.sequence(types.map { name ⇒
       ClassProvider.find[WorkflowDriver](name) match {
         case Some(clazz) ⇒ {
-          logger.info(s"WorkflowDriver created fro driver : ${name}")
+          logger.info(s"WorkflowDriver created for driver : ${name}")
           IoC.createActor(clazz)
         }
         case None ⇒ {
