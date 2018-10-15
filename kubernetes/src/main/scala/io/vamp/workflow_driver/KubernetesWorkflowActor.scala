@@ -17,7 +17,7 @@ import io.vamp.pulse.PulseActor
 import scala.concurrent.Future
 
 class KubernetesWorkflowActorMapper extends ClassMapper {
-  val name = "kubernetesworkflow"
+  val name = "kubernetes"
   val clazz: Class[_] = classOf[KubernetesWorkflowActor]
 }
 

@@ -8,7 +8,7 @@ import io.vamp.container_driver.marathon.MarathonDriverActor
 import scala.concurrent.Future
 
 class MarathonWorkflowActorMapper extends ClassMapper {
-  val name = "marathonworkflow"
+  val name = "marathon"
   val clazz: Class[_] = classOf[MarathonWorkflowActor]
 }
 

@@ -15,7 +15,7 @@ class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotifica
     val types = Config.string("vamp.workflow-driver.type")().toLowerCase.split(',').map(_.trim).toList
 
     val drivers: Future[List[ActorRef]] = Future.sequence(types.map { name ⇒
-      ClassProvider.find[WorkflowDriver](name+"workflow") match {
+      ClassProvider.find[WorkflowDriver](name) match {
         case Some(clazz) ⇒ {
           logger.info(s"WorkflowDriver created for driver : ${name}")
           IoC.createActor(clazz)
