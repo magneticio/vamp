@@ -2,20 +2,21 @@ package io.vamp.workflow_driver
 
 import akka.actor.ActorSystem
 import akka.pattern.ask
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.Config
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.{ ContainerDriverActor, Docker }
+import io.vamp.container_driver.{ContainerDriverActor, Docker}
 import io.vamp.model.artifact.Workflow.Status
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import io.vamp.model.resolver.WorkflowValueResolver
-import io.vamp.persistence.{ ArtifactSupport, KeyValueStoreActor, PersistenceActor }
+import io.vamp.persistence.{ArtifactSupport, KeyValueStoreActor, PersistenceActor}
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
+import io.vamp.workflow_driver.WorkflowDriverActor.{GetScheduled, Schedule, Unschedule}
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
@@ -34,7 +35,7 @@ object WorkflowDriver {
   def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
 
-trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with WorkflowValueResolver {
+trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with WorkflowValueResolver with LazyLogging {
 
   import WorkflowDriver._
 
@@ -113,9 +114,19 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
     }
   }
 
-  protected def runnable(workflow: Workflow) = workflow.status match {
-    case Status.Starting | Status.Running | Status.Restarting(Some(RestartingPhase.Starting)) ⇒ true
-    case _ ⇒ false
+  protected def runnable(workflow: Workflow) = {
+    logger.info("WorkflowDriver - The workflow status is {}", workflow.status)
+
+    val result = workflow.status match {
+      case Status.Starting | Status.Running | Status.Restarting(Some(RestartingPhase.Starting)) ⇒ true
+      case _ ⇒ false
+    }
+
+    logger.info("WorkflowDriver - result is {}", result)
+
+    logger.info("WorkflowDriver - normal comparison is {}", (workflow.status == Status.Starting))
+
+    result
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
