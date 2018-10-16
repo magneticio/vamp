@@ -17,16 +17,22 @@ trait DaemonWorkflowDriver extends WorkflowDriver with LazyLogging {
 
   override def receive: Actor.Receive = super.receive orElse {
     case ContainerWorkflow(workflow, containers, health) ⇒
+
+      logger.info("DaemonWorkflowDriver - received ContainerWorkflow\nWorkflow {}\ncontainers {}\n health {}", workflow.toString, containers.toString, health.toString)
+
       if (workflow.health != health) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowHealth(workflow, health)
 
       val instances = containers.map(_.instances.map { instance ⇒
-        val ports = {
+        val ports: Map[String, Int] = {
           workflow.breed match {
             case breed: DefaultBreed ⇒ breed.ports.map(_.name) zip instance.ports
             case _                   ⇒ Map[String, Int]()
           }
-        }
-        Instance(instance.name, instance.host, ports.toMap, instance.deployed)
+        }.toMap
+
+        logger.info("DaemonWorkflowDriver - Ports for ContainerInstance {} are {}", instance.toString, ports.toString)
+
+        Instance(instance.name, instance.host, ports, instance.deployed)
       }).getOrElse(Nil)
 
       if (workflow.instances != instances) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
