@@ -4,9 +4,9 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import io.vamp.common.ClassMapper
 import io.vamp.common.akka.IoC
-import io.vamp.container_driver.kubernetes.KubernetesDriverActor.{ CreateJob, DeleteJob }
-import io.vamp.container_driver.kubernetes.{ Job, K8sClientConfig, KubernetesDriverActor }
-import io.vamp.container_driver.{ ContainerDriverMapping, ContainerDriverValidation, DeployableType, DockerDeployableType }
+import io.vamp.container_driver.kubernetes.KubernetesDriverActor.{CreateJob, DeleteJob}
+import io.vamp.container_driver.kubernetes.{Job, K8sClientConfig, KubernetesDriverActor}
+import io.vamp.container_driver.{ContainerDriverMapping, ContainerDriverValidation, DeployableType, DockerDeployableType}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.WorkflowValueResolver
@@ -30,29 +30,37 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
   override protected lazy val driverActor: ActorRef = IoC.actorFor[KubernetesDriverActor]
 
   protected override def request: PartialFunction[Workflow, Unit] = {
-    case workflow ⇒
-      logger.info("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule - {}", workflow.toString)
-      logger.info("KubernetesWorkflowActor - asking for percolator {}", WorkflowDriverActor.percolator(workflow))
-
-      IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
-        case Some(_) if runnable(workflow) ⇒
-          if (workflow.instances.isEmpty) {
-            logger.info(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
-            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
-          } else {
-            logger.info(s"KubernetesWorkflowActor - workflow is runnable but instances are not empty")
+    //    case workflow if workflow.schedule.isInstanceOf[EventSchedule] ⇒
+    //      logger.info("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule - {}", workflow.toString)
+    //      logger.info("KubernetesWorkflowActor - asking for percolator {}", WorkflowDriverActor.percolator(workflow))
+    //
+    //      IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
+    //        case Some(_) if runnable(workflow) ⇒
+    //          if (workflow.instances.isEmpty) {
+    //            logger.info(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
+    //            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
+    //          }
+    //        case _ ⇒
+    //          if (workflow.instances.nonEmpty) {
+    //            logger.info(s"KubernetesWorkflowActor - workflow.instances.nonEmpty : ${workflow.instances.nonEmpty}")
+    //            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
+    //          }
+    //      }
+    //    case workflow ⇒
+    //      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
+    //      super.request
+    //
+    case workflow =>
+      (IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)))
+        .map(
+          outcome => {
+            logger.info(s"KubernetesWorkflowActor - outcome is : $outcome")
+            if (workflow.instances.isEmpty) {
+              logger.info(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
+              IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
+            }
           }
-        case _ ⇒
-          if (workflow.instances.nonEmpty) {
-            logger.info(s"KubernetesWorkflowActor - workflow.instances.nonEmpty : ${workflow.instances.nonEmpty}")
-            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
-          } else {
-            logger.info(s"KubernetesWorkflowActor - workflow is not runnable but instances are empty")
-          }
-      }
-//    case workflow ⇒
-//      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
-//      super.request
+        )
 
   }: PartialFunction[Workflow, Unit]
 
