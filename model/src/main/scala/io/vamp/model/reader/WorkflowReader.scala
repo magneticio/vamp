@@ -3,6 +3,7 @@ package io.vamp.model.reader
 import java.time.{ OffsetDateTime, ZoneId }
 import java.util.Date
 
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.model.artifact.TimeSchedule.{ RepeatCount, RepeatForever }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
@@ -11,7 +12,7 @@ import io.vamp.model.validator.BreedTraitValueValidator
 
 import scala.util.Try
 
-object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with DialectReader with BreedTraitValueValidator {
+object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with DialectReader with BreedTraitValueValidator with LazyLogging {
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
 
@@ -47,7 +48,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale")
     val network = <<?[String]("network")
 
-    Workflow(
+    val wf = Workflow(
       name,
       metadata,
       breed,
@@ -61,6 +62,10 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       dialects,
       DeploymentReader.parseInstances
     )
+
+    logger.info("Parsed workflow: {}", network.toString)
+
+    wf
   }
 
   override protected def validate(workflow: Workflow): Workflow = {
