@@ -19,6 +19,7 @@ object KubernetesDeployment {
 trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
+  private val timeout = 0
   private val deploymentServiceIdLabel = "deployment-service"
 
   private val workflowIdLabel = "workflow"
@@ -222,7 +223,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.cache.readAllWithCache(
       K8sCache.pods,
       "*",
-      () ⇒ Try(k8sClient.coreV1Api.listPodForAllNamespaces(null, null, false, null, null, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listPodForAllNamespaces(null, null, false, null, null, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -231,7 +232,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.cache.readAllWithCache(
       K8sCache.pods,
       selector,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -240,7 +241,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.cache.readAllWithCache(
       K8sCache.replicaSets,
       selector,
-      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 

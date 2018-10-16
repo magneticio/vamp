@@ -9,11 +9,13 @@ import scala.util.Try
 trait KubernetesNode extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
+  private val timeout = 0
+
   protected def nodes: Seq[V1Node] = {
     k8sClient.cache.readAllWithCache(
       K8sCache.nodes,
       "*",
-      () ⇒ Try(k8sClient.coreV1Api.listNode(null, null, null, false, null, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNode(null, null, null, false, null, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 }

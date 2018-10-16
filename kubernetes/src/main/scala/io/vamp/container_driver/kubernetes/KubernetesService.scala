@@ -18,13 +18,14 @@ object KubernetesServiceType extends Enumeration {
 trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
+  private val timeout = 0
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
   protected def servicesForAllNamespaces(): Seq[V1Service] = {
     k8sClient.cache.readAllWithCache(
       K8sCache.services,
       "*",
-      () ⇒ Try(k8sClient.coreV1Api.listServiceForAllNamespaces(null, null, false, null, null, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listServiceForAllNamespaces(null, null, false, null, null, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -33,7 +34,7 @@ trait KubernetesService extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.services,
       selector,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
