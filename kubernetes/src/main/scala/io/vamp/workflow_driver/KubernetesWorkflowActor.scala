@@ -39,11 +39,15 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
           if (workflow.instances.isEmpty) {
             logger.info(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
+          } else {
+            logger.info(s"KubernetesWorkflowActor - workflow is runnable but instances are not empty")
           }
         case _ ⇒
           if (workflow.instances.nonEmpty) {
             logger.info(s"KubernetesWorkflowActor - workflow.instances.nonEmpty : ${workflow.instances.nonEmpty}")
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
+          } else {
+            logger.info(s"KubernetesWorkflowActor - workflow is not runnable but instances are empty")
           }
       }
 //    case workflow ⇒
