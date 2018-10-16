@@ -35,7 +35,7 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
       logger.info("KubernetesWorkflowActor - asking for percolator {}", WorkflowDriverActor.percolator(workflow))
 
       IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
-        case Some(_) if runnable(workflow) ⇒
+        case Some(_)  ⇒
           if (workflow.instances.isEmpty) {
             logger.info(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
@@ -46,9 +46,9 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
           }
       }
-    case workflow ⇒
-      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
-      super.request
+//    case workflow ⇒
+//      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
+//      super.request
 
   }: PartialFunction[Workflow, Unit]
 
