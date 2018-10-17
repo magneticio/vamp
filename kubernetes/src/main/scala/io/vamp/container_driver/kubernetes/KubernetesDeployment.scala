@@ -93,6 +93,8 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
   private def containers(id: String, selector: String, v1Containers: Seq[V1Container], replicas: Int): Option[Containers] = Try {
     val ports = v1Containers.headOption.map(_.getPorts.asScala.map(_.getContainerPort.toInt)).getOrElse(Nil).toList
+
+    logger.info("KubernetesDeployment - head container is {}", v1Containers.headOption.toString)
     val scale: Option[DefaultScale] = v1Containers.headOption.flatMap { item ⇒
       val request = item.getResources.getRequests.asScala
       for {
@@ -117,6 +119,10 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       logger.info("KubernetesDeployment - scale is undefined {}", scale.toString)
       None
     }
+  }.recover {
+    case t ⇒
+      logger.error("KubernetesDeployment - Failed to retrieve containers", t)
+      None
   }.toOption.flatten
 
   private def checkDeployable(service: DeploymentService, container: V1Container): Boolean = service.breed.deployable.definition == container.getImage
