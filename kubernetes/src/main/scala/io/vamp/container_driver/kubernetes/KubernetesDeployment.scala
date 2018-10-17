@@ -19,7 +19,7 @@ object KubernetesDeployment {
 trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private val timeout = 0
+  private val timeout = 3
   private val deploymentServiceIdLabel = "deployment-service"
 
   private val workflowIdLabel = "workflow"

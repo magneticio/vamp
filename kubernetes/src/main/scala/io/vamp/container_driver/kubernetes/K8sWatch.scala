@@ -27,7 +27,7 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
   implicit val scheduler = system.scheduler
   private var running = true
 
-  private val timeout = 0
+  private val timeout = 3
   private val retryDelay = 5 seconds
   private val initialDelay = 1 seconds
 

@@ -18,7 +18,7 @@ object KubernetesServiceType extends Enumeration {
 trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private val timeout = 0
+  private val timeout = 3
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
   protected def servicesForAllNamespaces(): Seq[V1Service] = {

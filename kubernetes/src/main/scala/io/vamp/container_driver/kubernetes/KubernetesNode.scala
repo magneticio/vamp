@@ -9,7 +9,7 @@ import scala.util.Try
 trait KubernetesNode extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private val timeout = 0
+  private val timeout = 3
 
   protected def nodes: Seq[V1Node] = {
     k8sClient.cache.readAllWithCache(
