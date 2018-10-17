@@ -100,7 +100,10 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       for {
         cpu ← request.get("cpu")
         memory ← request.get("memory")
-      } yield DefaultScale(Quantity.of(cpu), MegaByte.of(memory), replicas)
+      } yield {
+        logger.info("Quantity: cpu: {} memory: {}", cpu.toSuffixedString, memory.toSuffixedString)
+        DefaultScale(Quantity.of(cpu.toSuffixedString), MegaByte.of(memory.toSuffixedString), replicas)
+      }
     }
     if (scale.isDefined) {
       logger.info("KubernetesDeployment - scale is defined {}", scale.toString)
