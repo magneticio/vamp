@@ -41,7 +41,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver with LazyLogging {
 
       if (workflow.instances != instances) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
 
-    case _ ⇒
+    case _ ⇒ logger.info("DaemonWorkflowDriver - received an unrecognised message")
   }
 
   protected override def request(workflows: List[Workflow]): Unit = workflows.foreach(request)
