@@ -74,6 +74,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
         logger.info("KubernetesDeployment - Retrieved workflow deployment")
         logger.info("KubernetesDeployment - workflow replicas are {}", deployment.getSpec.getReplicas.toString)
         logger.info("KubernetesDeployment - workflow replicas from status are {}", deployment.getStatus.getReplicas.toString)
+        logger.info("KubernetesDeployment - workflow containers from spec are {}", deployment.getSpec.getTemplate.getSpec.getContainers.asScala.toSet)
         ContainerWorkflow(
           workflow,
           containers(
@@ -100,17 +101,22 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       } yield DefaultScale(Quantity.of(cpu), MegaByte.of(memory), replicas)
     }
     if (scale.isDefined) {
+      logger.info("KubernetesDeployment - scale is defined {}", scale.toString)
+
       val instances = pods(id, selector).map { pod ⇒
         {
 
-          logger.info("Scale is defined and pod phase is {} - status {}", pod.getStatus.getPhase, pod.getStatus())
+          logger.info("KubernetesDeployment - Scale is defined and pod phase is {} - status {}", pod.getStatus.getPhase, pod.getStatus())
 
           ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
         }
       }.toList
       Option(Containers(scale.get, instances))
     }
-    else None
+    else {
+      logger.info("KubernetesDeployment - scale is undefined {}", scale.toString)
+      None
+    }
   }.toOption.flatten
 
   private def checkDeployable(service: DeploymentService, container: V1Container): Boolean = service.breed.deployable.definition == container.getImage
