@@ -29,7 +29,7 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
 
   override protected lazy val driverActor: ActorRef = IoC.actorFor[KubernetesDriverActor]
 
-  protected override def request: PartialFunction[Workflow, Unit] = {
+  protected override def request: PartialFunction[Workflow, Unit] = ({
     case workflow if workflow.schedule.isInstanceOf[EventSchedule] ⇒
       logger.info("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule - {}", workflow.toString)
       logger.info("KubernetesWorkflowActor - asking for percolator {}", WorkflowDriverActor.percolator(workflow))
@@ -46,11 +46,14 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
           }
       }
-    case workflow ⇒
-      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
-      super.request
+//    case workflow ⇒
+//      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
+//      super.request
 
-  }: PartialFunction[Workflow, Unit]
+  }: PartialFunction[Workflow, Unit]) orElse {
+    logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule")
+    super.request
+  }
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = super.schedule(data) orElse {
     case w if data.isInstanceOf[Event] && w.schedule.isInstanceOf[EventSchedule] ⇒ enrich(w, data).flatMap { workflow ⇒
