@@ -109,7 +109,7 @@ trait KubernetesJob extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.jobs,
       selector,
-      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(namespace.name, null, null, null, false, selector, null, null, 0, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
