@@ -76,6 +76,8 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, source, validateOnly)
 
+    logger.info("Deployment Api Controller update Deployment or Blueprint with source: {}", source)
+
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
         case blueprint: BlueprintReference ⇒ default(userDefinedOverrides(blueprint))
@@ -84,6 +86,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
           val futures = {
             if (!validateOnly)
               userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+                logger.info("Deployment Api Controller updateDeployment {} with source: {}", name, source)
                 actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(source))
               }
             else Nil
