@@ -1,11 +1,12 @@
 package io.vamp.container_driver
 
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common._
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
+import io.vamp.container_driver.notification.{ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType}
 import io.vamp.model.artifact._
-import io.vamp.model.resolver.{ DeploymentValueResolver, WorkflowValueResolver }
+import io.vamp.model.resolver.{DeploymentValueResolver, WorkflowValueResolver}
 
 object ContainerDriver {
 
@@ -17,7 +18,7 @@ object ContainerDriver {
   }
 }
 
-trait ContainerDriver extends ContainerDriverMapping with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
+trait ContainerDriver extends ContainerDriverMapping with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider{
 
   protected def appId(workflow: Workflow): String
 
@@ -26,7 +27,7 @@ trait ContainerDriver extends ContainerDriverMapping with ContainerDriverValidat
   protected def artifactName2Id(artifact: Artifact): String
 }
 
-trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueResolver {
+trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueResolver with LazyLogging{
   this: NotificationProvider with NamespaceProvider with ExecutionContextProvider ⇒
 
   protected def portMappings(workflow: Workflow, network: String): List[DockerPortMapping] =
@@ -122,6 +123,8 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
   protected def docker(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Docker = {
 
     val (privileged, parameters) = privilegedAndParameters(service.arguments)
+
+    logger.info("ContainerDriver service.network {} cluster.network {}, Docker.network {}", service.network.getOrElse("Empty"),cluster.network.getOrElse("Empty"), Docker.network())
 
     val network = service.network.orElse(cluster.network).getOrElse(Docker.network())
 

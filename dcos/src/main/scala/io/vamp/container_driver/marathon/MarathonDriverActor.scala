@@ -343,7 +343,7 @@ class MarathonDriverActor
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
-    log.info(s"Deploying Deployment and using Arguments:: ${service.arguments}")
+    log.info(s"Deploying Deployment and using Arguments : ${service.arguments}")
 
     val app = MarathonApp(
       id,
@@ -434,7 +434,11 @@ class MarathonDriverActor
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = {
-    if (DockerDeployableType.matches(service.breed.deployable)) Some(Container(docker(deployment, cluster, service))) else None
+    logger.info("service breed deployable {}", service.breed.deployable.toString)
+    if (DockerDeployableType.matches(service.breed.deployable)) Some(Container(docker(deployment, cluster, service))) else {
+      logger.info("MarathonDriverActor container deployable check for {}", deployment.name)
+      None
+    }
   }
 
   private def cmd(workflow: Workflow): Option[String] = {
