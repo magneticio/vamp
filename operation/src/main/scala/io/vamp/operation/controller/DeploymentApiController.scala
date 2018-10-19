@@ -2,6 +2,7 @@ package io.vamp.operation.controller
 
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.Namespace
 import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.NotificationErrorException
@@ -10,11 +11,11 @@ import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
 import io.vamp.operation.deployment.DeploymentActor
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor }
+import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor}
 
 import scala.concurrent.Future
 
-trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController {
+trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with LazyLogging {
 
   // These methods allows 3rd party users to override these methods
   protected def userDefinedOverrides(deployment: Deployment)(implicit namespace: Namespace, timeout: Timeout): Deployment = deployment
@@ -48,6 +49,8 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, source, validateOnly)
 
+    logger.info("Deployment Api Controller create Deployment or Blueprint with source: {}", source)
+
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
         case blueprint: BlueprintReference ⇒ default(userDefinedOverrides(blueprint))
@@ -56,7 +59,10 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
           val futures = {
             if (!validateOnly)
               userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-                breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
+                breed ⇒ {
+                  logger.info("Deployment Api Controller createDeployment {} with source: {}", breed.name, source)
+                  actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
+                }
               }
             else Nil
           } :+ default(userDefinedOverrides(blueprint))

@@ -61,7 +61,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   def receive: Receive = {
     case SynchronizeAll                        ⇒ synchronize()
     case cs: ContainerService                  ⇒ synchronize(cs)
-    case (d: Deployment, cs: ContainerService) ⇒ synchronize(d, cs)
+    case (d: Deployment, cs: ContainerService) ⇒ synchronize(d, cs) // Look at : io.vamp.operation.deployment.DeploymentSynchronizationActor.synchronize
     case _                                     ⇒
   }
 
@@ -91,8 +91,11 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def synchronize(containerService: ContainerService): Unit = {
     log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
     actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
-      case Some(deployment: Deployment) ⇒ self ! (deployment → containerService)
-      case _                            ⇒
+      case Some(deployment: Deployment) ⇒ {
+        log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization triggered for for ${containerService.deployment.name} network: ${containerService.service.network.getOrElse("Empty")}")
+        self ! (deployment → containerService)
+      }
+      case _                            ⇒ log.info(s"[DeploymentSynchronizationActor] Read from persistence got an unexpected data ${containerService.deployment.name}")
     }
   }
 
