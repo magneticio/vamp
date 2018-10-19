@@ -2,9 +2,10 @@ package io.vamp.model.artifact
 
 import java.util.regex.Pattern
 
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common._
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
+import io.vamp.model.notification.{InvalidArgumentError, InvalidArgumentValueError}
 import io.vamp.model.reader.Time
 
 import scala.language.implicitConversions
@@ -53,10 +54,14 @@ object Deployable {
   def apply(`type`: String, definition: String): Deployable = Deployable(Option(`type`), definition)
 }
 
-case class Deployable(`type`: Option[String], definition: String) {
+case class Deployable(`type`: Option[String], definition: String) extends LazyLogging {
   def defaultType()(implicit namespace: Namespace): String = `type`.getOrElse {
     val path = "vamp.model.default-deployable-type"
-    if (Config.has(path)(namespace)()) Config.string(path)() else Deployable.defaultType
+    val deployableType = {
+      if (Config.has(path)(namespace)()) Config.string(path)() else Deployable.defaultType
+    }
+    logger.info("Deployable type: {}", deployableType)
+    deployableType
   }
 }
 

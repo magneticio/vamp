@@ -192,6 +192,7 @@ class MarathonDriverActor
   }
 
   private def checkPorts(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
+    logger.info("CheckPorts for deployment {} network {}", deployment.name, service.network.getOrElse("Empty"))
     val appPorts = app.container.map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
     val containerPorts = app.container.flatMap(_.docker).map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
     val servicePorts = portMappings(deployment, c, service, "").map(_.containerPort).toSet
