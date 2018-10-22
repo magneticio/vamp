@@ -18,11 +18,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver with LazyLogging {
   override def receive: Actor.Receive = super.receive orElse {
     case ContainerWorkflow(workflow, containers, health) ⇒
 
-      logger.info("DaemonWorkflowDriver - received ContainerWorkflow")
-      logger.info("DaemonWorkflowDriver - Workflow {}", workflow.toString)
-      logger.info("DaemonWorkflowDriver - containers {}", containers.toString)
-      logger.info("DaemonWorkflowDriver -  health {}", health.toString)
-      logger.info("DaemonWorkflowDriver -  instances {}", workflow.instances.toString)
+      logger.info("DaemonWorkflowDriver - received ContainerWorkflow {}", workflow.name)
 
       if (workflow.health != health) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowHealth(workflow, health)
 
