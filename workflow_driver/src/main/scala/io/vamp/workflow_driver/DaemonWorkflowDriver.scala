@@ -49,7 +49,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver with LazyLogging {
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒ {
-      logger.info("DaemonWorkflowDriver - Workflow instance are {}", workflow.instances)
+      logger.info("DaemonWorkflowDriver - Workflow number of instances is {}", workflow.instances.size)
       enrich(workflow, data).flatMap { enriched ⇒ driverActor ? DeployWorkflow(enriched, update = workflow.instances.nonEmpty) }
     }
   }
