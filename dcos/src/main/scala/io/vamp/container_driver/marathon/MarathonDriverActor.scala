@@ -362,6 +362,7 @@ class MarathonDriverActor
     )
 
     // Iterate through all Argument objects and if they represent an override, apply them
+    logger.info(s"ServiceDialect for deployment {} service dialect: {}", deployment.name, service.dialects.toString())
     val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
       applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app))
     val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
