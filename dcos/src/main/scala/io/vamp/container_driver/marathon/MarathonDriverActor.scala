@@ -453,10 +453,21 @@ class MarathonDriverActor
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
     val (local, dialect) = (deployment.dialects.get(MarathonDriverActor.dialect), cluster.dialects.get(MarathonDriverActor.dialect), service.dialects.get(MarathonDriverActor.dialect)) match {
-      case (_, _, Some(d))       ⇒ Some(service) → d
-      case (_, Some(d), None)    ⇒ None → d
-      case (Some(d), None, None) ⇒ None → d
-      case _                     ⇒ None → Map()
+      case (_, _, Some(d))       ⇒
+        logger.info("MarathonDriverActor - getting dialect from service {}", d)
+        Some(service) → d
+
+      case (_, Some(d), None)    ⇒
+        logger.info("MarathonDriverActor - getting dialect from cluster {}", d)
+        None → d
+
+      case (Some(d), None, None) ⇒
+        logger.info("MarathonDriverActor - getting dialect from deployment {}", d)
+        None → d
+
+      case _                     ⇒
+        logger.info("MarathonDriverActor - No dialect defined")
+        None → Map()
     }
 
     (app.container, app.cmd, dialect) match {
