@@ -1,8 +1,9 @@
 package io.vamp.model.resolver
 
-import io.vamp.common.{ Config, NamespaceProvider }
+import com.typesafe.scalalogging.LazyLogging
+import io.vamp.common.{Config, NamespaceProvider}
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact.{ ClusterReference, HostReference, LocalReference, _ }
+import io.vamp.model.artifact.{ClusterReference, HostReference, LocalReference, _}
 import io.vamp.model.notification.UnresolvedDependencyError
 
 import scala.language.postfixOps
@@ -14,7 +15,7 @@ private case class HostPortClusterReference(host: HostReference, port: TraitRefe
   override def reference: String = port.reference
 }
 
-trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResolver with ClassLoaderValueResolver {
+trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResolver with ClassLoaderValueResolver with LazyLogging {
   this: NamespaceProvider with NotificationProvider ⇒
 
   private val resolversPath = "vamp.model.resolvers.deployment"
@@ -90,17 +91,33 @@ trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResol
 
   private def valueForDeploymentService(deployment: Deployment, service: Option[DeploymentService]): PartialFunction[ValueReference, String] = {
 
-    case ref: TraitReference ⇒ deployment.traits.find(_.name == ref.reference).flatMap(_.value).getOrElse("")
+    case ref: TraitReference ⇒ {
+      val trainRef = deployment.traits.find(_.name == ref.reference).flatMap(_.value).getOrElse("")
+      logger.info("valueForDeploymentService TraitReference {} value {}", ref.reference, trainRef)
+      trainRef
+    }
 
-    case ref: HostReference  ⇒ deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value).getOrElse("")
+    case ref: HostReference  ⇒ {
+      val hostRef = deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value).getOrElse("")
+      logger.info("valueForDeploymentService HostReference {} value {}", ref.asTraitReference, hostRef)
+      hostRef
+    }
 
-    case ref: LocalReference ⇒ service.flatMap(service ⇒ (service.environmentVariables ++ service.breed.constants).find(_.name == ref.name).flatMap(_.value)).getOrElse("")
+    case ref: LocalReference ⇒ {
+      val lockRef = service.flatMap(service ⇒ (service.environmentVariables ++ service.breed.constants).find(_.name == ref.name).flatMap(_.value)).getOrElse("")
+      logger.info("valueForDeploymentService LocalReference {} value {}", ref.name, lockRef)
+      lockRef
+    }
 
     case HostPortClusterReference(_, t) ⇒ {
-      for {
-        port ← deployment.ports.find(_.name == t.reference).map(port ⇒ port.number)
-        host ← deployment.clusters.find(_.name == t.cluster).flatMap(_.serviceBy(t.name).map(_.host))
-      } yield s"$host:$port"
-    } getOrElse ""
+      val hostPortClusterReference = {
+        for {
+          port ← deployment.ports.find(_.name == t.reference).map(port ⇒ port.number)
+          host ← deployment.clusters.find(_.name == t.cluster).flatMap(_.serviceBy(t.name).map(_.host))
+        } yield s"$host:$port"
+      } getOrElse ""
+      logger.info("valueForDeploymentService HostPortClusterReference {} value {}", t.reference, hostPortClusterReference)
+      hostPortClusterReference
+    }
   }
 }
