@@ -3,16 +3,16 @@ package io.vamp.operation.deployment
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
-import io.vamp.container_driver.{ContainerDriverActor, ContainerInstance, ContainerService, Containers}
+import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
-import io.vamp.model.artifact.DeploymentService.Status.Phase.{Done, Initiated, Updating}
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
-import io.vamp.pulse.{PulseActor, PulseEventTags}
+import io.vamp.pulse.{ PulseActor, PulseEventTags }
 
 object SingleDeploymentSynchronizationActor {
 
@@ -20,7 +20,7 @@ object SingleDeploymentSynchronizationActor {
 
 }
 
-class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with LazyLogging{
+class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with LazyLogging {
 
   import DeploymentSynchronizationActor._
   import PersistenceActor._

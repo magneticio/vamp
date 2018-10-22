@@ -48,7 +48,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver with LazyLogging {
 
   protected def request: PartialFunction[Workflow, Unit] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒ driverActor ! GetWorkflow(workflow, self)
-    case workflow ⇒ logger.info("DaemonWorkflowDriver - Workflow schedule is {} instead of DaemonSchedule", workflow.schedule)
+    case workflow                                        ⇒ logger.info("DaemonWorkflowDriver - Workflow schedule is {} instead of DaemonSchedule", workflow.schedule)
   }
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {

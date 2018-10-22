@@ -46,9 +46,9 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
           }
       }
-//    case workflow ⇒
-//      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
-//      super.request
+    //    case workflow ⇒
+    //      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
+    //      super.request
 
   }: PartialFunction[Workflow, Unit]) orElse {
     logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule")

@@ -8,15 +8,15 @@ import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.{ContainerDriverActor, Docker}
+import io.vamp.container_driver.{ ContainerDriverActor, Docker }
 import io.vamp.model.artifact.Workflow.Status
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.WorkflowValueResolver
-import io.vamp.persistence.{ArtifactSupport, KeyValueStoreActor, PersistenceActor}
+import io.vamp.persistence.{ ArtifactSupport, KeyValueStoreActor, PersistenceActor }
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriverActor.{GetScheduled, Schedule, Unschedule}
+import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future

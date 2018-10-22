@@ -95,7 +95,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization triggered for for ${containerService.deployment.name} network: ${containerService.service.network.getOrElse("Empty")}")
         self ! (deployment → containerService)
       }
-      case _                            ⇒ log.info(s"[DeploymentSynchronizationActor] Read from persistence got an unexpected data ${containerService.deployment.name}")
+      case _ ⇒ log.info(s"[DeploymentSynchronizationActor] Read from persistence got an unexpected data ${containerService.deployment.name}")
     }
   }
 

@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common._
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.model.notification.{InvalidArgumentError, InvalidArgumentValueError}
+import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
 import io.vamp.model.reader.Time
 
 import scala.language.implicitConversions

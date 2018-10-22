@@ -11,7 +11,7 @@ import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
 import io.vamp.operation.deployment.DeploymentActor
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor}
+import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor }
 
 import scala.concurrent.Future
 
@@ -53,16 +53,20 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
-        case blueprint: BlueprintReference ⇒ default(userDefinedOverrides(blueprint))
+        case blueprint: BlueprintReference ⇒ {
+          logger.info("Deployment Api Controller update Deployment Blueprint Reference {}", blueprint.name)
+          default(userDefinedOverrides(blueprint))
+        }
         case blueprint: DefaultBlueprint ⇒
 
           val futures = {
             if (!validateOnly)
               userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-                breed ⇒ {
-                  logger.info("Deployment Api Controller createDeployment {} with source: {}", breed.name, source)
-                  actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
-                }
+                breed ⇒
+                  {
+                    logger.info("Deployment Api Controller createDeployment {} with source: {}", breed.name, source)
+                    actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
+                  }
               }
             else Nil
           } :+ default(userDefinedOverrides(blueprint))
@@ -80,14 +84,20 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
-        case blueprint: BlueprintReference ⇒ default(userDefinedOverrides(blueprint))
+        case blueprint: BlueprintReference ⇒ {
+          logger.info("Deployment Api Controller update Deployment Blueprint Reference {}", blueprint.name)
+          default(userDefinedOverrides(blueprint))
+        }
         case blueprint: DefaultBlueprint ⇒
 
           val futures = {
             if (!validateOnly)
               userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-                logger.info("Deployment Api Controller updateDeployment {} with source: {}", name, source)
-                actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(source))
+                breed ⇒
+                  {
+                    logger.info("Deployment Api Controller updateDeployment {} with source: {} breed: {}", name, source, breed.toString)
+                    actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
+                  }
               }
             else Nil
           } :+ default(userDefinedOverrides(blueprint))

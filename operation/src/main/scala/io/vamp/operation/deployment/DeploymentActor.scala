@@ -3,6 +3,7 @@ package io.vamp.operation.deployment
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.{ Config, ConfigMagnet, Namespace }
@@ -53,28 +54,34 @@ class DeploymentActor
     with DeploymentUpdate
     with ArtifactSupport
     with ArtifactPaginationSupport
-    with OperationNotificationProvider {
+    with OperationNotificationProvider
+    with LazyLogging {
 
   import DeploymentActor._
 
   def receive: Actor.Receive = {
     case Create(blueprint, source, validateOnly) ⇒ reply {
+      logger.info("DeploymentActor Create for blueprint {}", blueprint.name)
       (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(blueprint.name, create = true))
     }
 
     case Merge(name, blueprint, source, validateOnly) ⇒ reply {
+      logger.info("DeploymentActor Merge deployment {} for blueprint {}", name, blueprint.name)
       (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(name, create = true))
     }
 
     case Slice(name, blueprint, source, validateOnly) ⇒ reply {
+      logger.info("DeploymentActor Slice deployment {} for blueprint {}", name, blueprint.name)
       (slice(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(name))
     }
 
     case UpdateSla(deployment, cluster, sla, source, validateOnly) ⇒ reply {
+      logger.info("DeploymentActor UpdateSla deployment {}", deployment.name)
       updateSla(deployment, cluster, sla, source, validateOnly)
     }
 
     case UpdateScale(deployment, cluster, service, scale, source, validateOnly) ⇒ reply {
+      logger.info("DeploymentActor UpdateScale deployment {}", deployment.name)
       updateScale(deployment, cluster, service, scale, source, validateOnly)
     }
 
