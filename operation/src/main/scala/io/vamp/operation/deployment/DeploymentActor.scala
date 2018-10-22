@@ -66,7 +66,7 @@ class DeploymentActor
     }
 
     case Merge(name, blueprint, source, validateOnly) ⇒ reply {
-      logger.info("DeploymentActor Merge deployment {} for blueprint {}", name, blueprint.name)
+      logger.info("DeploymentActor Merge deployment {} for blueprint {} with source {}", name, blueprint.name, source)
       (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(name, create = true))
     }
 

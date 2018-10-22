@@ -80,7 +80,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, source, validateOnly)
 
-    logger.info("Deployment Api Controller update Deployment or Blueprint with source: {}", source)
+    logger.info("Deployment Api Controller update Deployment or Blueprint with source: {} - validateOnly is {}", source, validateOnly.toString)
 
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
