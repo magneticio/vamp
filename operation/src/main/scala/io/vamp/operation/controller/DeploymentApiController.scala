@@ -103,6 +103,10 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
           } :+ default(userDefinedOverrides(blueprint))
 
           Future.sequence(futures)
+
+        case unexpected =>
+          logger.error(s"Deployment Api Controller - Unexpedted type was received ${unexpected.getClass.getName}")
+          throw new RuntimeException(s"Deployment Api Controller - Unexpedted type was received ${unexpected.getClass.getName}")
       })
     }
   }
