@@ -362,13 +362,13 @@ class MarathonDriverActor
     )
 
     // Iterate through all Argument objects and if they represent an override, apply them
-    logger.info(s"ServiceDialect for deployment {} service dialect: {}", deployment.name, service.dialects.toString())
+    logger.info(s"MarathonDriverActor - ServiceDialect for deployment {} service dialect: {}", deployment.name, service.dialects.toString())
     val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
       applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app))
-    val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
+    val payload = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
 
-    log.info(s"Deploying $asd")
-    deploy(update, id, asd)
+    log.info(s"MarathonDriverActor - Deploying $payload")
+    deploy(update, id, payload)
   }
 
   private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
@@ -415,15 +415,18 @@ class MarathonDriverActor
 
   private def deploy(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      log.debug(s"marathon sending request: $id")
+      log.debug(s"MarathonDriverActor - marathon sending request: $id")
       client.get(id).flatMap { response ⇒
         val changed = Extraction.decompose(response).children.headOption match {
           case Some(app) ⇒ app.diff(payload).changed
           case None      ⇒ payload
         }
-        if (changed != JNothing) client.put(id, changed)
+        if (changed != JNothing) {
+          log.info(s"MarathonDriverActor - Changes detected in app $id configuration")
+          client.put(id, changed)
+        }
         else {
-          log.info(s"Nothing has changed in app $id configuration")
+          log.info(s"MarathonDriverActor - Nothing has changed in app $id configuration")
           Future.successful(false)
         }
       }
@@ -481,7 +484,25 @@ class MarathonDriverActor
       case other      ⇒ other
     }
 
-    Extraction.decompose(interpolate(deployment, local, dialect)) merge base
+    val interpolateResult = interpolate(deployment, local, dialect)
+
+    logger.info("MarathonDriverActor - interpolate result {}", interpolateResult)
+
+    logger.info("MarathonDriverActor - base {}", base)
+
+    val decomposeResult = Extraction.decompose(interpolateResult)
+
+    logger.info("MarathonDriverActor - decompose result {}", decomposeResult)
+
+    val reverseResult = base merge decomposeResult
+
+    logger.info("MarathonDriverActor - base merge decomposeResult {}", reverseResult)
+
+    val finalResult = decomposeResult merge base
+
+    logger.info("MarathonDriverActor - final result {}", finalResult)
+
+    finalResult
   }
 
   private def requestPayload(workflow: Workflow, app: MarathonApp): JValue = {
