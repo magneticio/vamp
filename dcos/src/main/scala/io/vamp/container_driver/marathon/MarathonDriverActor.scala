@@ -484,25 +484,13 @@ class MarathonDriverActor
       case other      ⇒ other
     }
 
-    val interpolateResult = interpolate(deployment, local, dialect)
+    logger.info("MarathonDriverActor - base is {}", base)
 
-    logger.info("MarathonDriverActor - interpolate result {}", interpolateResult)
+    val mergedJson =  base merge Extraction.decompose(interpolate(deployment, local, dialect))
 
-    logger.info("MarathonDriverActor - base {}", base)
+    logger.info("MarathonDriverActor - mergedJson is {}", mergedJson)
 
-    val decomposeResult = Extraction.decompose(interpolateResult)
-
-    logger.info("MarathonDriverActor - decompose result {}", decomposeResult)
-
-    val reverseResult = base merge decomposeResult
-
-    logger.info("MarathonDriverActor - base merge decomposeResult {}", reverseResult)
-
-    val finalResult = decomposeResult merge base
-
-    logger.info("MarathonDriverActor - final result {}", finalResult)
-
-    finalResult
+    mergedJson
   }
 
   private def requestPayload(workflow: Workflow, app: MarathonApp): JValue = {
