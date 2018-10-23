@@ -82,9 +82,18 @@ trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResol
 
   def valueFor(deployment: Deployment, service: Option[DeploymentService])(reference: ValueReference): String = (
     valueForDeploymentService(deployment, service)
-    orElse super[ClassLoaderValueResolver].valueForReference((deployment, service))
-    orElse super[ConfigurationValueResolver].valueForReference
-    orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
+    orElse {
+      logger.info("DeploymentValueResolver - returning super[ClassLoaderValueResolver] for deployment {}", deployment.name)
+      super[ClassLoaderValueResolver].valueForReference((deployment, service))
+    }
+    orElse {
+      logger.info("DeploymentValueResolver - returning super[ConfigurationValueResolver] for deployment {}", deployment.name)
+      super[ConfigurationValueResolver].valueForReference
+    }
+    orElse {
+      logger.info("DeploymentValueResolver - returning empty partial function for deployment {}", deployment.name)
+      PartialFunction[ValueReference, String] { _ ⇒ "" }
+    }
   )(reference)
 
   override def valueForReference: PartialFunction[ValueReference, String] = PartialFunction.empty
