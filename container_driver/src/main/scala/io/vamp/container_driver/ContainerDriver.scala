@@ -93,6 +93,7 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
   }
 
   protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {
+
     def visit(any: Any): Any = any match {
       case value: String ⇒ resolve(value, valueFor(deployment, service))
       case list: List[_] ⇒ list.map(visit)
@@ -102,7 +103,15 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
       case _ ⇒ any
     }
 
-    visit(dialect).asInstanceOf[T]
+    logger.info("ContainerDriver before visit - Deployment: {} ", deployment)
+    logger.info("ContainerDriver before visit - Service: {} ", service)
+    logger.info("ContainerDriver before visit - Dialect: {} ", dialect)
+
+    val result = visit(dialect).asInstanceOf[T]
+
+    logger.info("ContainerDriver visit result: {} ", result)
+
+    result
   }
 
   protected def docker(workflow: Workflow): Docker = {
