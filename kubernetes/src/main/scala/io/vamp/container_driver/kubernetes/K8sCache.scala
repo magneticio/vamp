@@ -52,7 +52,7 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
         logger.debug(s"K8sCache - Getting response from cache for $id on operation $operation")
         response match {
           case Left(r) ⇒ {
-            logger.info("K8sCache - Returning from cache for {} on operation {} response was {}", id, operation, response.toString)
+            logger.info("K8sCache - Returning from cache for {} on operation {}", id, operation)
             op → r
           }
           case Right(e) ⇒ {
@@ -64,7 +64,7 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
         try {
           logger.info("K8sCache - Sending request for {} on operation {}", id, operation)
           val response = request()
-          logger.info("K8sCache - Request sent for {} on operation {} response was {}", id, operation, response.toString)
+          logger.info("K8sCache - Request sent for {} on operation {}", id, operation)
           val ttl = if (read) config.readTimeToLivePeriod else config.writeTimeToLivePeriod
           logger.info(s"cK8sCache - cache put [${ttl.toSeconds}s]: $id on operation $operation")
           cache.put[(String, Either[T, Exception])](id, operation → Left(response), ttl)

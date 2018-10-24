@@ -72,9 +72,6 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
     ).map { deployment ⇒
         logger.info("KubernetesDeployment - Retrieved workflow deployment")
-        logger.info("KubernetesDeployment - workflow replicas are {}", deployment.getSpec.getReplicas.toString)
-        logger.info("KubernetesDeployment - workflow replicas from status are {}", deployment.getStatus.getReplicas.toString)
-        logger.info("KubernetesDeployment - workflow containers from spec are {}", deployment.getSpec.getTemplate.getSpec.getContainers.asScala.toSet)
         ContainerWorkflow(
           workflow,
           containers(
@@ -94,7 +91,6 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   private def containers(id: String, selector: String, v1Containers: Seq[V1Container], replicas: Int): Option[Containers] = Try {
     val ports = v1Containers.headOption.map(_.getPorts.asScala.map(_.getContainerPort.toInt)).getOrElse(Nil).toList
 
-    logger.info("KubernetesDeployment - head container is {}", v1Containers.headOption.toString)
     val scale: Option[DefaultScale] = v1Containers.headOption.flatMap { item ⇒
       val request = item.getResources.getRequests.asScala
       for {
@@ -111,7 +107,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       val instances = pods(id, selector).map { pod ⇒
         {
 
-          logger.info("KubernetesDeployment - Scale is defined and pod phase is {} - status {}", pod.getStatus.getPhase, pod.getStatus())
+          logger.info("KubernetesDeployment - Scale is defined and pod phase is {}", pod.getStatus.getPhase)
 
           ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
         }
