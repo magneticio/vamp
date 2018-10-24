@@ -206,8 +206,15 @@ class MarathonDriverActor
       * currently portDefinitions are not defined in the object so
       * if host network is host checkport will return true
       */
-    val isHostNetwork = service.network.getOrElse("").equalsIgnoreCase("HOST")
-    appPorts == servicePorts || containerPorts == servicePorts || isHostNetwork
+    val isPortDefinitionsDefined =
+      Try(deployment.dialects.get(MarathonDriverActor.dialect).asInstanceOf[Map[String, Any]].get("portDefinitions").isDefined)
+      .recoverWith{
+        case t =>
+          logger.error("Port definitions are in the dialect", t)
+          Try(false)
+      }.get
+
+    appPorts == servicePorts || containerPorts == servicePorts || isPortDefinitionsDefined
   }
 
   private def checkEnvironmentVariables(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
