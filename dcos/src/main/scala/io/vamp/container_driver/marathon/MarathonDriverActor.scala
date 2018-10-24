@@ -207,10 +207,10 @@ class MarathonDriverActor
      * if host network is host checkport will return true
      */
     val isPortDefinitionsDefined =
-      Try(deployment.dialects.get(MarathonDriverActor.dialect).asInstanceOf[Map[String, Any]].get("portDefinitions").isDefined)
+      Try(service.dialects.get(MarathonDriverActor.dialect).asInstanceOf[Map[String, Any]].get("portDefinitions").isDefined)
         .recoverWith {
           case t ⇒
-            logger.error("Port definitions are in the dialect", t)
+            logger.error("Port definitions are not in the dialect", t)
             Try(false)
         }.get
 
