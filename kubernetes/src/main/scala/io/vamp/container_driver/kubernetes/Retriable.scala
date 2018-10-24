@@ -19,4 +19,4 @@ trait Retriable {
           Future.failed(new Exception("Give up on retrial"))
     }
 
-}``
+}

@@ -202,17 +202,17 @@ class MarathonDriverActor
     if (containerPorts != servicePorts)
       logger.info("containerPorts {},  servicePorts {}", containerPorts.toString(), servicePorts.toString())
     /**
-      * If it is in host network, ports are defined in portDefinitions,
-      * currently portDefinitions are not defined in the object so
-      * if host network is host checkport will return true
-      */
+     * If it is in host network, ports are defined in portDefinitions,
+     * currently portDefinitions are not defined in the object so
+     * if host network is host checkport will return true
+     */
     val isPortDefinitionsDefined =
       Try(deployment.dialects.get(MarathonDriverActor.dialect).asInstanceOf[Map[String, Any]].get("portDefinitions").isDefined)
-      .recoverWith{
-        case t =>
-          logger.error("Port definitions are in the dialect", t)
-          Try(false)
-      }.get
+        .recoverWith {
+          case t ⇒
+            logger.error("Port definitions are in the dialect", t)
+            Try(false)
+        }.get
 
     appPorts == servicePorts || containerPorts == servicePorts || isPortDefinitionsDefined
   }
@@ -473,11 +473,11 @@ class MarathonDriverActor
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
     val (local, dialect) = (deployment.dialects.get(MarathonDriverActor.dialect), cluster.dialects.get(MarathonDriverActor.dialect), service.dialects.get(MarathonDriverActor.dialect)) match {
-      case (_, _, Some(d))       ⇒
+      case (_, _, Some(d)) ⇒
         logger.info("MarathonDriverActor - getting dialect from service {}", d)
         Some(service) → d
 
-      case (_, Some(d), None)    ⇒
+      case (_, Some(d), None) ⇒
         logger.info("MarathonDriverActor - getting dialect from cluster {}", d)
         None → d
 
@@ -485,7 +485,7 @@ class MarathonDriverActor
         logger.info("MarathonDriverActor - getting dialect from deployment {}", d)
         None → d
 
-      case _                     ⇒
+      case _ ⇒
         logger.info("MarathonDriverActor - No dialect defined")
         None → Map()
     }
@@ -503,7 +503,7 @@ class MarathonDriverActor
 
     logger.info("MarathonDriverActor - base is {}", base)
 
-    val mergedJson =  base merge Extraction.decompose(interpolate(deployment, local, dialect))
+    val mergedJson = base merge Extraction.decompose(interpolate(deployment, local, dialect))
 
     logger.info("MarathonDriverActor - mergedJson is {}", mergedJson)
 

@@ -1,9 +1,9 @@
 package io.vamp.model.resolver
 
 import com.typesafe.scalalogging.LazyLogging
-import io.vamp.common.{Config, NamespaceProvider}
+import io.vamp.common.{ Config, NamespaceProvider }
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact.{ClusterReference, HostReference, LocalReference, _}
+import io.vamp.model.artifact.{ ClusterReference, HostReference, LocalReference, _ }
 import io.vamp.model.notification.UnresolvedDependencyError
 
 import scala.language.postfixOps
@@ -106,7 +106,7 @@ trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResol
       trainRef
     }
 
-    case ref: HostReference  ⇒ {
+    case ref: HostReference ⇒ {
       val hostRef = deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value).getOrElse("")
       logger.info("valueForDeploymentService HostReference {} value {}", ref.asTraitReference, hostRef)
       hostRef
