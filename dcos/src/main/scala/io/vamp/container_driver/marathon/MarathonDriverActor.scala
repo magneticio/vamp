@@ -197,7 +197,17 @@ class MarathonDriverActor
     val containerPorts = app.container.flatMap(_.docker).map(_.portMappings.flatMap(_.containerPort)).getOrElse(Nil).toSet
     val servicePorts = portMappings(deployment, c, service, "").map(_.containerPort).toSet
     // due to changes in Marathon 1.5.x, both container (docker) and app port mapping should be chacked
-    appPorts == servicePorts || containerPorts == servicePorts
+    if (appPorts != servicePorts)
+      logger.info("appPorts {},  servicePorts {}", appPorts.toString(), servicePorts.toString())
+    if (containerPorts != servicePorts)
+      logger.info("containerPorts {},  servicePorts {}", containerPorts.toString(), servicePorts.toString())
+    /**
+      * If it is in host network, ports are defined in portDefinitions,
+      * currently portDefinitions are not defined in the object so
+      * if host network is host checkport will return true
+      */
+    val isHostNetwork = service.network.getOrElse("").equalsIgnoreCase("HOST")
+    appPorts == servicePorts || containerPorts == servicePorts || isHostNetwork
   }
 
   private def checkEnvironmentVariables(deployment: Deployment, cluster: Option[DeploymentCluster], service: DeploymentService, app: App): Boolean = cluster.exists { c ⇒
