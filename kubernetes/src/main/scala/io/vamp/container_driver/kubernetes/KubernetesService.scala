@@ -92,11 +92,13 @@ trait KubernetesService extends KubernetesArtifact {
 
   protected def deleteService(name: String): Unit = {
     log.info(s"Deleting service: $name")
+    import io.kubernetes.client.models.V1DeleteOptions
+    val body = new V1DeleteOptions
     k8sClient.cache.writeWithCache(
       K8sCache.delete,
       K8sCache.services,
       name,
-      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(name, namespace.name, null, null, null, false, null)
+      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(name, namespace.name, body, null, null, false, null)
     )
   }
 
