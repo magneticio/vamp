@@ -47,26 +47,29 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def deploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService): Unit = containerService.containers match {
-    case None ⇒
+    case None ⇒ {
+      logger.info("SingleDeploymentSynchronizationActor deploy no containers for deployment {}", deployment.name)
       if (hasDependenciesDeployed(deployment, deploymentCluster, deploymentService)) {
         if (hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService))
           redeploy(deployment, deploymentCluster, deploymentService, containerService, update = false)
         else
           resolveEnvironmentVariables(deployment, deploymentCluster, deploymentService)
       }
-
-    case Some(cs) ⇒
-      if (!hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService))
+    }
+    case Some(cs) ⇒ {
+      logger.info("SingleDeploymentSynchronizationActor deploy Some containers found for deployment {}", deployment.name)
+      if (!hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService)) {
+        logger.info("SingleDeploymentSynchronizationActor deploy resolveEnvironmentVariables for deployment {}", deployment.name)
         resolveEnvironmentVariables(deployment, deploymentCluster, deploymentService)
-
-      else if (!matchingDeployable(containerService) || !matchingPorts(containerService) ||
-        !matchingEnvironmentVariables(containerService) || !matchingScale(deploymentService, cs) || !matchingHealth(containerService))
+      } else if (!matchingDeployable(containerService) || !matchingPorts(containerService) ||
+        !matchingEnvironmentVariables(containerService) || !matchingScale(deploymentService, cs) || !matchingHealth(containerService)) {
+        logger.info("SingleDeploymentSynchronizationActor deploy redeploy for deployment {}", deployment.name)
         redeploy(deployment, deploymentCluster, deploymentService, containerService, update = true)
-
-      else if (!matchingServers(deployment, deploymentService, cs))
+      } else if (!matchingServers(deployment, deploymentService, cs)) {
+        logger.info("SingleDeploymentSynchronizationActor deploy trigger UpdateDeploymentServiceInstances for deployment {}", deployment.name)
         actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert(deploymentService, _)))
-
-      else if (!matchingServiceHealth(deploymentService.health, containerService.health)) {
+      } else if (!matchingServiceHealth(deploymentService.health, containerService.health)) {
+        logger.info("SingleDeploymentSynchronizationActor deploy trigger UpdateDeploymentServiceHealth for deployment {}", deployment.name)
         val serviceHealth = containerService.health.getOrElse(deploymentService.health.get)
 
         actorFor[PersistenceActor] ! UpdateDeploymentServiceHealth(
@@ -77,9 +80,13 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         )
       }
       else if (!deploymentService.status.isDone) {
+        logger.info("SingleDeploymentSynchronizationActor deploy trigger UpdateDeploymentServiceStatus for deployment {}", deployment.name)
         actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
         publishDeployed(deployment, deploymentCluster, deploymentService)
+      } else {
+        logger.info("SingleDeploymentSynchronizationActor deploy no operation done for deployment {}", deployment.name)
       }
+    }
   }
 
   private def convert(deploymentService: DeploymentService, server: ContainerInstance): Instance = {
