@@ -28,15 +28,15 @@ class GatewaySerializer extends ArtifactSerializer[Gateway] with GatewayDecompos
 
 trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
 
-  def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true, port = true)
+  def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true, port = true, event = false)
 
-  def serializeAnonymousGateway(port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = false, port)
+  def serializeAnonymousGateway(port: Boolean, event: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = false, port, event)
 
-  private def serialize(full: Boolean, port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
+  private def serialize(full: Boolean, port: Boolean, event: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case gateway: Gateway ⇒
       val list = new ArrayBuffer[JField]
 
-      if (full) {
+      if (full || event) {
 
         if (gateway.name.nonEmpty) {
           list += JField("name", JString(gateway.name))
@@ -59,7 +59,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
         list += JField("deployed", JBool(gateway.deployed))
       }
 
-      if (full || port) {
+      if (full || port || event) {
         list += JField("port", gateway.port.value match {
           case Some(value) ⇒ JString(value)
           case _           ⇒ JString(gateway.port.toValue)
