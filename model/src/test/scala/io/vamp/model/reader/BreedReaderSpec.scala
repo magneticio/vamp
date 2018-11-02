@@ -240,13 +240,14 @@ class BreedReaderSpec extends ReaderSpec {
     )
   }
 
+  /* Now dots are allowed in environment variables so this test is obsolete
   it should "fail on invalid trait name: '.'" in {
     expectedError[IllegalStrictName]({
       BreedReader.read(res("breed/breed26.yml"))
     }) should have(
       'name("time.out")
     )
-  }
+  }*/
 
   it should "fail on invalid trait name: '/'" in {
     expectedError[IllegalStrictName]({
@@ -257,7 +258,7 @@ class BreedReaderSpec extends ReaderSpec {
   }
 
   it should "fail on invalid trait name: '['" in {
-    expectedError[IllegalStrictName]({
+    expectedError[IllegalName]({
       BreedReader.read(res("breed/breed28.yml"))
     }) should have(
       'name("timeout[]")

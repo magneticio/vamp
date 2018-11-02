@@ -208,7 +208,7 @@ class MarathonDriverActor
      */
     val isPortDefinitionsDefined =
       Try(service.dialects.getOrElse(MarathonDriverActor.dialect, Map())
-          .asInstanceOf[Map[String, Any]].get("portDefinitions").isDefined)
+        .asInstanceOf[Map[String, Any]].get("portDefinitions").isDefined)
         .recoverWith {
           case t ⇒
             logger.error("Port definitions are not in the dialect", t)

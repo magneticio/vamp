@@ -241,10 +241,10 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
     <<?[Any](key :: "port") match {
       case Some(value) ⇒ if (!acceptPort && !ignoreError) {
         //TODO: remove => I want to know how I got here
-        new Exception("Please Report: GatewayReader port acceptPort: "+acceptPort + " ignoreError: "+ignoreError).printStackTrace()
+        new Exception("Please Report: GatewayReader port acceptPort: " + acceptPort + " ignoreError: " + ignoreError).printStackTrace()
         throwException(UnexpectedElement(Map[String, Any](key → "port"), value.toString))
       }
-      case None        ⇒ >>("port", key)(yaml)
+      case None ⇒ >>("port", key)(yaml)
     }
 
     if (onlyAnonymous) {

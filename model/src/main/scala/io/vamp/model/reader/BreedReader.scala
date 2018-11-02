@@ -60,8 +60,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
     case breed: BreedReference ⇒ breed
     case breed: DefaultBreed ⇒
 
-      breed.traits.foreach(t ⇒ validateName(t.name))
       breed.traitsExceptEnvironmentVariables().foreach(t ⇒ validateStrictName(t.name))
+      breed.traits.foreach(t ⇒ validateName(t.name))
 
       breed.ports.find(_.value.isEmpty).flatMap(port ⇒ throwException(MissingPortValueError(breed, port)))
       breed.constants.find(_.value.isEmpty).flatMap(constant ⇒ throwException(MissingConstantValueError(breed, constant)))
