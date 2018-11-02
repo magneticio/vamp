@@ -239,7 +239,10 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
     val yaml = <<![YamlSourceReader](key :: Nil)
 
     <<?[Any](key :: "port") match {
-      case Some(value) ⇒ if (!acceptPort && !ignoreError) throwException(UnexpectedElement(Map[String, Any](key → "port"), value.toString))
+      case Some(value) ⇒ if (!acceptPort && !ignoreError) {
+        new Exception("port in gateway acceptPort:"+acceptPort + " ignoreError:"+ignoreError).printStackTrace()  // I want to know how I got here
+        throwException(UnexpectedElement(Map[String, Any](key → "port"), value.toString))
+      }
       case None        ⇒ >>("port", key)(yaml)
     }
 
