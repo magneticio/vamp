@@ -41,6 +41,8 @@ case class DefaultBreed(
   }
 
   lazy val traits: List[Trait] = ports ++ environmentVariables ++ constants
+
+  def traitsExceptEnvironmentVariables(): List[Trait] = ports ++ constants
 }
 
 case class BreedReference(name: String) extends Reference with Breed
@@ -95,7 +97,8 @@ object TraitReference extends Enumeration {
     case Hosts                ⇒ "hosts"
   }
 
-  def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), -1) match {
+  // Limit is set to 3 to allow values to have dots in it
+  def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), 3) match {
     case Array(cluster, group, value) ⇒ Some(TraitReference(cluster, group, value))
     case _                            ⇒ None
   }

@@ -118,7 +118,7 @@ trait BlueprintGatewaySerializer extends GatewayDecomposer {
 
 trait InternalGatewaySerializer extends GatewayDecomposer {
   def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name → serializeAnonymousGateway(port = false, event = true)(CoreSerializationFormat.default)(gateway)).toMap
+    gateways.map(gateway ⇒ gateway.port.name → serializeAnonymousGateway(port = false, event = false /* TODO: test if event = true works*/)(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }
 
