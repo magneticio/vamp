@@ -100,7 +100,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       } toList
     }
 
-    val evs = environmentVariables(alias = false, addGroup = true)
+    val evs = environmentVariables(alias = false, addGroup = false)
 
     DefaultBlueprint(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), evs, dialects)
   }
