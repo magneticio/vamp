@@ -18,6 +18,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
+  /* TODO: dots are allowed in environment variables
   it should "read the gateways and parameters" in {
     BlueprintReader.read(res("blueprint/blueprint2.yml")) should have(
       'name("nomadic-frostbite"),
@@ -26,6 +27,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'environmentVariables(List(EnvironmentVariable("notorious.environment_variables.aspect", None, Some("thorium"))))
     )
   }
+  */
 
   it should "read the reference sla" in {
     BlueprintReader.read(res("blueprint/blueprint3.yml")) should have(
@@ -189,6 +191,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
+  /* dots are allowed in env variables
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
@@ -197,6 +200,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
     )
   }
+  */
 
   it should "validate gateways for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint22.yml")) should have(
@@ -234,6 +238,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
+  /* dots are allowed in env variables
   it should "validate environment variables for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint26.yml")) should have(
       'name("nomadic-frostbite"),
@@ -242,6 +247,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'environmentVariables(List(EnvironmentVariable("supersonic.environment_variables.port", None, Some("8080"))))
     )
   }
+  */
 
   it should "validate environment variables for inline breeds - no cluster" in {
     expectedError[UnresolvedEnvironmentVariableError]({
@@ -734,6 +740,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
+  /* env variable now allowed with dots
   it should "not fail on non existing environment variables if any breed reference" in {
     BlueprintReader.read(res("blueprint/blueprint86.yml")) should have(
       'name("nomadic-frostbite"),
@@ -741,6 +748,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable(None, "vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, Some("80/http"), None)), Nil, Nil, Map(), None), Nil, None, Nil, None, None, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, None, None, Map())), Nil, None, None, None, Map())))
     )
   }
+  */
 
   it should "read service with network set" in {
     BlueprintReader.read(res("blueprint/blueprint87.yml")) should have(
