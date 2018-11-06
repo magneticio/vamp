@@ -63,7 +63,7 @@ class ServiceFieldSerializer
 
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("kind", _)                                    ⇒ None
-    case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
+    case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traitsEnv(environmentVariables.asInstanceOf[List[Trait]])))
     case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
     case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[String, Any]])))
     case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
