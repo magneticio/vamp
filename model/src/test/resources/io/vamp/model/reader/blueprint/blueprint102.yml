@@ -1,0 +1,23 @@
+name: sava
+gateways:
+  9050: sava/webport
+clusters:
+  sava:
+    services:
+      breed:
+        name: sava:1.0.0
+        deployable: vampio/sava:1.0.0
+        ports:
+          webport: 8080/http
+        environment_variables:
+          "a.b.c": "{{logging_level_root}}"
+      scale:
+        cpu: 0.2
+        memory: 64MB
+        instances: 1
+      health_checks:
+        initial_delay: 10s
+        port: webport
+        timeout: 5s
+        interval: 10s
+        failures: 10

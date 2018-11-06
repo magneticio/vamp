@@ -42,6 +42,24 @@ trait TraitDecomposer extends TraitNameAliasResolver {
       JField(name, value)
     } toList)
   }
+
+
+  def traitsEnv(traits: List[Trait], alias: Boolean = true) = {
+    def traitName(name: String) = name
+
+    new JObject(traits.map(t ⇒ t.name → t).toMap.values.map { t ⇒
+      val name = traitName(if (alias) asName(t.name, t.alias) else t.name)
+      val value = if (t.value == null || t.value.isEmpty) JNull
+      else {
+        JString(t match {
+          case EnvironmentVariable(_, _, v, i) ⇒ i.getOrElse(v.get)
+          case any                             ⇒ t.value.get
+        })
+      }
+
+      JField(name, value)
+    } toList)
+  }
 }
 
 class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer with ReferenceSerialization with HealthCheckSerializer {
@@ -54,7 +72,7 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
       list += JField("metadata", Extraction.decompose(breed.metadata)(DefaultFormats))
       list += JField("deployable", Extraction.decompose(breed.deployable))
       list += JField("ports", traits(breed.ports))
-      list += JField("environment_variables", traits(breed.environmentVariables))
+      list += JField("environment_variables", traitsEnv(breed.environmentVariables))
       list += JField("constants", traits(breed.constants))
       list += JField("arguments", Extraction.decompose(breed.arguments))
 
