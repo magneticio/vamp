@@ -76,7 +76,7 @@ trait Trait {
   def value: Option[String]
 }
 
-object TraitReference extends Enumeration {
+object TraitReference extends Enumeration with LazyLogging {
 
   val Ports, EnvironmentVariables, Constants, Hosts = Value
 
@@ -100,7 +100,9 @@ object TraitReference extends Enumeration {
   // Limit is set to 3 to allow values to have dots in it
   def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), 3) match {
     case Array(cluster, group, value) ⇒ Some(TraitReference(cluster, group, value))
-    case _                            ⇒ None
+    case _                            ⇒
+      logger.warn("TraitReference - Reference was in an unexpected format {}", reference)
+      None
   }
 }
 
