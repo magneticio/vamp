@@ -31,8 +31,7 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
 
   protected override def request: PartialFunction[Workflow, Unit] = ({
     case workflow if workflow.schedule.isInstanceOf[EventSchedule] ⇒
-      logger.info("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule - {}", workflow.toString)
-      logger.info("KubernetesWorkflowActor - asking for percolator {}", WorkflowDriverActor.percolator(workflow))
+      logger.info("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule")
 
       IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
         case Some(_) if runnable(workflow) ⇒

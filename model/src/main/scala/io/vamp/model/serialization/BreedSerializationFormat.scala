@@ -43,7 +43,6 @@ trait TraitDecomposer extends TraitNameAliasResolver {
     } toList)
   }
 
-
   def traitsEnv(traits: List[Trait], alias: Boolean = true) = {
     def traitName(name: String) = name
 

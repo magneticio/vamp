@@ -100,7 +100,7 @@ object TraitReference extends Enumeration with LazyLogging {
   // Limit is set to 3 to allow values to have dots in it
   def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), 3) match {
     case Array(cluster, group, value) ⇒ Some(TraitReference(cluster, group, value))
-    case _                            ⇒
+    case _ ⇒
       logger.warn("TraitReference - Reference was in an unexpected format {}", reference)
       None
   }

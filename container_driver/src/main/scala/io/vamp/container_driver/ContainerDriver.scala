@@ -103,15 +103,8 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
       case _ ⇒ any
     }
 
-    logger.info("ContainerDriver before visit - Deployment: {} ", deployment)
-    logger.info("ContainerDriver before visit - Service: {} ", service)
-    logger.info("ContainerDriver before visit - Dialect: {} ", dialect)
+    visit(dialect).asInstanceOf[T]
 
-    val result = visit(dialect).asInstanceOf[T]
-
-    logger.info("ContainerDriver visit result: {} ", result)
-
-    result
   }
 
   protected def docker(workflow: Workflow): Docker = {
@@ -132,8 +125,6 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
   protected def docker(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Docker = {
 
     val (privileged, parameters) = privilegedAndParameters(service.arguments)
-
-    logger.info("ContainerDriver service.network {} cluster.network {}, Docker.network {}", service.network.getOrElse("Empty"), cluster.network.getOrElse("Empty"), Docker.network())
 
     val network = service.network.orElse(cluster.network).getOrElse(Docker.network())
 

@@ -205,8 +205,8 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "expand with env variables with dots" in {
     BlueprintReader.read(res("blueprint/blueprint102.yml")) should have(
       'name("sava"),
-      'clusters(List(Cluster("sava",Map(),List(Service(DefaultBreed("sava:1.0.0",Map(),Deployable(None,"vampio/sava:1.0.0"),List(Port("webport",None,Some("8080/http"),8080, Port.Type.Http)),List(EnvironmentVariable("a.b.c",None,Some("{{logging_level_root}}"),None)),List(),List(),Map(),None),List(),Some(DefaultScale("",Map(),Quantity.of(0.20), MegaByte.of("64.00MB"),1)),List(),Some(List(HealthCheck("/","webport",Time(10),Time(5),Time(10),10, "HTTP"))),None,Map(),None)),List(),None,None,None,Map()))),
-      'gateways(List(Gateway("",Map(),Port("9050",None,Some("9050"),9050,Port.Type.Http),None,None,List(),None,List(DefaultRoute("",Map(),GatewayPath("sava/webport",List("sava", "webport")),None,None,None,None,List(),None,List())),false))),
+      'clusters(List(Cluster("sava", Map(), List(Service(DefaultBreed("sava:1.0.0", Map(), Deployable(None, "vampio/sava:1.0.0"), List(Port("webport", None, Some("8080/http"), 8080, Port.Type.Http)), List(EnvironmentVariable("a.b.c", None, Some("{{logging_level_root}}"), None)), List(), List(), Map(), None), List(), Some(DefaultScale("", Map(), Quantity.of(0.20), MegaByte.of("64.00MB"), 1)), List(), Some(List(HealthCheck("/", "webport", Time(10), Time(5), Time(10), 10, "HTTP"))), None, Map(), None)), List(), None, None, None, Map()))),
+      'gateways(List(Gateway("", Map(), Port("9050", None, Some("9050"), 9050, Port.Type.Http), None, None, List(), None, List(DefaultRoute("", Map(), GatewayPath("sava/webport", List("sava", "webport")), None, None, None, None, List(), None, List())), false))),
       'environmentVariables(List())
     )
   }

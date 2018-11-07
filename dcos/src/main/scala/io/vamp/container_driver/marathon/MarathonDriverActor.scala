@@ -502,13 +502,8 @@ class MarathonDriverActor
       case other      ⇒ other
     }
 
-    logger.info("MarathonDriverActor - base is {}", base)
+    base merge Extraction.decompose(interpolate(deployment, local, dialect))
 
-    val mergedJson = base merge Extraction.decompose(interpolate(deployment, local, dialect))
-
-    logger.info("MarathonDriverActor - mergedJson is {}", mergedJson)
-
-    mergedJson
   }
 
   private def requestPayload(workflow: Workflow, app: MarathonApp): JValue = {
