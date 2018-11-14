@@ -10,6 +10,7 @@ import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
 import akka.http.scaladsl.model.sse.ServerSentEvent
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.Namespace
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
@@ -25,7 +26,7 @@ import org.json4s.native.Serialization._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-trait EventApiController extends AbstractController {
+trait EventApiController extends AbstractController with LazyLogging {
 
   private val tagParameter = "tag"
 
@@ -39,9 +40,9 @@ trait EventApiController extends AbstractController {
         case (None, event: Event) ⇒
           if (totalDemand > 0) filterSse(event).map {
             case true ⇒ onNext(ServerSentEvent(write(event)(SerializationFormat(OffsetDateTimeSerializer)), event.`type`))
-            case _    ⇒
+            case _    ⇒ logger.info("Filter sse returned false")
           }
-        case _ ⇒
+        case _ ⇒ logger.info("Unmatched case in source events")
       }
     })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
@@ -52,6 +53,7 @@ trait EventApiController extends AbstractController {
   }
 
   def queryEvents(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
+    logger.info("Events are queried with request {}", request)
     val query = parseQuery(parameters, request)
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
