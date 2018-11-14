@@ -58,6 +58,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     val gatewayFrontend = Frontend(
       name = GatewayLookup.name(gateway),
       lookup = GatewayLookup.lookup(gateway),
+      metadata = gateway.metadata,
       bindIp = Option("0.0.0.0"),
       bindPort = Option(gateway.port.number),
       mode = mode,
@@ -70,6 +71,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     val otherFrontend = Frontend(
       name = s"other ${GatewayLookup.name(gateway)}",
       lookup = s"$other${GatewayLookup.lookup(gateway)}",
+      metadata = gateway.metadata,
       bindIp = None,
       bindPort = None,
       mode = mode,
@@ -83,6 +85,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
       Frontend(
         name = GatewayLookup.name(gateway, route.path.segments),
         lookup = GatewayLookup.lookup(gateway, route.path.segments),
+        metadata = gateway.metadata,
         bindIp = None,
         bindPort = None,
         mode = mode,
@@ -110,6 +113,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
         Backend(
           name = s"intermediate ${GatewayLookup.name(gateway, route.path.segments)}",
           lookup = s"$intermediate${GatewayLookup.lookup(gateway, route.path.segments)}",
+          metadata = gateway.metadata,
           mode = mode,
           proxyServers = ProxyServer(
           name = GatewayLookup.name(gateway, route.path.segments),
@@ -133,6 +137,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
     val otherBackend = Backend(
       name = s"other ${GatewayLookup.name(gateway)}",
       lookup = s"$other${GatewayLookup.lookup(gateway)}",
+      metadata = gateway.metadata,
       mode = mode,
       proxyServers = gateway.routes.map {
         case route: DefaultRoute ⇒
@@ -155,6 +160,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
         Backend(
           name = GatewayLookup.name(gateway, route.path.segments),
           lookup = GatewayLookup.lookup(gateway, route.path.segments),
+          metadata = gateway.metadata,
           mode = mode,
           proxyServers = Nil,
           servers = route.targets.map {
@@ -218,6 +224,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
       Frontend(
         name = GatewayLookup.name(gateway),
         lookup = GatewayLookup.lookup(gateway),
+        metadata = gateway.metadata,
         bindIp = None,
         bindPort = None,
         mode = mode,
@@ -238,6 +245,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
       Backend(
         name = GatewayLookup.name(gateway),
         lookup = GatewayLookup.lookup(gateway),
+        metadata = gateway.metadata,
         mode = mode,
         proxyServers = Nil,
         servers = Server(

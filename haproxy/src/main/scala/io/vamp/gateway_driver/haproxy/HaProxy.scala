@@ -12,6 +12,7 @@ case class HaProxy(
 case class Frontend(
   name:           String,
   lookup:         String,
+  metadata:       Map[String, Any],
   bindIp:         Option[String],
   bindPort:       Option[Int],
   mode:           Mode.Value,
@@ -24,6 +25,7 @@ case class Frontend(
 case class Backend(
   name:         String,
   lookup:       String,
+  metadata:     Map[String, Any],
   mode:         Mode.Value,
   proxyServers: List[ProxyServer],
   servers:      List[Server],
