@@ -63,7 +63,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       DeploymentReader.parseInstances
     )
 
-    logger.info("Parsed workflow: {}", wf.toString)
+    logger.info("Parsed workflow: {}", wf.name.toString)
 
     wf
   }
