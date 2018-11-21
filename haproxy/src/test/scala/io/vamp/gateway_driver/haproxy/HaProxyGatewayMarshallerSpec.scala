@@ -37,6 +37,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val backends = Backend(
       name = "name1",
       lookup = "name1",
+      metadata = Map(),
       mode = Mode.http,
       proxyServers = servers1,
       servers = Nil,
@@ -44,15 +45,16 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       sticky = false,
       balance = "roundrobin"
     ) :: Backend(
-      name = "name2",
-      lookup = "name2",
-      mode = Mode.http,
-      proxyServers = Nil,
-      servers = servers2,
-      rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
-      sticky = false,
-      balance = "roundrobin"
-    ) :: Nil
+        name = "name2",
+        lookup = "name2",
+        metadata = Map(),
+        mode = Mode.http,
+        proxyServers = Nil,
+        servers = servers2,
+        rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
+        sticky = false,
+        balance = "roundrobin"
+      ) :: Nil
 
     val conditions = HaProxyCondition(
       name = "ie",
@@ -63,6 +65,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val frontends = Frontend(
       name = "name",
       lookup = "name",
+      metadata = Map(),
       bindIp = Some("0.0.0.0"),
       bindPort = Option(8080),
       mode = Mode.http,
@@ -361,7 +364,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
 
   it should "convert conditions" in {
     val route = DefaultRoute("sava", Map(), GatewayPath("sava"), None, None, None, None, Nil, None)
-    val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "") :: Nil
+    val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Map(), Mode.http, Nil, Nil, Nil, sticky = false, "") :: Nil
 
     List(
       ("user-agent = Firefox", "req.fhdr(User-Agent) -m sub 'Firefox'"),
