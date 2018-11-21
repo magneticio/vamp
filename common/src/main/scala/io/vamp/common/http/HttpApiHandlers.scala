@@ -52,6 +52,7 @@ trait HttpApiHandlers {
     .result().withFallback(RejectionHandler.default)
 
   private def respondWithError(status: StatusCode, message: String = "") = {
+    logger.warn("There has been an error with status code {} with message {}", status.value, message)
     respondWith(
       status = status,
       response = "message" → (if (status == InternalServerError) "Internal server error." else message)

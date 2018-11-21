@@ -99,7 +99,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
   private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = {
     implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
-    log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
+    log.info(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
     val attachment = (publishEventValue, event.value) match {
       case (true, str: String) ⇒ Map(typeName → str)
@@ -135,6 +135,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
   protected def getEvents(query: EventQuery, page: Int, perPage: Int): Future[Any] = {
     implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, EventRequestEnvelope.maxPerPage)
+
+    val (indexName, typeName) = indexTypeName(query.`type`.getOrElse(Event.defaultType)) // TODO: testing index type name
+    logger.info("Get Events called for index {}", indexName)
 
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
