@@ -85,7 +85,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
       Frontend(
         name = GatewayLookup.name(gateway, route.path.segments),
         lookup = GatewayLookup.lookup(gateway, route.path.segments),
-        metadata = gateway.metadata,
+        metadata = route.metadata,
         bindIp = None,
         bindPort = None,
         mode = mode,
@@ -113,7 +113,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
         Backend(
           name = s"intermediate ${GatewayLookup.name(gateway, route.path.segments)}",
           lookup = s"$intermediate${GatewayLookup.lookup(gateway, route.path.segments)}",
-          metadata = gateway.metadata,
+          metadata = route.metadata,
           mode = mode,
           proxyServers = ProxyServer(
           name = GatewayLookup.name(gateway, route.path.segments),
@@ -160,7 +160,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
         Backend(
           name = GatewayLookup.name(gateway, route.path.segments),
           lookup = GatewayLookup.lookup(gateway, route.path.segments),
-          metadata = gateway.metadata,
+          metadata = route.metadata,
           mode = mode,
           proxyServers = Nil,
           servers = route.targets.map {
