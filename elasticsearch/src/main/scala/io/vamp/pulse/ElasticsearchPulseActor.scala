@@ -136,7 +136,11 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, EventRequestEnvelope.maxPerPage)
 
-    val (indexName, typeName) = indexTypeName(query.`type`.getOrElse(Event.defaultType)) // TODO: testing index type name
+    /*
+    // TODO: testing index type name
+    val (indexName, typeName) = indexTypeName(query.`type`.getOrElse(Event.defaultType))
+    */
+
     logger.info("Get Events called for index {}", indexName)
 
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
