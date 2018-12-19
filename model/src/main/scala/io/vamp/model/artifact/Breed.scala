@@ -101,7 +101,10 @@ object TraitReference extends Enumeration with LazyLogging {
   def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), 3) match {
     case Array(cluster, group, value) ⇒ Some(TraitReference(cluster, group, value))
     case _ ⇒
-      logger.warn("TraitReference - Reference was in an unexpected format {}", reference)
+      // This warning added to check if there is a problem occurs when
+      // an environment variable doesn't have group and no dots in it.
+      // re-enable it if there is a problem with environment variables
+      // logger.warn("TraitReference - Reference was in an unexpected format {}", reference)
       None
   }
 }
