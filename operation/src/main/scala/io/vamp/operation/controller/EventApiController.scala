@@ -75,7 +75,7 @@ trait EventApiController extends AbstractController with LazyLogging {
 
   protected def parseQuery(parameters: Map[String, List[String]], request: String) = {
     if (request.trim.isEmpty) {
-      logger.info("VE-405 event query type {}", parameters.get(typeParameter).map(_.head))
+      // logger.info("event query type {}", parameters.get(typeParameter).map(_.head))
       EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, parameters.get(typeParameter).map(_.head), None)
     }
     else EventQueryReader.read(request)
