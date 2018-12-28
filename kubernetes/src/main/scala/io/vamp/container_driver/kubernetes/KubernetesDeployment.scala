@@ -38,7 +38,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
         k8sClient.cache.readWithCache(
           K8sCache.deployments,
           id,
-          () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
+          () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, customNamespace, null)
         ).flatMap { deployment ⇒
             containers(
               id,
@@ -69,7 +69,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.cache.readWithCache(
       K8sCache.deployments,
       id,
-      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, namespace.name, null)
+      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, customNamespace, null)
     ).map { deployment ⇒
         logger.info("KubernetesDeployment - Retrieved workflow deployment")
         ContainerWorkflow(
@@ -213,7 +213,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
         id,
         () ⇒ k8sClient.extensionsV1beta1Api.replaceNamespacedDeployment(
           id,
-          namespace.name,
+          customNamespace,
           k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
           null
         )
@@ -223,7 +223,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       K8sCache.deployments,
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
-        namespace.name,
+        customNamespace,
         k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
         null
       )
@@ -243,7 +243,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.cache.readAllWithCache(
       K8sCache.pods,
       selector,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(namespace.name, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedPod(customNamespace, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -252,14 +252,14 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.cache.readAllWithCache(
       K8sCache.replicaSets,
       selector,
-      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(namespace.name, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.extensionsV1beta1Api.listNamespacedReplicaSet(customNamespace, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
   protected def createDeployment(request: String): Unit = {
     log.info(s"Creating Kubernetes deployment")
     k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
-      namespace.name,
+      customNamespace,
       k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
       null
     )
@@ -271,7 +271,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       K8sCache.delete,
       K8sCache.deployments,
       name,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDeployment(name, customNamespace, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
     )
   }
 }

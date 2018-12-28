@@ -34,7 +34,7 @@ trait KubernetesService extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.services,
       selector,
-      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(namespace.name, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNamespacedService(customNamespace, null, null, null, false, selector, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 
@@ -65,7 +65,7 @@ trait KubernetesService extends KubernetesArtifact {
     k8sClient.cache.readWithCache(
       K8sCache.services,
       id,
-      () ⇒ k8sClient.coreV1Api.readNamespacedServiceStatus(id, namespace.name, null)
+      () ⇒ k8sClient.coreV1Api.readNamespacedServiceStatus(id, customNamespace, null)
     ) match {
         case Some(_) ⇒
           if (update) {
@@ -74,7 +74,7 @@ trait KubernetesService extends KubernetesArtifact {
               K8sCache.update,
               K8sCache.services,
               id,
-              () ⇒ k8sClient.coreV1Api.patchNamespacedService(id, namespace.name, k8sClient.coreV1Api.getApiClient.getJSON.serialize(request()), null)
+              () ⇒ k8sClient.coreV1Api.patchNamespacedService(id, customNamespace, k8sClient.coreV1Api.getApiClient.getJSON.serialize(request()), null)
             )
           }
           else log.debug(s"Service exists: $name")
@@ -85,7 +85,7 @@ trait KubernetesService extends KubernetesArtifact {
             K8sCache.create,
             K8sCache.services,
             id,
-            () ⇒ k8sClient.coreV1Api.createNamespacedService(namespace.name, request(), null)
+            () ⇒ k8sClient.coreV1Api.createNamespacedService(customNamespace, request(), null)
           )
       }
   }
@@ -98,14 +98,14 @@ trait KubernetesService extends KubernetesArtifact {
       K8sCache.delete,
       K8sCache.services,
       name,
-      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(name, namespace.name, body, null, null, false, null)
+      () ⇒ k8sClient.coreV1Api.deleteNamespacedService(name, customNamespace, body, null, null, false, null)
     )
   }
 
   protected def createService(request: String): Unit = {
     log.info(s"Creating service")
     k8sClient.coreV1Api.createNamespacedService(
-      namespace.name,
+      customNamespace,
       k8sClient.coreV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Service]() {}.getType),
       null
     )

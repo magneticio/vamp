@@ -24,7 +24,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
     k8sClient.cache.readWithCache(
       K8sCache.daemonSets,
       ds.name,
-      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, namespace.name, null)
+      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, customNamespace, null)
     ) match {
         case Some(_) ⇒ log.debug(s"Daemon set exists: ${ds.name}")
         case None ⇒
@@ -78,7 +78,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
   protected def createDaemonSet(request: String): Unit = {
     log.info(s"Creating daemon set")
     k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(
-      namespace.name,
+      customNamespace,
       k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
       null
     )
@@ -90,7 +90,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       K8sCache.delete,
       K8sCache.daemonSets,
       name,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(name, customNamespace, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
     )
   }
 }

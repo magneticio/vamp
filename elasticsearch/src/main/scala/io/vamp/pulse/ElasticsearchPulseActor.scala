@@ -142,7 +142,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     logger.info("Get Events called for index {} type was {}", indexName, query.`type`.getOrElse("None"))
 
     // '*' is added to index search so all types of events are returned.
-    es.search[ElasticsearchSearchResponse](indexName+"*", constructSearch(query, p, pp)) map {
+    es.search[ElasticsearchSearchResponse](indexName + "*", constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
         val events = hits.hits.flatMap { hit ⇒
           Try(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id)), digest = hit._source.get("digest").asInstanceOf[Option[String]])).toOption

@@ -26,7 +26,7 @@ trait KubernetesJob extends KubernetesArtifact {
     k8sClient.cache.readWithCache(
       K8sCache.jobs,
       job.name,
-      () ⇒ k8sClient.batchV1Api.readNamespacedJobStatus(job.name, namespace.name, null)
+      () ⇒ k8sClient.batchV1Api.readNamespacedJobStatus(job.name, customNamespace, null)
     ) match {
         case Some(_) ⇒ log.debug(s"Job exists: ${job.name}")
         case None ⇒
@@ -86,7 +86,7 @@ trait KubernetesJob extends KubernetesArtifact {
             K8sCache.update,
             K8sCache.jobs,
             job.name,
-            () ⇒ k8sClient.batchV1Api.createNamespacedJob(namespace.name, request, null)
+            () ⇒ k8sClient.batchV1Api.createNamespacedJob(customNamespace, request, null)
           )
       }
   }
@@ -99,7 +99,7 @@ trait KubernetesJob extends KubernetesArtifact {
         K8sCache.delete,
         K8sCache.jobs,
         name,
-        () ⇒ k8sClient.batchV1Api.deleteNamespacedJob(name, namespace.name, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+        () ⇒ k8sClient.batchV1Api.deleteNamespacedJob(name, customNamespace, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
       )
     }
   }
@@ -109,7 +109,7 @@ trait KubernetesJob extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.jobs,
       selector,
-      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(namespace.name, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(customNamespace, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 

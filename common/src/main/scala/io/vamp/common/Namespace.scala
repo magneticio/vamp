@@ -1,5 +1,7 @@
 package io.vamp.common
 
+import scala.util.Try
+
 object Namespace {
   val kind: String = "namespaces"
 }
@@ -14,4 +16,13 @@ case class Namespace(
 
 trait NamespaceProvider {
   implicit def namespace: Namespace
+  /*
+  custom Namespace is added to provide a custom Namespace for kubernetes environments.
+  It should be usable wherever NamespaceProvider defined. Currently it is only used in kubernetes driver.
+  This val should be lazy, otherwise it fails since vals are initialized before defs are evaluated
+   */
+  lazy val customNamespace: String = {
+    Try(Config.string("vamp.container-driver.custom-namespace").apply())
+      .getOrElse(namespace.name)
+  }
 }
