@@ -22,7 +22,8 @@ trait NamespaceProvider {
   This val should be lazy, otherwise it fails since vals are initialized before defs are evaluated
    */
   lazy val customNamespace: String = {
-    Try(Config.string("vamp.container-driver.custom-namespace").apply())
+    // Support for custom namespaces for kubernetes is added See: https://magneticio.atlassian.net/browse/VE-456
+    Try(Config.string("vamp.container-driver.kubernetes.namespace").apply())
       .getOrElse(namespace.name)
   }
 }
