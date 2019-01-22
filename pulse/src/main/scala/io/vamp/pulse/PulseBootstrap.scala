@@ -13,9 +13,22 @@ object PulseBootstrap {
 class PulseBootstrap extends ActorBootstrap with PulseNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
+    implicit val executionContext = actorSystem.dispatcher
     info(s"Pulse: ${PulseBootstrap.`type`()}")
-    alias[PulseActor](PulseBootstrap.`type`(), (`type`: String) ⇒ {
-      throwException(UnsupportedPulseDriverError(`type`))
-    }).map(_ :: Nil)(actorSystem.dispatcher)
+    PulseBootstrap.`type`() match {
+      case "nats" ⇒
+        for {
+          pulseActor ← alias[PulseActor](PulseBootstrap.`type`(), (`type`: String) ⇒ {
+            throwException(UnsupportedPulseDriverError(`type`))
+          })
+          pulseActorSupport ← alias[PulseActorSupport]("elasticsearch", (`type`: String) ⇒ {
+            throwException(UnsupportedPulseDriverError(`type`))
+          })
+        } yield pulseActor :: pulseActorSupport :: Nil
+      case _ ⇒
+        alias[PulseActor](PulseBootstrap.`type`(), (`type`: String) ⇒ {
+          throwException(UnsupportedPulseDriverError(`type`))
+        }).map(_ :: Nil)(actorSystem.dispatcher)
+    }
   }
 }

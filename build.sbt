@@ -79,6 +79,8 @@ val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
 val k8s = Seq("io.kubernetes" % "client-java" % "2.0.0")
 
+val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0")
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -116,6 +118,7 @@ lazy val root = project.in(file(".")).settings(
   gateway_driver,
   dcos,
   elasticsearch,
+  nats,
   haproxy,
   redis,
   zookeeper,
@@ -139,6 +142,7 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   gateway_driver,
   dcos,
   elasticsearch,
+  nats,
   haproxy,
   redis,
   zookeeper,
@@ -233,6 +237,14 @@ lazy val elasticsearch = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
+
+lazy val nats = project.settings(
+  description := "Pulse and metrics driver for Nats",
+  name := "vamp-nats",
+  formatting,
+  libraryDependencies ++= testing ++ natslibs,
+  bintrayRepository := "vamp"
+).dependsOn(pulse)
 
 lazy val haproxy = project.settings(
   description := "HAProxy driver",
