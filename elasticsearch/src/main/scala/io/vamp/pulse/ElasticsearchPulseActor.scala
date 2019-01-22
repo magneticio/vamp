@@ -39,7 +39,8 @@ object ElasticsearchPulseActor {
   }
 }
 
-class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValueResolver with PulseStats with PulseActor {
+class ElasticsearchPulseActor extends ElasticsearchPulseEvent
+  with NamespaceValueResolver with PulseStats with PulseActor with PulseActorSupport {
 
   import ElasticsearchClient._
   import PulseActor._
