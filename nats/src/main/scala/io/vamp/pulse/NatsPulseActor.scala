@@ -49,7 +49,7 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
   val randomId = Random.alphanumeric.take(5).mkString("")
 
   val clusterId = NatsPulseActor.clusterId()
-  val clientId = s"${NatsPulseActor.clientId()}/${namespace.name}/$randomId"
+  val clientId = s"${NatsPulseActor.clientId()}_${namespace.name}_$randomId"
 
   val natsUrl = NatsPulseActor.natsUrl()
   val cf = {
