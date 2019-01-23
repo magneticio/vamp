@@ -116,19 +116,32 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
     val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
 
-    val subject = s"${namespace.name}/$typeName/${event.tags}"
+    // val tagsString = event.tags.mkString("")
+    val subject = s"${namespace.name}_$typeName".replace(" ", "_")
+    val message = bodyAsString(data).getOrElse("")
 
-    logger.info(s"NATS: Pulse publish an event with subject $subject and data: ${data.toString}")
+    logger.info(s"NATS: Pulse publish an event with subject $subject and message: $message")
     // This is a synchronous (blocking) call
     // This can throw an exception currently it is unhandled so actor will be restarted with the same message
-    sc.publish(subject, data.toString.getBytes)
+    sc.publish(subject, message.getBytes)
+    logger.info(s"NATS: Pulse published an event with subject $subject")
 
     // TODO: following method is asynchronous, try asynchronous connections later if feasible
-    // sc.publish(subject, data.toString.getBytes, ackHandler)
+    // sc.publish(subject, message.getBytes, ackHandler)
   }
 
   private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
     case event: Event ⇒ percolate(publishEventValue)(event)
     case other        ⇒ other
+  }
+
+  // this is copied from httpClient
+  private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
+    case string: String                            ⇒ Some(string)
+    case Some(string: String)                      ⇒ Some(string)
+    case Some(some: AnyRef)                        ⇒ Some(write(some))
+    case any: AnyRef if any != null && any != None ⇒ Some(write(any))
+    case any if any != null && any != None         ⇒ Some(any.toString)
+    case _                                         ⇒ None
   }
 }
