@@ -16,6 +16,7 @@ import org.json4s.{ DefaultFormats, Extraction, Formats }
 import scala.concurrent.Future
 import scala.util.Try
 import io.nats.streaming.StreamingConnection
+import io.nats.streaming.StreamingConnectionFactory
 import io.nats.streaming.AckHandler
 import io.vamp.common.akka.IoC
 
@@ -27,6 +28,8 @@ class NatsPulseActorMapper extends ClassMapper {
 object NatsPulseActor {
 
   val config: String = PulseActor.config
+
+  val subjectPrefixLayout = "${namespace}"
 
   val natsUrl: ConfigMagnet[String] = Config.string(s"$config.nats.url")
   val clusterId: ConfigMagnet[String] = Config.string(s"$config.nats.cluster-id")
@@ -44,20 +47,29 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
   import PulseActor._
 
-  import io.nats.streaming.StreamingConnectionFactory
+  /*
+  This was actually a generated id for Eleasticsearch index names
+  To be compatible with Elasticsearch, the same structure is used with a fixed layout
+   */
+  lazy val subjectPrefixL: String = resolveWithNamespace(NatsPulseActor.subjectPrefixLayout, lookup = true)
 
-  val randomId = Random.alphanumeric.take(5).mkString("")
+  lazy val randomId = Random.alphanumeric.take(5).mkString("")
 
-  val clusterId = NatsPulseActor.clusterId()
-  val clientId = s"${NatsPulseActor.clientId()}_${namespace.name}_$randomId"
+  lazy val clusterId = NatsPulseActor.clusterId()
+  lazy val clientId = s"${NatsPulseActor.clientId()}_${namespace.name}_$randomId"
 
-  val natsUrl = NatsPulseActor.natsUrl()
-  val cf = {
+  lazy val natsUrl = NatsPulseActor.natsUrl()
+  lazy val cf = {
     val scf = new StreamingConnectionFactory(clusterId, clientId)
     scf.setNatsUrl(natsUrl)
     scf
   }
-  var sc: StreamingConnection = _
+
+  /**
+   * Starts a logical connection to the NATS cluster
+   * Documentation: https://github.com/nats-io/java-nats-streaming#basic-usage
+   */
+  lazy val sc: StreamingConnection = cf.createConnection
 
   // The ack handler will be invoked when a publish acknowledgement is received
   // This is a def, not a val due to possible concurrency issues
@@ -75,13 +87,12 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
     }
   }
 
-  /**
-   * Starts a logical connection to the NATS cluster
-   * Documentation: https://github.com/nats-io/java-nats-streaming#basic-usage
-   */
+  /*
+  Prestart is not useful anymore so it is disabled.
   override def preStart(): Unit = {
-    sc = cf.createConnection
+    logger.info("NATS driver is starting")
   }
+  */
 
   override def postStop(): Unit = {
     Try(sc.close())
@@ -123,7 +134,7 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
     val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
 
     val subject = {
-      val prefix = s"${namespace.name}-${event.`type`}"
+      val prefix = s"$subjectPrefixL-${event.`type`}"
       val postfix = event.`type` match {
         case Event.defaultType if event.tags.contains("gateways") ⇒ "-gateways"
         case _ ⇒ ""
