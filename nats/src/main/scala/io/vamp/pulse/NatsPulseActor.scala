@@ -62,11 +62,17 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
   // The ack handler will be invoked when a publish acknowledgement is received
   // This is a def, not a val due to possible concurrency issues
   // ackHandler is only used in asynchronous case
-  def ackHandler: AckHandler = (guid: String, err: Exception) ⇒ {
-    if (err != null)
-      logger.error("Error publishing msg id %s: %s\n", guid, err.getMessage)
-    else
-      logger.info("Received ack for msg id %s\n", guid)
+  def ackHandler(subject: String, message: String, count: Int = 5): AckHandler = new AckHandler() {
+    override def onAck(guid: String, err: Exception): Unit = {
+      if (err != null) {
+        logger.error("Error publishing msg id %s: %s %s\n", guid, err.getMessage, count.toString)
+        if (count > 0)
+          sc.publish(subject, message.getBytes, ackHandler(subject, message, count - 1))
+      }
+      else {
+        logger.info("Received ack for msg id %s\n", guid)
+      }
+    }
   }
 
   /**
@@ -116,18 +122,24 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
     val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
 
-    // val tagsString = event.tags.mkString("")
-    val subject = s"${namespace.name}_$typeName".replace(" ", "_")
+    val subject = {
+      val prefix = s"${namespace.name}-${event.`type`}"
+      val postfix = event.`type` match {
+        case Event.defaultType if event.tags.contains("gateway") ⇒ "-gateway"
+        case _ ⇒ ""
+      }
+      s"$prefix$postfix"
+    }.replace(" ", "_")
     val message = bodyAsString(data).getOrElse("")
 
-    logger.info(s"NATS: Pulse publish an event with subject $subject and message: $message")
+    logger.info(s"Pulse publish an event with subject $subject and message: $message")
     // This is a synchronous (blocking) call
     // This can throw an exception currently it is unhandled so actor will be restarted with the same message
-    sc.publish(subject, message.getBytes)
-    logger.info(s"NATS: Pulse published an event with subject $subject")
+    // sc.publish(subject, message.getBytes)
+    // logger.info(s" Pulse published an event with subject $subject")
 
-    // TODO: following method is asynchronous, try asynchronous connections later if feasible
-    // sc.publish(subject, message.getBytes, ackHandler)
+    // Testing: following method is asynchronous, try asynchronous connections later if feasible
+    sc.publish(subject, message.getBytes, ackHandler(subject, message))
   }
 
   private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
