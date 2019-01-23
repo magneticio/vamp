@@ -1,19 +1,20 @@
 package io.vamp.pulse
 
 import akka.actor.Actor
-import io.vamp.common.{ClassMapper, Config, ConfigMagnet, Namespace}
-import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
-import io.vamp.common.vitals.{InfoRequest, StatsRequest}
+import scala.util.Random
+import io.vamp.common.{ ClassMapper, Config, ConfigMagnet}
+import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
+import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event._
 import io.vamp.model.resolver.NamespaceValueResolver
-import io.vamp.pulse.Percolator.{GetPercolator, RegisterPercolator, UnregisterPercolator}
+import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
-import org.json4s.native.Serialization.{read, write}
-import org.json4s.{DefaultFormats, Extraction, Formats}
+import org.json4s.native.Serialization.{ read, write }
+import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
-import scala.util.{Random, Try}
+import scala.util.Try
 import io.nats.streaming.StreamingConnection
 import io.nats.streaming.AckHandler
 import io.vamp.common.akka.IoC
@@ -49,6 +50,7 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
   val clusterId = NatsPulseActor.clusterId()
   val clientId = s"${NatsPulseActor.clientId()}/${namespace.name}/$randomId"
+
   val natsUrl = NatsPulseActor.natsUrl()
   val cf = {
     val scf = new StreamingConnectionFactory(clusterId, clientId)
