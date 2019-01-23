@@ -65,12 +65,12 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
   def ackHandler(subject: String, message: String, count: Int = 5): AckHandler = new AckHandler() {
     override def onAck(guid: String, err: Exception): Unit = {
       if (err != null) {
-        logger.error("Error publishing msg id %s: %s %s\n", guid, err.getMessage, count.toString)
+        logger.error("Error publishing msg id %s: %s %d".format(guid, err.getMessage, count))
         if (count > 0)
           sc.publish(subject, message.getBytes, ackHandler(subject, message, count - 1))
       }
       else {
-        logger.info("Received ack for msg id %s\n", guid)
+        logger.info("Received ack for msg id %s ".format(guid))
       }
     }
   }
