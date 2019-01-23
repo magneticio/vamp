@@ -125,7 +125,7 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
     val subject = {
       val prefix = s"${namespace.name}-${event.`type`}"
       val postfix = event.`type` match {
-        case Event.defaultType if event.tags.contains("gateway") ⇒ "-gateway"
+        case Event.defaultType if event.tags.contains("gateways") ⇒ "-gateways"
         case _ ⇒ ""
       }
       s"$prefix$postfix"
