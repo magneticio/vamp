@@ -39,7 +39,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 
   override def info(notification: Notification): Unit = {
     notification match {
-      case se: SlaEvent ⇒ actorFor[PulseActor] ! Publish(Event(Set("sla") ++ se.tags, se.value, se.timestamp))
+      case se: SlaEvent ⇒ actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, Set("sla") ++ se.tags, se.value, se.timestamp))
       case _            ⇒
     }
     super.info(notification)

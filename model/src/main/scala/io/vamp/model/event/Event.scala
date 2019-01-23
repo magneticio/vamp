@@ -4,6 +4,8 @@ import java.time.OffsetDateTime
 
 object Event {
 
+  val defaultVersion = "1.0"
+
   val defaultType = "event"
 
   val tagDelimiter = ':'
@@ -17,7 +19,7 @@ object Event {
     }
   }
 
-  def apply(tags: Set[String], value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, tags, value, timestamp, `type`, None)
+  def apply(version: String = Event.defaultVersion, tags: Set[String] = Set(), value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, version, tags, value, timestamp, `type`, None)
 }
 
-case class Event(id: Option[String], tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String, digest: Option[String])
+case class Event(id: Option[String], version: String, tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String, digest: Option[String])

@@ -312,6 +312,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
   private def sendEvent(gateway: Gateway, event: String): Unit = {
     log.info(s"Gateway event: ${gateway.name} - $event")
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
-    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
+    IoC.actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, tags, gateway))
   }
 }

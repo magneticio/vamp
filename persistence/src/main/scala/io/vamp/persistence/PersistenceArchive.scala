@@ -44,7 +44,7 @@ trait PersistenceArchive extends PersistenceTag {
   }
 
   private def archive(artifactTag: String, source: Option[String], archiveTag: String): Unit = {
-    val event = Event(Event.expandTags(Set(artifactTag, archiveTag)), source, `type` = eventType)
+    val event = Event(Event.defaultVersion, Event.expandTags(Set(artifactTag, archiveTag)), source, `type` = eventType)
     log.debug(s"Archive event with tags: ${event.tags}")
     IoC.actorFor[PulseActor] ! PulseActor.Publish(event)
   }

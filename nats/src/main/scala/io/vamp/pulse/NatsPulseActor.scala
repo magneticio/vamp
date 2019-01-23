@@ -2,7 +2,7 @@ package io.vamp.pulse
 
 import akka.actor.Actor
 import scala.util.Random
-import io.vamp.common.{ ClassMapper, Config, ConfigMagnet}
+import io.vamp.common.{ ClassMapper, Config, ConfigMagnet }
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event._

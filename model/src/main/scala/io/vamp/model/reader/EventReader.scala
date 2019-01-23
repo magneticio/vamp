@@ -15,6 +15,10 @@ object EventReader extends YamlReader[Event] with EventValidator {
   }
 
   override protected def parse(implicit source: YamlSourceReader): Event = {
+    val version = <<?[String]("version") match {
+      case None      ⇒ ""
+      case Some(ver) ⇒ ver
+    }
     val tags = <<![List[String]]("tags").toSet
     val value = <<?[AnyRef]("value") match {
       case None                         ⇒ None
@@ -31,7 +35,7 @@ object EventReader extends YamlReader[Event] with EventValidator {
 
     val `type` = <<?[String]("type").getOrElse(Event.defaultType)
 
-    Event(tags, value, timestamp, `type`)
+    Event(version, tags, value, timestamp, `type`)
   }
 
   override def validate(event: Event): Event = validateEvent(event)
