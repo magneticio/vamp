@@ -94,7 +94,7 @@ class NatsPublisherPulseActor extends NamespaceValueResolver with PulseActor wit
 
     case StatsRequest ⇒ IoC.actorFor[PulseActorSupport].forward(StatsRequest)
 
-    case Publish(event, publishEventValue) ⇒ publish(publishEventValue)
+    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
     case Query(envelope) ⇒ IoC.actorFor[PulseActorSupport].forward(Query(envelope))
 
@@ -138,7 +138,8 @@ class NatsPublisherPulseActor extends NamespaceValueResolver with PulseActor wit
     // logger.info(s" Pulse published an event with subject $subject")
 
     // Testing: following method is asynchronous, try asynchronous connections later if feasible
-    sc.publish(subject, message.getBytes, ackHandler(subject, message))
+    val guid = sc.publish(subject, message.getBytes, ackHandler(subject, message))
+    event.copy(id = Option(guid))
   }
 
   private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {

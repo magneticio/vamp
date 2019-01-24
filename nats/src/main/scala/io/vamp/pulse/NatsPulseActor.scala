@@ -11,7 +11,7 @@ import io.vamp.pulse.notification._
 import scala.concurrent.Future
 import io.vamp.common.akka.IoC
 
-import scala.util.Try
+import scala.util.{ Random, Try }
 
 class NatsPulseActorMapper extends ClassMapper {
   val name = "nats"
@@ -63,9 +63,10 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
     }
 
     // this is needed for percolator
-    // this is without and id, normally elastic search id was used but now it doesn't exist.
+    // this is with a random id, normally elastic search id was used but now it doesn't exist.
     // refactor this if it becomes a problem
-    event
+    val randomId = Random.alphanumeric.take(10).mkString("")
+    event.copy(id = Option(randomId))
   }
 
   private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
