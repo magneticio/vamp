@@ -42,4 +42,7 @@ trait PulseActor extends PulseFailureNotifier with Percolator with EventValidato
   }
 }
 
+// PulseActorSupport supports publish and query
 trait PulseActorSupport extends PulseActor
+// PulseActorPublisher only supports publish
+trait PulseActorPublisher extends PulseActor

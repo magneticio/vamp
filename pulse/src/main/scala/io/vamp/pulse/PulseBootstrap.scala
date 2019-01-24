@@ -24,7 +24,10 @@ class PulseBootstrap extends ActorBootstrap with PulseNotificationProvider {
           pulseActorSupport ← alias[PulseActorSupport]("elasticsearch", (`type`: String) ⇒ {
             throwException(UnsupportedPulseDriverError(`type`))
           })
-        } yield pulseActor :: pulseActorSupport :: Nil
+          pulseActorPublisher ← alias[PulseActorPublisher]("natspublisher", (`type`: String) ⇒ {
+            throwException(UnsupportedPulseDriverError(`type`))
+          })
+        } yield pulseActor :: pulseActorSupport :: pulseActorPublisher :: Nil
       case _ ⇒
         alias[PulseActor](PulseBootstrap.`type`(), (`type`: String) ⇒ {
           throwException(UnsupportedPulseDriverError(`type`))
