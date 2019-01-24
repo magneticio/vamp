@@ -82,7 +82,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
     case StatsRequest ⇒ reply(stats)
 
-    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue) ⇒ publish(publishEventValue)
 
     case Query(envelope) ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
 

@@ -94,7 +94,7 @@ class NatsPublisherPulseActor extends NamespaceValueResolver with PulseActor wit
 
     case StatsRequest ⇒ IoC.actorFor[PulseActorSupport].forward(StatsRequest)
 
-    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue) ⇒ publish(publishEventValue)
 
     case Query(envelope) ⇒ IoC.actorFor[PulseActorSupport].forward(Query(envelope))
 

@@ -52,14 +52,20 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
   }
 
   private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = Future {
+    logger.info("Publish event to publishers")
     // send it to NATS publisher
     Try(IoC.actorFor[PulseActorPublisher] ! Publish(event, publishEventValue)).recover {
-      case e: Exception ⇒ logger.error("Error sending messages to Nats Publisher Actor ", e)
+      case e: Throwable ⇒ logger.error("Error sending messages to Nats Publisher Actor ", e)
     }
     // Send it to Elasticsearch
     Try(IoC.actorFor[PulseActorSupport] ! Publish(event, publishEventValue)).recover {
-      case e: Exception ⇒ logger.error("Error sending messages to Elasticsearch Actor ", e)
+      case e: Throwable ⇒ logger.error("Error sending messages to Elasticsearch Actor ", e)
     }
+
+    // this is needed for percolator
+    // this is without and id, normally elastic search id was used but now it doesn't exist.
+    // refactor this if it becomes a problem
+    event
   }
 
   private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
