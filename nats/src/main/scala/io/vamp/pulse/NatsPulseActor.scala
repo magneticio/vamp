@@ -42,11 +42,11 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
     case Query(envelope) ⇒ IoC.actorFor[PulseActorSupport].forward(Query(envelope))
 
-    case GetPercolator(name) ⇒ reply(Future.successful(getPercolator(name)))
+    case GetPercolator(name) ⇒ IoC.actorFor[PulseActorSupport].forward(GetPercolator(name))
 
-    case RegisterPercolator(name, tags, kind, message) ⇒ registerPercolator(name, tags, kind, message)
+    case RegisterPercolator(name, tags, kind, message) ⇒ IoC.actorFor[PulseActorSupport].forward(RegisterPercolator(name, tags, kind, message))
 
-    case UnregisterPercolator(name) ⇒ unregisterPercolator(name)
+    case UnregisterPercolator(name) ⇒ IoC.actorFor[PulseActorSupport].forward(UnregisterPercolator(name))
 
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }
