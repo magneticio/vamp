@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 
 import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange }
 import io.vamp.model.notification.{ EventTimestampError, UnsupportedAggregatorError }
+import io.vamp.model.reader.EventReader.<<?
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.EventValidator
 
@@ -15,10 +16,7 @@ object EventReader extends YamlReader[Event] with EventValidator {
   }
 
   override protected def parse(implicit source: YamlSourceReader): Event = {
-    val version = <<?[String]("version") match {
-      case None      ⇒ ""
-      case Some(ver) ⇒ ver
-    }
+    val version = <<?[String]("version")
     val tags = <<![List[String]]("tags").toSet
     val value = <<?[AnyRef]("value") match {
       case None                         ⇒ None
@@ -49,6 +47,7 @@ object EventQueryReader extends YamlReader[EventQuery] with EventValidator {
   }
 
   override protected def parse(implicit source: YamlSourceReader): EventQuery = {
+    // TODO: add version val version = <<?[String]("version")
     val tags = <<![List[String]]("tags").toSet
     val `type` = <<?[String]("type")
 

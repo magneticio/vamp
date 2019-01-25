@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 object Event {
 
-  val defaultVersion = "1.0"
+  val defaultVersion = Some("1.0")
 
   val defaultType = "event"
 
@@ -19,7 +19,7 @@ object Event {
     }
   }
 
-  def apply(version: String = Event.defaultVersion, tags: Set[String] = Set(), value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, version, tags, value, timestamp, `type`, None)
+  def apply(version: Option[String] = Event.defaultVersion, tags: Set[String] = Set(), value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, version, tags, value, timestamp, `type`, None)
 }
 
-case class Event(id: Option[String], version: String, tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String, digest: Option[String])
+case class Event(id: Option[String], version: Option[String], tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String, digest: Option[String])
