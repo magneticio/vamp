@@ -220,12 +220,10 @@ class KubernetesDriverActor
       val capacity = node.getStatus.getCapacity
       val cpu = Quantity.of(capacity.getOrDefault("cpu", custom.Quantity.fromString("0")).toSuffixedString)
       val memory = MegaByte.of(capacity.getOrDefault("memory", custom.Quantity.fromString("0M")).toSuffixedString)
-      val sn = SchedulerNode(
+      SchedulerNode(
         name = HashUtil.hexSha1(node.getMetadata.getName),
         capacity = SchedulerNodeSize(cpu, memory)
       )
-      logger.info(s"SchedulerNodes ${sn}") // This is added for a validation check
-      sn
     }.recoverWith { // Added for VE-530
       case e: Throwable ⇒
         logger.error("SchedulerNodes exception: ", e)
