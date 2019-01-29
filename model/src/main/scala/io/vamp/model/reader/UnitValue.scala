@@ -76,7 +76,7 @@ object MegaByte {
       case gigaPattern2(gb) ⇒ MegaByte(gb.toDouble * 1000)
       case gigaPattern3(gb) ⇒ MegaByte(gb.toDouble * 1024)
       case gigaPattern4(gb) ⇒ MegaByte(gb.toDouble * 1024)
-      case _                ⇒ throw new IllegalArgumentException()
+      case _                ⇒ throw new IllegalArgumentException(s"String \"$string\" does not match any Memory Pattern")
     }
     case _ ⇒ UnitValue.illegal(source)
   }
