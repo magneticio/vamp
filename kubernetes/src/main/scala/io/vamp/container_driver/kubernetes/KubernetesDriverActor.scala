@@ -219,7 +219,7 @@ class KubernetesDriverActor
     Try {
       val capacity = node.getStatus.getCapacity
       val cpu = Quantity.of(capacity.getOrDefault("cpu", custom.Quantity.fromString("0")).toSuffixedString)
-      val memory = MegaByte.of(capacity.getOrDefault("memory", custom.Quantity.fromString("0M")).toSuffixedString+"B")
+      val memory = MegaByte.of(capacity.getOrDefault("memory", custom.Quantity.fromString("0M")).toSuffixedString)
       SchedulerNode(
         name = HashUtil.hexSha1(node.getMetadata.getName),
         capacity = SchedulerNodeSize(cpu, memory)
