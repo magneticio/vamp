@@ -17,7 +17,7 @@ import org.json4s.native.Serialization.write
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.util.Try
+import scala.util.{ Failure, Try }
 
 class KubernetesDriverActorMapper extends ClassMapper {
   val name = "kubernetes"
@@ -218,10 +218,16 @@ class KubernetesDriverActor
   private def schedulerNodes: List[SchedulerNode] = super[KubernetesNode].nodes.flatMap { node ⇒
     Try {
       val capacity = node.getStatus.getCapacity
+      val cpu = Quantity.of(capacity.getOrDefault("cpu", custom.Quantity.fromString("0")).toSuffixedString)
+      val memory = MegaByte.of(capacity.getOrDefault("memory", custom.Quantity.fromString("0MB")).toSuffixedString)
       SchedulerNode(
         name = HashUtil.hexSha1(node.getMetadata.getName),
-        capacity = SchedulerNodeSize(Quantity.of(capacity.getOrDefault("cpu", custom.Quantity.fromString("0")).toSuffixedString), MegaByte.of(capacity.getOrDefault("memory", custom.Quantity.fromString("0MB")).toSuffixedString))
+        capacity = SchedulerNodeSize(cpu, memory)
       )
+    }.recoverWith { // Added for VE-530
+      case e: Throwable ⇒
+        logger.error("SchedulerNodes exception: ", e)
+        Failure(e)
     }.toOption
   } toList
 
