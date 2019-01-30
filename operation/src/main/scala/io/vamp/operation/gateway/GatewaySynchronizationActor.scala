@@ -204,6 +204,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
 
         if (all != gateway.routes) {
           val ng = gateway.copy(routes = all)
+          sendEvent(gateway, "routeschanged")
           IoC.actorFor[PersistenceActor] ! Update(ng)
           ng
         }
@@ -217,7 +218,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
               case _       ⇒ targets(pipeline.deployable, deployments, route)
             }
             val targetMatch = routeTargets == route.targets
-            if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
+            if (!targetMatch) {
+              sendEvent(gateway, "routetargetschanged")
+              IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
+            }
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
