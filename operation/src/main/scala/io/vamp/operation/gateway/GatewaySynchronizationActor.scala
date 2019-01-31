@@ -203,8 +203,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }
 
         if (all != gateway.routes) {
+          if (all.size > gateway.routes.size) {
+            sendEvent(gateway, "routes:added")
+          } else if (all.size < gateway.routes.size) {
+            sendEvent(gateway, "routes:removed")
+          } else {
+            sendEvent(gateway, "routes:changed")
+          }
+
           val ng = gateway.copy(routes = all)
-          sendEvent(gateway, "routeschanged")
           IoC.actorFor[PersistenceActor] ! Update(ng)
           ng
         }
@@ -219,7 +226,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             }
             val targetMatch = routeTargets == route.targets
             if (!targetMatch) {
-              sendEvent(gateway, "routetargetschanged")
+              sendEvent(gateway, "route:targetschanged")
               IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
             }
             route.copy(targets = routeTargets)
