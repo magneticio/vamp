@@ -1,6 +1,7 @@
 package io.vamp.operation.gateway
 
 import akka.actor.Actor
+import akka.http.scaladsl.model.HttpEntity.Default
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._
@@ -203,12 +204,49 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }
 
         if (all != gateway.routes) {
-          if (all.size > gateway.routes.size) {
-            sendEvent(gateway, "routes:added")
-          } else if (all.size < gateway.routes.size) {
-            sendEvent(gateway, "routes:removed")
-          } else {
-            sendEvent(gateway, "routes:changed")
+
+          val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
+          val nextRoutes = all.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
+
+          val comparisonMap = for (key ← currentRoutes.keys ++ nextRoutes.keys)
+            yield key → (currentRoutes.get(key), nextRoutes.get(key))
+
+          comparisonMap.foreach {
+            case (key: String, (Some(_), None)) ⇒
+              sendEvent(gateway, "route:added")
+            case (key: String, (None, Some(_))) ⇒
+              sendEvent(gateway, "route:removed")
+            case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
+              (currentRoute.condition, nextRoute.condition) match {
+                case (Some(currentCondition), Some(nextCondition)) if currentCondition != nextCondition ⇒
+                  sendEvent(gateway, "route:conditionupdated")
+                case (None, Some(_)) ⇒
+                  sendEvent(gateway, "route:conditionadded")
+                case (Some(_), None) ⇒
+                  sendEvent(gateway, "route:conditionremoved")
+                case (None, None) ⇒ // conditions didn't change
+              }
+
+              (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
+                case (Some(currentConditionStrength), Some(nextConditionStrength)) if currentConditionStrength != nextConditionStrength ⇒
+                  sendEvent(gateway, "route:conditionstrengthupdated")
+                case (None, Some(_)) ⇒
+                  sendEvent(gateway, "route:conditiostrengthnadded")
+                case (Some(_), None) ⇒
+                  sendEvent(gateway, "route:conditionstrengthremoved")
+                case (None, None) ⇒ // conditions didn't change
+              }
+
+              (currentRoute.weight, nextRoute.weight) match {
+                case (Some(currentWeight), Some(nextWeight)) if currentWeight != nextWeight ⇒
+                  sendEvent(gateway, "route:weightupdated")
+                case (None, Some(_)) ⇒
+                  sendEvent(gateway, "route:weightadded")
+                case (Some(_), None) ⇒
+                  sendEvent(gateway, "route:weightremoved")
+                case (None, None) ⇒ // conditions didn't change
+              }
+            }
           }
 
           val ng = gateway.copy(routes = all)
