@@ -147,6 +147,58 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
 
+  /**
+    * This method get a gateway and new calculated routes
+    * Send events depending on the changes to the routes
+    * @param gateway
+    * @param nextRoutesList
+    */
+  private def compareNewRoutesAndGenerateEvents(gateway: Gateway, nextRoutesList: List[Route]): Unit = {
+    val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
+    val nextRoutes = nextRoutesList.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
+
+    val comparisonMap = for (key ← currentRoutes.keys ++ nextRoutes.keys)
+      yield key → (currentRoutes.get(key), nextRoutes.get(key))
+
+    comparisonMap.foreach {
+      case (key: String, (Some(_), None)) ⇒
+        sendEvent(gateway, "route:added")
+      case (key: String, (None, Some(_))) ⇒
+        sendEvent(gateway, "route:removed")
+      case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
+        (currentRoute.condition, nextRoute.condition) match {
+          case (Some(currentCondition), Some(nextCondition)) if currentCondition != nextCondition ⇒
+            sendEvent(gateway, "route:conditionupdated")
+          case (None, Some(_)) ⇒
+            sendEvent(gateway, "route:conditionadded")
+          case (Some(_), None) ⇒
+            sendEvent(gateway, "route:conditionremoved")
+          case (None, None) ⇒ // conditions didn't change
+        }
+
+        (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
+          case (Some(currentConditionStrength), Some(nextConditionStrength)) if currentConditionStrength != nextConditionStrength ⇒
+            sendEvent(gateway, "route:conditionstrengthupdated")
+          case (None, Some(_)) ⇒
+            sendEvent(gateway, "route:conditiostrengthnadded")
+          case (Some(_), None) ⇒
+            sendEvent(gateway, "route:conditionstrengthremoved")
+          case (None, None) ⇒ // conditions didn't change
+        }
+
+        (currentRoute.weight, nextRoute.weight) match {
+          case (Some(currentWeight), Some(nextWeight)) if currentWeight != nextWeight ⇒
+            sendEvent(gateway, "route:weightupdated")
+          case (None, Some(_)) ⇒
+            sendEvent(gateway, "route:weightadded")
+          case (Some(_), None) ⇒
+            sendEvent(gateway, "route:weightremoved")
+          case (None, None) ⇒ // conditions didn't change
+        }
+      }
+    }
+  }
+
   private def routes(gateway: Gateway, deployments: List[Deployment], routingGroups: List[RoutingGroup], pipeline: GatewayPipeline): Gateway = {
     gateway.selector match {
       case Some(s) ⇒
@@ -204,51 +256,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }
 
         if (all != gateway.routes) {
-
-          val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
-          val nextRoutes = all.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
-
-          val comparisonMap = for (key ← currentRoutes.keys ++ nextRoutes.keys)
-            yield key → (currentRoutes.get(key), nextRoutes.get(key))
-
-          comparisonMap.foreach {
-            case (key: String, (Some(_), None)) ⇒
-              sendEvent(gateway, "route:added")
-            case (key: String, (None, Some(_))) ⇒
-              sendEvent(gateway, "route:removed")
-            case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
-              (currentRoute.condition, nextRoute.condition) match {
-                case (Some(currentCondition), Some(nextCondition)) if currentCondition != nextCondition ⇒
-                  sendEvent(gateway, "route:conditionupdated")
-                case (None, Some(_)) ⇒
-                  sendEvent(gateway, "route:conditionadded")
-                case (Some(_), None) ⇒
-                  sendEvent(gateway, "route:conditionremoved")
-                case (None, None) ⇒ // conditions didn't change
-              }
-
-              (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
-                case (Some(currentConditionStrength), Some(nextConditionStrength)) if currentConditionStrength != nextConditionStrength ⇒
-                  sendEvent(gateway, "route:conditionstrengthupdated")
-                case (None, Some(_)) ⇒
-                  sendEvent(gateway, "route:conditiostrengthnadded")
-                case (Some(_), None) ⇒
-                  sendEvent(gateway, "route:conditionstrengthremoved")
-                case (None, None) ⇒ // conditions didn't change
-              }
-
-              (currentRoute.weight, nextRoute.weight) match {
-                case (Some(currentWeight), Some(nextWeight)) if currentWeight != nextWeight ⇒
-                  sendEvent(gateway, "route:weightupdated")
-                case (None, Some(_)) ⇒
-                  sendEvent(gateway, "route:weightadded")
-                case (Some(_), None) ⇒
-                  sendEvent(gateway, "route:weightremoved")
-                case (None, None) ⇒ // conditions didn't change
-              }
-            }
-          }
-
+          compareNewRoutesAndGenerateEvents(gateway, all)
           val ng = gateway.copy(routes = all)
           IoC.actorFor[PersistenceActor] ! Update(ng)
           ng
@@ -270,6 +278,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
+        compareNewRoutesAndGenerateEvents(gateway, routes)
         gateway.copy(routes = routes)
     }
   }
