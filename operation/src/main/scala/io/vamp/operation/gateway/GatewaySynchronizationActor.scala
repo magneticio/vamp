@@ -167,33 +167,36 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         sendEvent(gateway, "route:removed")
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
         (currentRoute.condition, nextRoute.condition) match {
-          case (Some(currentCondition), Some(nextCondition)) if currentCondition != nextCondition ⇒
-            sendEvent(gateway, "route:conditionupdated")
+          case (Some(currentCondition), Some(nextCondition)) ⇒
+            if (currentCondition != nextCondition)
+              sendEvent(gateway, "route:conditionupdated")
           case (None, Some(_)) ⇒
             sendEvent(gateway, "route:conditionadded")
           case (Some(_), None) ⇒
             sendEvent(gateway, "route:conditionremoved")
-          case (None, None) ⇒ // conditions didn't change
+          case (None, None) ⇒ // condition didn't change
         }
 
         (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
-          case (Some(currentConditionStrength), Some(nextConditionStrength)) if currentConditionStrength != nextConditionStrength ⇒
-            sendEvent(gateway, "route:conditionstrengthupdated")
+          case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
+            if (currentConditionStrength != nextConditionStrength)
+              sendEvent(gateway, "route:conditionstrengthupdated")
           case (None, Some(_)) ⇒
             sendEvent(gateway, "route:conditiostrengthnadded")
           case (Some(_), None) ⇒
             sendEvent(gateway, "route:conditionstrengthremoved")
-          case (None, None) ⇒ // conditions didn't change
+          case (None, None) ⇒ // condition strength didn't change
         }
 
         (currentRoute.weight, nextRoute.weight) match {
-          case (Some(currentWeight), Some(nextWeight)) if currentWeight != nextWeight ⇒
-            sendEvent(gateway, "route:weightupdated")
+          case (Some(currentWeight), Some(nextWeight)) ⇒
+            if (currentWeight != nextWeight)
+              sendEvent(gateway, "route:weightupdated")
           case (None, Some(_)) ⇒
             sendEvent(gateway, "route:weightadded")
           case (Some(_), None) ⇒
             sendEvent(gateway, "route:weightremoved")
-          case (None, None) ⇒ // conditions didn't change
+          case (None, None) ⇒ // weight didn't change
         }
       }
     }
