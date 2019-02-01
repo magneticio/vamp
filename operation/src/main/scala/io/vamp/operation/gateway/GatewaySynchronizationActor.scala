@@ -170,8 +170,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
         logger.info(s"RouteEvents Route handling case for key: $key")
         (currentRoute.condition, nextRoute.condition) match {
-          case (Some(currentCondition), Some(nextCondition)) ⇒
-            if (currentCondition != nextCondition)
+          case (Some(currentCondition:DefaultCondition ), Some(nextCondition:DefaultCondition)) ⇒
+            if (currentCondition.definition != nextCondition.definition)
               sendEvent(gateway, "route:conditionupdated")
             else
               logger.info(s"RouteEvents Conditions didn't change for key: $key")
@@ -188,7 +188,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
 
         (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
           case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
-            if (currentConditionStrength != nextConditionStrength)
+            if (currentConditionStrength.value != nextConditionStrength.value)
               sendEvent(gateway, "route:conditionstrengthupdated")
             else
               logger.info(s"RouteEvents Condition Strength didn't change for key: $key")
@@ -205,7 +205,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
 
         (currentRoute.weight, nextRoute.weight) match {
           case (Some(currentWeight), Some(nextWeight)) ⇒
-            if (currentWeight != nextWeight)
+            if (currentWeight.value != nextWeight.value)
               sendEvent(gateway, "route:weightupdated")
             else
               logger.info(s"RouteEvents Route Weight didn't change for key: $key")
