@@ -102,7 +102,7 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
         set(configurationPath(definition.marshaller.`type`, name), definition.marshaller.marshall(gateways, content)).map {
           case None | false ⇒
           case stored ⇒
-            IoC.actorFor[PulseActor] ! Publish(Event(tags(definition.marshaller.`type`, name, "configuration"), None), publishEventValue = false)
+            IoC.actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, tags(definition.marshaller.`type`, name, "configuration"), None), publishEventValue = false)
             stored
         }
       }
@@ -124,7 +124,7 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
     set(templatePath(`type`, name), template).map {
       case None | false ⇒
       case stored ⇒
-        IoC.actorFor[PulseActor] ! Publish(Event(tags(`type`, name, "template"), None), publishEventValue = false)
+        IoC.actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, tags(`type`, name, "template"), None), publishEventValue = false)
         stored
     }
   }
@@ -133,7 +133,7 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
     reset(templatePath(`type`, name)).map {
       case None | false ⇒
       case result ⇒
-        IoC.actorFor[PulseActor] ! Publish(Event(tags(`type`, name, "template"), None), publishEventValue = false)
+        IoC.actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, tags(`type`, name, "template"), None), publishEventValue = false)
         result
     }
   }

@@ -41,3 +41,8 @@ trait PulseActor extends PulseFailureNotifier with Percolator with EventValidato
     reportException(`class`.getConstructors()(0).newInstance(failure.asInstanceOf[AnyRef]).asInstanceOf[Notification])
   }
 }
+
+// PulseActorSupport supports publish and query
+trait PulseActorSupport extends PulseActor
+// PulseActorPublisher only supports publish
+trait PulseActorPublisher extends PulseActor
