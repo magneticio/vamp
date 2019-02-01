@@ -4,6 +4,7 @@ import akka.actor.Actor
 import akka.http.scaladsl.model.HttpEntity.Default
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.common.util.HashUtil
@@ -72,7 +73,7 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
   val all: List[Gateway] = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
+class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider with LazyLogging {
 
   import GatewaySynchronizationActor._
   import PersistenceActor._
@@ -148,12 +149,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
   }
 
   /**
-    * This method get a gateway and new calculated routes
-    * Send events depending on the changes to the routes
-    * @param gateway
-    * @param nextRoutesList
-    */
+   * This method get a gateway and new calculated routes
+   * Send events depending on the changes to the routes
+   * @param gateway
+   * @param nextRoutesList
+   */
   private def compareNewRoutesAndGenerateEvents(gateway: Gateway, nextRoutesList: List[Route]): Unit = {
+    logger.info("RouteEvents Triggered")
     val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
     val nextRoutes = nextRoutesList.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
 
@@ -166,39 +168,59 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
       case (key: String, (None, Some(_))) ⇒
         sendEvent(gateway, "route:removed")
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
+        logger.info(s"RouteEvents Route handling case for key: $key")
         (currentRoute.condition, nextRoute.condition) match {
           case (Some(currentCondition), Some(nextCondition)) ⇒
             if (currentCondition != nextCondition)
               sendEvent(gateway, "route:conditionupdated")
+            else
+              logger.info(s"RouteEvents Conditions didn't change for key: $key")
           case (None, Some(_)) ⇒
             sendEvent(gateway, "route:conditionadded")
           case (Some(_), None) ⇒
             sendEvent(gateway, "route:conditionremoved")
-          case (None, None) ⇒ // condition didn't change
+          case (None, None) ⇒
+            // condition didn't change
+            logger.info(s"RouteEvents No Conditions for key: $key")
+          case _ ⇒
+            logger.info(s"RouteEvents Condition Unhandled case: $key")
         }
 
         (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
           case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
             if (currentConditionStrength != nextConditionStrength)
               sendEvent(gateway, "route:conditionstrengthupdated")
+            else
+              logger.info(s"RouteEvents Condition Strength didn't change for key: $key")
           case (None, Some(_)) ⇒
             sendEvent(gateway, "route:conditiostrengthnadded")
           case (Some(_), None) ⇒
             sendEvent(gateway, "route:conditionstrengthremoved")
-          case (None, None) ⇒ // condition strength didn't change
+          case (None, None) ⇒
+            // condition strength didn't change
+            logger.info(s"RouteEvents No Condition Strength for key: $key")
+          case _ ⇒
+            logger.info(s"RouteEvents Condition Strength Unhandled case: $key")
         }
 
         (currentRoute.weight, nextRoute.weight) match {
           case (Some(currentWeight), Some(nextWeight)) ⇒
             if (currentWeight != nextWeight)
               sendEvent(gateway, "route:weightupdated")
+            else
+              logger.info(s"RouteEvents Route Weight didn't change for key: $key")
           case (None, Some(_)) ⇒
             sendEvent(gateway, "route:weightadded")
           case (Some(_), None) ⇒
             sendEvent(gateway, "route:weightremoved")
-          case (None, None) ⇒ // weight didn't change
+          case (None, None) ⇒
+            // weight didn't change
+            logger.info(s"RouteEvents No Route Weight for key: $key")
+          case _ ⇒
+            logger.info(s"RouteEvents Route Weight Unhandled case: $key")
         }
       }
+      case _ ⇒ logger.info("RouteEvents Unhandled case for Route Pairs")
     }
   }
 
