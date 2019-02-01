@@ -170,7 +170,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
         logger.info(s"RouteEvents Route handling case for key: $key")
         (currentRoute.condition, nextRoute.condition) match {
-          case (Some(currentCondition:DefaultCondition ), Some(nextCondition:DefaultCondition)) ⇒
+          case (Some(currentCondition: DefaultCondition), Some(nextCondition: DefaultCondition)) ⇒
             if (currentCondition.definition != nextCondition.definition)
               sendRouteEvent(gateway, "route:conditionupdated")
             else
@@ -280,6 +280,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
           }
         }
 
+        logger.info(s"RouteEvents Old Gateway: ${gateway.routes} : new Routes {$all}")
         if (all != gateway.routes) {
           compareNewRoutesAndGenerateEvents(gateway, all)
           val ng = gateway.copy(routes = all)
@@ -304,6 +305,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
+        logger.info(s"RouteEvents Old Gateway: ${gateway.routes} : new Routes {$routes}")
         compareNewRoutesAndGenerateEvents(gateway, routes)
         gateway.copy(routes = routes)
     }
@@ -400,7 +402,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
   }
 
   private def sendRouteEvent(gateway: Gateway, event: String): Unit = {
-    log.info(s"RouteEvent event: ${gateway.name} - $event")
+    log.info(s"RouteEvents event: ${gateway.name} - $event")
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
     IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
   }
