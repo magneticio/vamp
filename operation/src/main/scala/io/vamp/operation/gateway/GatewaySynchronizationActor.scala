@@ -156,8 +156,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
    */
   private def compareNewRoutesAndGenerateEvents(gateway: Gateway, nextRoutesList: List[Route]): Unit = {
     logger.info("RouteEvents Triggered")
-    val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
-    val nextRoutes = nextRoutesList.map { case route: DefaultRoute ⇒ route.lookupName → route }.toMap
+    val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
+    val nextRoutes = nextRoutesList.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
 
     val comparisonMap = for (key ← currentRoutes.keys ++ nextRoutes.keys)
       yield key → (currentRoutes.get(key), nextRoutes.get(key))
