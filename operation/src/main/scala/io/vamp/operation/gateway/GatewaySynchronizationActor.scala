@@ -149,7 +149,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
   }
 
   /**
-   * This method get a gateway and new calculated routes
+   * This method gets a gateway and new calculated differences of routes
    * Send events depending on the changes to the routes
    * @param gateway
    * @param nextRoutesList
@@ -280,7 +280,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
           }
         }
 
-        logger.info(s"RouteEvents Old Gateway: ${gateway.routes} : new Routes {$all}")
+        logger.info(s"RouteEvents Old Routes: ${gateway.routes} ; New Routes $all")
         if (all != gateway.routes) {
           compareNewRoutesAndGenerateEvents(gateway, all)
           val ng = gateway.copy(routes = all)
@@ -305,7 +305,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
-        logger.info(s"RouteEvents Old Gateway: ${gateway.routes} : new Routes {$routes}")
+        logger.info(s"RouteEvents Old Routes: ${gateway.routes} ; New Routes $routes")
         compareNewRoutesAndGenerateEvents(gateway, routes)
         gateway.copy(routes = routes)
     }

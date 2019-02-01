@@ -3,13 +3,17 @@ package io.vamp.operation.gateway
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.{ Config, ConfigMagnet }
+import io.vamp.common.{Config, ConfigMagnet}
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
+import io.vamp.model.event.Event
+import io.vamp.model.reader.{GatewayRouteValidation, Percentage}
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
+import io.vamp.pulse.PulseActor
+import io.vamp.pulse.PulseActor.Publish
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -33,7 +37,7 @@ object GatewayActor {
 
 }
 
-class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation {
+class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation with LazyLogging{
 
   import GatewayActor._
 
@@ -142,6 +146,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       route.copy(conditionStrength = Option(route.conditionStrength.getOrElse(Percentage(default))))
     }
 
+    compareNewRoutesAndGenerateEvents(gateway, routes)
     updatedWeights.copy(routes = routes)
   }
 
@@ -184,4 +189,87 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     case d :: c :: p :: Nil ⇒ virtualHostsFormat3().replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$cluster", c).replaceAllLiterally(s"$$port", p) :: Nil
     case _                  ⇒ Nil
   }
+
+  /**
+    * This method gets a gateway and new calculated differences of routes
+    * Send events depending on the changes to the routes
+    * @param gateway
+    * @param nextRoutesList
+    */
+  private def compareNewRoutesAndGenerateEvents(gateway: Gateway, nextRoutesList: List[Route]): Unit = {
+    logger.info("RouteEvents Triggered")
+    val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
+    val nextRoutes = nextRoutesList.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
+
+    val comparisonMap = for (key ← currentRoutes.keys ++ nextRoutes.keys)
+      yield key → (currentRoutes.get(key), nextRoutes.get(key))
+
+    comparisonMap.foreach {
+      case (key: String, (Some(_), None)) ⇒
+        sendRouteEvent(gateway, "route:added")
+      case (key: String, (None, Some(_))) ⇒
+        sendRouteEvent(gateway, "route:removed")
+      case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
+        logger.info(s"RouteEvents Route handling case for key: $key")
+        (currentRoute.condition, nextRoute.condition) match {
+          case (Some(currentCondition: DefaultCondition), Some(nextCondition: DefaultCondition)) ⇒
+            if (currentCondition.definition != nextCondition.definition)
+              sendRouteEvent(gateway, "route:conditionupdated")
+            else
+              logger.info(s"RouteEvents Conditions didn't change for key: $key")
+          case (None, Some(_)) ⇒
+            sendRouteEvent(gateway, "route:conditionadded")
+          case (Some(_), None) ⇒
+            sendRouteEvent(gateway, "route:conditionremoved")
+          case (None, None) ⇒
+            // condition didn't change
+            logger.info(s"RouteEvents No Conditions for key: $key")
+          case _ ⇒
+            logger.info(s"RouteEvents Condition Unhandled case: $key")
+        }
+
+        (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
+          case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
+            if (currentConditionStrength.value != nextConditionStrength.value)
+              sendRouteEvent(gateway, "route:conditionstrengthupdated")
+            else
+              logger.info(s"RouteEvents Condition Strength didn't change for key: $key")
+          case (None, Some(_)) ⇒
+            sendRouteEvent(gateway, "route:conditiostrengthnadded")
+          case (Some(_), None) ⇒
+            sendRouteEvent(gateway, "route:conditionstrengthremoved")
+          case (None, None) ⇒
+            // condition strength didn't change
+            logger.info(s"RouteEvents No Condition Strength for key: $key")
+          case _ ⇒
+            logger.info(s"RouteEvents Condition Strength Unhandled case: $key")
+        }
+
+        (currentRoute.weight, nextRoute.weight) match {
+          case (Some(currentWeight), Some(nextWeight)) ⇒
+            if (currentWeight.value != nextWeight.value)
+              sendRouteEvent(gateway, "route:weightupdated")
+            else
+              logger.info(s"RouteEvents Route Weight didn't change for key: $key")
+          case (None, Some(_)) ⇒
+            sendRouteEvent(gateway, "route:weightadded")
+          case (Some(_), None) ⇒
+            sendRouteEvent(gateway, "route:weightremoved")
+          case (None, None) ⇒
+            // weight didn't change
+            logger.info(s"RouteEvents No Route Weight for key: $key")
+          case _ ⇒
+            logger.info(s"RouteEvents Route Weight Unhandled case: $key")
+        }
+      }
+      case _ ⇒ logger.info("RouteEvents Unhandled case for Route Pairs")
+    }
+  }
+
+  private def sendRouteEvent(gateway: Gateway, event: String): Unit = {
+    log.info(s"RouteEvents event: ${gateway.name} - $event")
+    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
+    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
+  }
+
 }
