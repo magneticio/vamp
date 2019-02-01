@@ -164,21 +164,21 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
 
     comparisonMap.foreach {
       case (key: String, (Some(_), None)) ⇒
-        sendEvent(gateway, "route:added")
+        sendRouteEvent(gateway, "route:added")
       case (key: String, (None, Some(_))) ⇒
-        sendEvent(gateway, "route:removed")
+        sendRouteEvent(gateway, "route:removed")
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
         logger.info(s"RouteEvents Route handling case for key: $key")
         (currentRoute.condition, nextRoute.condition) match {
           case (Some(currentCondition:DefaultCondition ), Some(nextCondition:DefaultCondition)) ⇒
             if (currentCondition.definition != nextCondition.definition)
-              sendEvent(gateway, "route:conditionupdated")
+              sendRouteEvent(gateway, "route:conditionupdated")
             else
               logger.info(s"RouteEvents Conditions didn't change for key: $key")
           case (None, Some(_)) ⇒
-            sendEvent(gateway, "route:conditionadded")
+            sendRouteEvent(gateway, "route:conditionadded")
           case (Some(_), None) ⇒
-            sendEvent(gateway, "route:conditionremoved")
+            sendRouteEvent(gateway, "route:conditionremoved")
           case (None, None) ⇒
             // condition didn't change
             logger.info(s"RouteEvents No Conditions for key: $key")
@@ -189,13 +189,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
           case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
             if (currentConditionStrength.value != nextConditionStrength.value)
-              sendEvent(gateway, "route:conditionstrengthupdated")
+              sendRouteEvent(gateway, "route:conditionstrengthupdated")
             else
               logger.info(s"RouteEvents Condition Strength didn't change for key: $key")
           case (None, Some(_)) ⇒
-            sendEvent(gateway, "route:conditiostrengthnadded")
+            sendRouteEvent(gateway, "route:conditiostrengthnadded")
           case (Some(_), None) ⇒
-            sendEvent(gateway, "route:conditionstrengthremoved")
+            sendRouteEvent(gateway, "route:conditionstrengthremoved")
           case (None, None) ⇒
             // condition strength didn't change
             logger.info(s"RouteEvents No Condition Strength for key: $key")
@@ -206,13 +206,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         (currentRoute.weight, nextRoute.weight) match {
           case (Some(currentWeight), Some(nextWeight)) ⇒
             if (currentWeight.value != nextWeight.value)
-              sendEvent(gateway, "route:weightupdated")
+              sendRouteEvent(gateway, "route:weightupdated")
             else
               logger.info(s"RouteEvents Route Weight didn't change for key: $key")
           case (None, Some(_)) ⇒
-            sendEvent(gateway, "route:weightadded")
+            sendRouteEvent(gateway, "route:weightadded")
           case (Some(_), None) ⇒
-            sendEvent(gateway, "route:weightremoved")
+            sendRouteEvent(gateway, "route:weightremoved")
           case (None, None) ⇒
             // weight didn't change
             logger.info(s"RouteEvents No Route Weight for key: $key")
@@ -298,7 +298,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             val targetMatch = routeTargets == route.targets
             if (!targetMatch) {
               // TODO: Also add this event to compareNewRoutesAndGenerateEvents if possible
-              sendEvent(gateway, "route:targetschanged")
+              sendRouteEvent(gateway, "route:targetschanged")
               IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
             }
             route.copy(targets = routeTargets)
@@ -395,6 +395,12 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
 
   private def sendEvent(gateway: Gateway, event: String): Unit = {
     log.info(s"Gateway event: ${gateway.name} - $event")
+    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
+    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
+  }
+
+  private def sendRouteEvent(gateway: Gateway, event: String): Unit = {
+    log.info(s"RouteEvent event: ${gateway.name} - $event")
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
     IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
   }
