@@ -11,6 +11,7 @@ import io.vamp.pulse.PulseActor.Publish
 
 trait RouteComparator extends LazyLogging {
 
+  // To get better data convert this to logger.info
   protected def logDebug(str: String = ""): Unit = {
     logger.info(str)
   }
@@ -31,21 +32,21 @@ trait RouteComparator extends LazyLogging {
 
     comparisonMap.foreach {
       case (key: String, (Some(_), None)) ⇒
-        sendRouteEvent(gateway, "route:added", caller)
+        sendRouteEvent(gateway, "route:added", key, caller)
       case (key: String, (None, Some(_))) ⇒
-        sendRouteEvent(gateway, "route:removed", caller)
+        sendRouteEvent(gateway, "route:removed", key, caller)
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
         logDebug(s"RouteEvents Route handling case for key: $key $caller")
         (currentRoute.condition, nextRoute.condition) match {
           case (Some(currentCondition: DefaultCondition), Some(nextCondition: DefaultCondition)) ⇒
             if (currentCondition.definition != nextCondition.definition)
-              sendRouteEvent(gateway, "route:conditionupdated", caller)
+              sendRouteEvent(gateway, "route:conditionupdated", key, caller)
             else
               logDebug(s"RouteEvents Conditions didn't change for key: $key $caller")
           case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "route:conditionadded", caller)
+            sendRouteEvent(gateway, "route:conditionadded", key, caller)
           case (Some(_), None) ⇒
-            sendRouteEvent(gateway, "route:conditionremoved", caller)
+            sendRouteEvent(gateway, "route:conditionremoved", key, caller)
           case (None, None) ⇒
             // condition didn't change
             logDebug(s"RouteEvents No Conditions for key: $key $caller")
@@ -56,13 +57,13 @@ trait RouteComparator extends LazyLogging {
         (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
           case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
             if (currentConditionStrength.value != nextConditionStrength.value)
-              sendRouteEvent(gateway, "route:conditionstrengthupdated", caller)
+              sendRouteEvent(gateway, "route:conditionstrengthupdated", key, caller)
             else
               logDebug(s"RouteEvents Condition Strength didn't change for key: $key $caller")
           case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "route:conditiostrengthnadded", caller)
+            sendRouteEvent(gateway, "route:conditiostrengthnadded", key, caller)
           case (Some(_), None) ⇒
-            sendRouteEvent(gateway, "route:conditionstrengthremoved", caller)
+            sendRouteEvent(gateway, "route:conditionstrengthremoved", key, caller)
           case (None, None) ⇒
             // condition strength didn't change
             logDebug(s"RouteEvents No Condition Strength for key: $key, $caller")
@@ -73,13 +74,13 @@ trait RouteComparator extends LazyLogging {
         (currentRoute.weight, nextRoute.weight) match {
           case (Some(currentWeight), Some(nextWeight)) ⇒
             if (currentWeight.value != nextWeight.value)
-              sendRouteEvent(gateway, "route:weightupdated", caller)
+              sendRouteEvent(gateway, "route:weightupdated", key, caller)
             else
               logDebug(s"RouteEvents Route Weight didn't change for key: $key $caller")
           case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "route:weightadded", caller)
+            sendRouteEvent(gateway, "route:weightadded", key, caller)
           case (Some(_), None) ⇒
-            sendRouteEvent(gateway, "route:weightremoved", caller)
+            sendRouteEvent(gateway, "route:weightremoved", key, caller)
           case (None, None) ⇒
             // weight didn't change
             logDebug(s"RouteEvents No Route Weight for key: $key $caller")
@@ -91,9 +92,9 @@ trait RouteComparator extends LazyLogging {
     }
   }
 
-  protected def sendRouteEvent(gateway: Gateway, event: String, caller: String = "")(implicit actorSystem: ActorSystem, namespace: Namespace): Unit = {
-    logDebug(s"RouteEvents event: ${gateway.name} - $event  ${caller}")
-    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
+  protected def sendRouteEvent(gateway: Gateway, event: String, routeTag: String, caller: String = "")(implicit actorSystem: ActorSystem, namespace: Namespace): Unit = {
+    logDebug(s"RouteEvents event: ${gateway.name} - $event $routeTag on $caller")
+    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event, routeTag)
     IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
   }
 

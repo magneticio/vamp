@@ -204,7 +204,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
           }
         }
 
-        logger.info(s"RouteEvents Old Routes: ${gateway.routes} ; New Routes $all")
         if (all != gateway.routes) {
           compareNewRoutesAndGenerateEvents(gateway, all, "routes in Gateway Synchronization all != gateway.routes")
           val ng = gateway.copy(routes = all)
@@ -223,13 +222,12 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             val targetMatch = routeTargets == route.targets
             if (!targetMatch) {
               // TODO: Also add this event to compareNewRoutesAndGenerateEvents if possible
-              sendRouteEvent(gateway, "route:targetschanged", "gateway.selector is None and targets Doesn't Match")
+              sendRouteEvent(gateway, "route:targetschanged", route.path.source, "gateway.selector is None and targets Doesn't Match")
               IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
             }
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
-        logger.info(s"RouteEvents Old Routes: ${gateway.routes} ; New Routes $routes")
         compareNewRoutesAndGenerateEvents(gateway, routes, "gateway.selector is None")
         gateway.copy(routes = routes)
     }
