@@ -32,9 +32,9 @@ trait RouteComparator extends LazyLogging {
 
     comparisonMap.foreach {
       case (key: String, (Some(_), None)) ⇒
-        sendRouteEvent(gateway, "added", key, caller)
-      case (key: String, (None, Some(_))) ⇒
         sendRouteEvent(gateway, "removed", key, caller)
+      case (key: String, (None, Some(_))) ⇒
+        sendRouteEvent(gateway, "added", key, caller)
       case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
         logDebug(s"RouteEvents Route handling case for key: $key $caller")
         (currentRoute.condition, nextRoute.condition) match {
