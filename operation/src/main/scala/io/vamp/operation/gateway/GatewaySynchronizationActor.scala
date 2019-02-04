@@ -222,7 +222,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             val targetMatch = routeTargets == route.targets
             if (!targetMatch) {
               // TODO: Also add this event to compareNewRoutesAndGenerateEvents if possible
-              sendRouteEvent(gateway, "route:targetschanged", route.path.source, "gateway.selector is None and targets Doesn't Match")
+              sendRouteEvent(gateway, "targetschanged", route.path.source, "gateway.selector is None and targets Doesn't Match")
               IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
             }
             route.copy(targets = routeTargets)
