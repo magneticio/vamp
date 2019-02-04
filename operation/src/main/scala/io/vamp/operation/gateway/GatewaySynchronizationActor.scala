@@ -73,7 +73,7 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
   val all: List[Gateway] = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider with LazyLogging {
+class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider with LazyLogging with RouteComparator {
 
   import GatewaySynchronizationActor._
   import PersistenceActor._
@@ -148,82 +148,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
 
-  /**
-   * This method gets a gateway and new calculated differences of routes
-   * Send events depending on the changes to the routes
-   * @param gateway
-   * @param nextRoutesList
-   */
-  private def compareNewRoutesAndGenerateEvents(gateway: Gateway, nextRoutesList: List[Route]): Unit = {
-    logger.info("RouteEvents Triggered")
-    val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
-    val nextRoutes = nextRoutesList.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
-
-    val comparisonMap = for (key ← currentRoutes.keys ++ nextRoutes.keys)
-      yield key → (currentRoutes.get(key), nextRoutes.get(key))
-
-    comparisonMap.foreach {
-      case (key: String, (Some(_), None)) ⇒
-        sendRouteEvent(gateway, "route:added")
-      case (key: String, (None, Some(_))) ⇒
-        sendRouteEvent(gateway, "route:removed")
-      case (key: String, (Some(currentRoute), Some(nextRoute))) ⇒ {
-        logger.info(s"RouteEvents Route handling case for key: $key")
-        (currentRoute.condition, nextRoute.condition) match {
-          case (Some(currentCondition: DefaultCondition), Some(nextCondition: DefaultCondition)) ⇒
-            if (currentCondition.definition != nextCondition.definition)
-              sendRouteEvent(gateway, "route:conditionupdated")
-            else
-              logger.info(s"RouteEvents Conditions didn't change for key: $key")
-          case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "route:conditionadded")
-          case (Some(_), None) ⇒
-            sendRouteEvent(gateway, "route:conditionremoved")
-          case (None, None) ⇒
-            // condition didn't change
-            logger.info(s"RouteEvents No Conditions for key: $key")
-          case _ ⇒
-            logger.info(s"RouteEvents Condition Unhandled case: $key")
-        }
-
-        (currentRoute.conditionStrength, nextRoute.conditionStrength) match {
-          case (Some(currentConditionStrength), Some(nextConditionStrength)) ⇒
-            if (currentConditionStrength.value != nextConditionStrength.value)
-              sendRouteEvent(gateway, "route:conditionstrengthupdated")
-            else
-              logger.info(s"RouteEvents Condition Strength didn't change for key: $key")
-          case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "route:conditiostrengthnadded")
-          case (Some(_), None) ⇒
-            sendRouteEvent(gateway, "route:conditionstrengthremoved")
-          case (None, None) ⇒
-            // condition strength didn't change
-            logger.info(s"RouteEvents No Condition Strength for key: $key")
-          case _ ⇒
-            logger.info(s"RouteEvents Condition Strength Unhandled case: $key")
-        }
-
-        (currentRoute.weight, nextRoute.weight) match {
-          case (Some(currentWeight), Some(nextWeight)) ⇒
-            if (currentWeight.value != nextWeight.value)
-              sendRouteEvent(gateway, "route:weightupdated")
-            else
-              logger.info(s"RouteEvents Route Weight didn't change for key: $key")
-          case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "route:weightadded")
-          case (Some(_), None) ⇒
-            sendRouteEvent(gateway, "route:weightremoved")
-          case (None, None) ⇒
-            // weight didn't change
-            logger.info(s"RouteEvents No Route Weight for key: $key")
-          case _ ⇒
-            logger.info(s"RouteEvents Route Weight Unhandled case: $key")
-        }
-      }
-      case _ ⇒ logger.info("RouteEvents Unhandled case for Route Pairs")
-    }
-  }
-
   private def routes(gateway: Gateway, deployments: List[Deployment], routingGroups: List[RoutingGroup], pipeline: GatewayPipeline): Gateway = {
     gateway.selector match {
       case Some(s) ⇒
@@ -282,7 +206,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
 
         logger.info(s"RouteEvents Old Routes: ${gateway.routes} ; New Routes $all")
         if (all != gateway.routes) {
-          compareNewRoutesAndGenerateEvents(gateway, all)
+          compareNewRoutesAndGenerateEvents(gateway, all, "routes in Gateway Synchronization all != gateway.routes")
           val ng = gateway.copy(routes = all)
           IoC.actorFor[PersistenceActor] ! Update(ng)
           ng
@@ -299,14 +223,14 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             val targetMatch = routeTargets == route.targets
             if (!targetMatch) {
               // TODO: Also add this event to compareNewRoutesAndGenerateEvents if possible
-              sendRouteEvent(gateway, "route:targetschanged")
+              sendRouteEvent(gateway, "route:targetschanged", "gateway.selector is None and targets Doesn't Match")
               IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
             }
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
         logger.info(s"RouteEvents Old Routes: ${gateway.routes} ; New Routes $routes")
-        compareNewRoutesAndGenerateEvents(gateway, routes)
+        compareNewRoutesAndGenerateEvents(gateway, routes, "gateway.selector is None")
         gateway.copy(routes = routes)
     }
   }
@@ -401,9 +325,4 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
     IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
   }
 
-  private def sendRouteEvent(gateway: Gateway, event: String): Unit = {
-    log.info(s"RouteEvents event: ${gateway.name} - $event")
-    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
-    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
-  }
 }
