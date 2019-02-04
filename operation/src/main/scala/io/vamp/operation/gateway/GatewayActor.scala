@@ -6,12 +6,12 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.{Config, ConfigMagnet}
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.model.reader.{GatewayRouteValidation, Percentage}
+import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
@@ -37,7 +37,7 @@ object GatewayActor {
 
 }
 
-class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation with LazyLogging{
+class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation with LazyLogging {
 
   import GatewayActor._
 
@@ -98,7 +98,9 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def routeChanged(gateway: Gateway): Future[Boolean] = {
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
-      case Some(old: Gateway) ⇒ old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
+      case Some(old: Gateway) ⇒
+        compareNewRoutesAndGenerateEvents(old, gateway.routes)
+        old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
       case _                  ⇒ true
     }
   }
@@ -191,11 +193,11 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   }
 
   /**
-    * This method gets a gateway and new calculated differences of routes
-    * Send events depending on the changes to the routes
-    * @param gateway
-    * @param nextRoutesList
-    */
+   * This method gets a gateway and new calculated differences of routes
+   * Send events depending on the changes to the routes
+   * @param gateway
+   * @param nextRoutesList
+   */
   private def compareNewRoutesAndGenerateEvents(gateway: Gateway, nextRoutesList: List[Route]): Unit = {
     logger.info("RouteEvents Triggered")
     val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap
