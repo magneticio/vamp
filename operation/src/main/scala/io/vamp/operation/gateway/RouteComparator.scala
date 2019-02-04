@@ -61,7 +61,7 @@ trait RouteComparator extends LazyLogging {
             else
               logDebug(s"RouteEvents Condition Strength didn't change for key: $key $caller")
           case (None, Some(_)) ⇒
-            sendRouteEvent(gateway, "conditiostrengthnadded", key, caller)
+            sendRouteEvent(gateway, "conditionstrengthnadded", key, caller)
           case (Some(_), None) ⇒
             sendRouteEvent(gateway, "conditionstrengthremoved", key, caller)
           case (None, None) ⇒
