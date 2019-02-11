@@ -1,8 +1,10 @@
 package io.vamp.operation.gateway
 
 import akka.actor.Actor
+import akka.http.scaladsl.model.HttpEntity.Default
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.common.util.HashUtil
@@ -71,7 +73,7 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
   val all: List[Gateway] = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
+class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySelectorResolver with NameValidator with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider with LazyLogging with RouteComparator {
 
   import GatewaySynchronizationActor._
   import PersistenceActor._
@@ -203,6 +205,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }
 
         if (all != gateway.routes) {
+          compareNewRoutesAndGenerateEvents(gateway, all, "routes in Gateway Synchronization all != gateway.routes")
           val ng = gateway.copy(routes = all)
           IoC.actorFor[PersistenceActor] ! Update(ng)
           ng
@@ -217,10 +220,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
               case _       ⇒ targets(pipeline.deployable, deployments, route)
             }
             val targetMatch = routeTargets == route.targets
-            if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
+            if (!targetMatch) {
+              // TODO: Also add this event to compareNewRoutesAndGenerateEvents if possible
+              sendRouteEvent(gateway, "targetschanged", route.path.source, "gateway.selector is None and targets Doesn't Match")
+              IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(gateway, route, routeTargets)
+            }
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
+        compareNewRoutesAndGenerateEvents(gateway, routes, "gateway.selector is None")
         gateway.copy(routes = routes)
     }
   }
@@ -314,4 +322,5 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
     IoC.actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, tags, gateway))
   }
+
 }

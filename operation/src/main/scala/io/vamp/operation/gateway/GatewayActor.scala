@@ -3,13 +3,17 @@ package io.vamp.operation.gateway
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.model.artifact._
+import io.vamp.model.event.Event
 import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.pulse.PulseActor
+import io.vamp.pulse.PulseActor.Publish
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -33,7 +37,7 @@ object GatewayActor {
 
 }
 
-class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation {
+class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation with LazyLogging with RouteComparator {
 
   import GatewayActor._
 
@@ -94,8 +98,10 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def routeChanged(gateway: Gateway): Future[Boolean] = {
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
-      case Some(old: Gateway) ⇒ old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
-      case _                  ⇒ true
+      case Some(old: Gateway) ⇒
+        compareNewRoutesAndGenerateEvents(old, gateway.routes, "routeChanged")
+        old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
+      case _ ⇒ true
     }
   }
 
@@ -142,6 +148,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       route.copy(conditionStrength = Option(route.conditionStrength.getOrElse(Percentage(default))))
     }
 
+    compareNewRoutesAndGenerateEvents(gateway, routes, "process")
     updatedWeights.copy(routes = routes)
   }
 
@@ -184,4 +191,5 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     case d :: c :: p :: Nil ⇒ virtualHostsFormat3().replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$cluster", c).replaceAllLiterally(s"$$port", p) :: Nil
     case _                  ⇒ Nil
   }
+
 }
