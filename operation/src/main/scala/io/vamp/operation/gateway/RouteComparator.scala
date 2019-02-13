@@ -95,7 +95,7 @@ trait RouteComparator extends LazyLogging {
   protected def sendRouteEvent(gateway: Gateway, event: String, routeTag: String, caller: String = "")(implicit actorSystem: ActorSystem, namespace: Namespace): Unit = {
     logDebug(s"RouteEvents event: ${gateway.name} - $event $routeTag on $caller")
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", s"route${Event.tagDelimiter}$event", s"routes${Event.tagDelimiter}$routeTag")
-    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
+    IoC.actorFor[PulseActor] ! Publish(Event(Event.defaultVersion, tags, gateway))
   }
 
 }

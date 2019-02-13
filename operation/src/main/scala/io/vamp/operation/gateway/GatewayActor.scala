@@ -75,6 +75,9 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
         Try((process andThen validate andThen persist(source, create = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
 
+    // Route changes should be checked for both external internal gateways
+    checkRouteChanges(gateway)
+
     if (gateway.internal && !force) routeChanged(gateway) flatMap {
       case true  ⇒ Future.failed(reportException(InternalGatewayUpdateError(gateway.name)))
       case false ⇒ default
@@ -96,10 +99,17 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     else default
   }
 
-  private def routeChanged(gateway: Gateway): Future[Boolean] = {
+  private def checkRouteChanges(gateway: Gateway): Unit = {
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
       case Some(old: Gateway) ⇒
         compareNewRoutesAndGenerateEvents(old, gateway.routes, "routeChanged")
+      case _ ⇒ logger.debug(s"Gateway ${gateway.name} doesn't exist")
+    }
+  }
+
+  private def routeChanged(gateway: Gateway): Future[Boolean] = {
+    checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
+      case Some(old: Gateway) ⇒
         old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
       case _ ⇒ true
     }
