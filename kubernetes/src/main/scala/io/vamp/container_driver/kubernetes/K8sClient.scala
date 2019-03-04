@@ -1,13 +1,17 @@
 package io.vamp.container_driver.kubernetes
 
-import java.io.FileInputStream
+import java.io.{FileInputStream, IOException, InputStream}
+import java.security.cert.{Certificate, CertificateFactory}
+import java.security.{KeyStore, SecureRandom}
+import java.util
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.Logger
 import io.kubernetes.client.ApiClient
-import io.kubernetes.client.apis.{ ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api }
+import io.kubernetes.client.apis.{ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api}
 import io.vamp.common.Namespace
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -64,7 +68,26 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     if (config.username.nonEmpty) client.setUsername(config.username)
     if (config.password.nonEmpty) client.setPassword(config.password)
     if (config.serverCaCert.nonEmpty) client.setSslCaCert(new FileInputStream(config.serverCaCert))
+    if (config.clientCert.nonEmpty) {
+      // client.getHttpClient
+      setCert(client, config.clientCert)
+
+    }
     client.setVerifyingSsl(config.tlsCheck)
+  }
+
+
+  private def setCert(apiClient: ApiClient, certfilepath: String) : Unit = {
+    import java.security.KeyStore
+    val password: Array[Char] = null
+    val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
+    val keyStore: KeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
+
+    val keyInput: InputStream = new FileInputStream(certfilepath)
+    keyStore.load(keyInput, password)
+    keyInput.close()
+    keyManagerFactory.init(keyStore, password)
+    apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
   }
 
   val watch = new K8sWatch(this)
