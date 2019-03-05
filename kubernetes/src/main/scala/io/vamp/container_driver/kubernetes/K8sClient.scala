@@ -172,7 +172,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     val uri = new URI(apiClient.getBasePath)
     logger.info("alias will be set to"+ uri.getHost)
     val keyStore = getKeyStoreForPEM(keyfileAsString, certfileAsString, password, uri.getHost)
-    keyManagerFactory.init(keyStore, password.toCharArray)
+    keyManagerFactory.init(keyStore, null)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
     printCert(pkcs12certFileAsByteArray, password)
