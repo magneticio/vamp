@@ -7,7 +7,7 @@ import java.util
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{LazyLogging, Logger}
 import io.kubernetes.client.ApiClient
 import io.kubernetes.client.apis.{ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api}
 import io.vamp.common.Namespace
@@ -62,7 +62,7 @@ object K8sClient {
   }
 }
 
-class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
+class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) extends LazyLogging {
 
   private val api: ApiClient = {
     val client = new ApiClient()
@@ -74,7 +74,6 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     if (config.password.nonEmpty) client.setPassword(config.password)
     if (config.serverCaCert.nonEmpty) client.setSslCaCert(new FileInputStream(config.serverCaCert))
     if (config.clientCert.nonEmpty && config.privateKey.nonEmpty) {
-      // client.getHttpClient
       setCert(client, config.privateKey, config.clientCert)
 
     }
@@ -121,13 +120,14 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
 
 
   private def setCert(apiClient: ApiClient, keyfilepath: String, certfilepath: String) : Unit = {
-
+    logger.info("Setting up Client Certs: key file: "+keyfilepath+"  cert file: "+ certfilepath)
     val password = "change me" // default java password
     val keyfileAsString = scala.io.Source.fromFile(keyfilepath).mkString
     val certfileAsString = scala.io.Source.fromFile(certfilepath).mkString
 
     val pkcs12certFileAsByteArray = convertPEMToPKCS12(keyfileAsString, certfileAsString, password)
 
+    logger.info("Cert converted to PCKS12 file length: "+ pkcs12certFileAsByteArray.size)
     val keyInput = new ByteArrayInputStream(pkcs12certFileAsByteArray)
     import java.security.KeyStore
     // Testing change me instead of null val password: Array[Char] = null
@@ -138,6 +138,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     keyInput.close()
     keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
+    logger.info("Cert added to api client.")
   }
 
   val watch = new K8sWatch(this)
