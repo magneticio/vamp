@@ -134,7 +134,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     val keyStore: KeyStore = KeyStore.getInstance("PKCS12")
 
     keyStore.load(keyInput, password)
-    keyInput.close()
+    // keyInput.close()
     keyManagerFactory.init(keyStore, password)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
   }
