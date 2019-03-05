@@ -113,8 +113,8 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     ks.load(null)
     val certs = new Array[java.security.cert.Certificate](1)
     certs(0) = X509Certificate
-    ks.setKeyEntry("alias", key.asInstanceOf[java.security.Key], null, certs )
-    ks.store(bos, null)
+    ks.setKeyEntry("alias", key.asInstanceOf[java.security.Key], password.toCharArray, certs )
+    ks.store(bos, password.toCharArray)
     bos.close
     bos.toByteArray
   }
