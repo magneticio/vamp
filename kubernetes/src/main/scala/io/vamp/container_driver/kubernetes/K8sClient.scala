@@ -122,20 +122,21 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
 
   private def setCert(apiClient: ApiClient, keyfilepath: String, certfilepath: String) : Unit = {
 
+    val password = "change me" // default java password
     val keyfileAsString = scala.io.Source.fromFile(keyfilepath).mkString
     val certfileAsString = scala.io.Source.fromFile(certfilepath).mkString
 
-    val pkcs12certFileAsByteArray = convertPEMToPKCS12(keyfileAsString, certfileAsString, "change me")
+    val pkcs12certFileAsByteArray = convertPEMToPKCS12(keyfileAsString, certfileAsString, password)
 
     val keyInput = new ByteArrayInputStream(pkcs12certFileAsByteArray)
     import java.security.KeyStore
-    val password: Array[Char] = null
+    // Testing change me instead of null val password: Array[Char] = null
     val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
     val keyStore: KeyStore = KeyStore.getInstance("PKCS12")
 
-    keyStore.load(keyInput, password)
-    // keyInput.close()
-    keyManagerFactory.init(keyStore, password)
+    keyStore.load(keyInput, password.toCharArray)
+    keyInput.close()
+    keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
   }
 
