@@ -144,8 +144,8 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     ks.load(null)
     val certs = new Array[java.security.cert.Certificate](1)
     certs(0) = X509Certificate
-    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], password.toCharArray, certs )
-    ks.store(bos, password.toCharArray)
+    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], null, certs )
+    ks.store(bos, null)
     bos.close
     ks
   }
@@ -171,7 +171,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     */
     val uri = new URI(apiClient.getBasePath)
     logger.info("alias will be set to"+ uri.getHost)
-    val keyStore = getKeyStoreForPEM(keyfileAsString, certfileAsString, password, uri.getHost)
+    val keyStore = getKeyStoreForPEM(keyfileAsString, certfileAsString, null, uri.getHost)
     keyManagerFactory.init(keyStore, null)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
