@@ -18,6 +18,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.slf4j.LoggerFactory
+import sun.security.util.Password
 
 import scala.collection.mutable
 import scala.io.Source
@@ -139,15 +140,15 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
-    printCert(pkcs12certFileAsByteArray)
+    printCert(pkcs12certFileAsByteArray, password)
   }
 
   import java.security.KeyStore
 
-  private def printCert(cert: Array[Byte]): Unit = {
-    val p12 = KeyStore.getInstance("pkcs12")
+  private def printCert(cert: Array[Byte], password: String): Unit = {
+    val p12 = KeyStore.getInstance("PKCS12")
     val keyInput = new ByteArrayInputStream(cert)
-    p12.load(keyInput, "password".toCharArray)
+    p12.load(keyInput, password.toCharArray)
     val e = p12.aliases
     while ( {
       e.hasMoreElements
