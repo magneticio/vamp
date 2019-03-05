@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import java.io._
-import java.security.cert.{Certificate, CertificateFactory}
+import java.security.cert.{Certificate, CertificateFactory, X509Certificate}
 import java.security.{KeyStore, SecureRandom}
 import java.util
 import java.util.concurrent.TimeUnit
@@ -139,6 +139,30 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
+    printCert(pkcs12certFileAsByteArray)
+  }
+
+  import java.security.KeyStore
+
+  private def printCert(cert: Array[Byte]): Unit = {
+    val p12 = KeyStore.getInstance("pkcs12")
+    val keyInput = new ByteArrayInputStream(cert)
+    p12.load(keyInput, "password".toCharArray)
+    val e = p12.aliases
+    while ( {
+      e.hasMoreElements
+    }) {
+      val alias = e.nextElement.asInstanceOf[String]
+      val c = p12.getCertificate(alias).asInstanceOf[X509Certificate]
+      val subject = c.getSubjectDN
+      val subjectArray = subject.toString.split(",")
+      for (s <- subjectArray) {
+        val str = s.trim.split("=")
+        val key = str(0)
+        val value = str(1)
+        logger.info(key + " - " + value)
+      }
+    }
   }
 
   val watch = new K8sWatch(this)
