@@ -1,6 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import java.io._
+import java.net.{URI, URL}
 import java.security.cert.{Certificate, CertificateFactory, X509Certificate}
 import java.security.{KeyStore, SecureRandom}
 import java.util
@@ -120,6 +121,36 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
   }
 
 
+  def getKeyStoreForPEM(keyString: String, cerString: String, password: String, alias: String): KeyStore = { // Get the private key
+    var reader = new StringReader(keyString)
+    var pem = new PEMParser(reader)
+    val pemKeyPair = pem.readObject.asInstanceOf[PEMKeyPair]
+    val provider = new BouncyCastleProvider()
+    val jcaPEMKeyConverter = new JcaPEMKeyConverter().setProvider(provider)
+    val keyPair = jcaPEMKeyConverter.getKeyPair(pemKeyPair)
+    val key = keyPair.getPrivate
+    pem.close()
+    reader.close()
+    // Get the certificate
+    reader = new StringReader(cerString)
+    pem = new PEMParser(reader)
+    val certHolder = pem.readObject.asInstanceOf[X509CertificateHolder]
+    val X509Certificate = new JcaX509CertificateConverter().setProvider(provider).getCertificate(certHolder)
+    pem.close()
+    reader.close()
+    // Put them into a PKCS12 keystore and write it to a byte[]
+    val bos = new ByteArrayOutputStream()
+    val ks: KeyStore = KeyStore.getInstance("PKCS12")
+    ks.load(null)
+    val certs = new Array[java.security.cert.Certificate](1)
+    certs(0) = X509Certificate
+    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], password.toCharArray, certs )
+    ks.store(bos, password.toCharArray)
+    bos.close
+    ks
+  }
+
+
   private def setCert(apiClient: ApiClient, keyfilepath: String, certfilepath: String) : Unit = {
     logger.info("Setting up Client Certs: key file: "+keyfilepath+"  cert file: "+ certfilepath)
     val password = "change me" // default java password
@@ -133,10 +164,14 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     import java.security.KeyStore
     // Testing change me instead of null val password: Array[Char] = null
     val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+    /*
     val keyStore: KeyStore = KeyStore.getInstance("PKCS12")
-
     keyStore.load(keyInput, password.toCharArray)
     keyInput.close()
+    */
+    val uri = new URI(apiClient.getBasePath)
+    logger.info("alias will be set to"+ uri.getHost)
+    val keyStore = getKeyStoreForPEM(keyfileAsString, certfileAsString, password, uri.getHost)
     keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
