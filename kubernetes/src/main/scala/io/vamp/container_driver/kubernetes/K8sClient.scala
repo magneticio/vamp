@@ -131,12 +131,12 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) {
     val keyInput = new ByteArrayInputStream(pkcs12certFileAsByteArray)
     import java.security.KeyStore
     // Testing change me instead of null val password: Array[Char] = null
-    val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
+    val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
     val keyStore: KeyStore = KeyStore.getInstance("PKCS12")
 
-    keyStore.load(keyInput, null)
+    keyStore.load(keyInput, password.toCharArray)
     keyInput.close()
-    keyManagerFactory.init(keyStore, null)
+    keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
   }
 
