@@ -76,23 +76,18 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     if (config.password.nonEmpty) client.setPassword(config.password)
 
     //The order of the following 3 calls is relevant. Moving these method around is very likely to cause errors
-
-    logger.info("Verifying ssl")
     client.setVerifyingSsl(config.tlsCheck)
 
 
     if (config.clientCert.nonEmpty && config.privateKey.nonEmpty) {
-      logger.info("Setting certificate")
       setCert(client, config.privateKey, config.clientCert)
 
     }
 
     if (config.serverCaCert.nonEmpty) {
-      logger.info("Setting ssl ca cert")
       client.setSslCaCert(new FileInputStream(config.serverCaCert))
     }
 
-    logger.info("returning client")
     client
   }
 
@@ -105,36 +100,6 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     * @param password password for keystore default is change me
     * @return PKCS12 file as byte array
     */
-  def convertPEMToPKCS12(keyString: String, cerString: String, password: String): Array[Byte] = { // Get the private key
-    var reader = new StringReader(keyString)
-    var pem = new PEMParser(reader)
-    val pemKeyPair = pem.readObject.asInstanceOf[PEMKeyPair]
-    val provider = new BouncyCastleProvider()
-    val jcaPEMKeyConverter = new JcaPEMKeyConverter().setProvider(provider)
-    val keyPair = jcaPEMKeyConverter.getKeyPair(pemKeyPair)
-    val key = keyPair.getPrivate
-    pem.close()
-    reader.close()
-    // Get the certificate
-    reader = new StringReader(cerString)
-    pem = new PEMParser(reader)
-    val certHolder = pem.readObject.asInstanceOf[X509CertificateHolder]
-    val X509Certificate = new JcaX509CertificateConverter().setProvider(provider).getCertificate(certHolder)
-    pem.close()
-    reader.close()
-    // Put them into a PKCS12 keystore and write it to a byte[]
-    val bos = new ByteArrayOutputStream()
-    val ks: KeyStore = KeyStore.getInstance("PKCS12")
-    ks.load(null)
-    val certs = new Array[java.security.cert.Certificate](1)
-    certs(0) = X509Certificate
-    ks.setKeyEntry("alias", key.asInstanceOf[java.security.Key], password.toCharArray, certs )
-    ks.store(bos, password.toCharArray)
-    bos.close
-    bos.toByteArray
-  }
-
-
   def getKeyStoreForPEM(keyString: String, cerString: String, password: String, alias: String): KeyStore = { // Get the private key
     var reader = new StringReader(keyString)
     var pem = new PEMParser(reader)
@@ -171,10 +136,6 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     val keyfileAsString = scala.io.Source.fromFile(keyfilepath).mkString
     val certfileAsString = scala.io.Source.fromFile(certfilepath).mkString
 
-    val pkcs12certFileAsByteArray = convertPEMToPKCS12(keyfileAsString, certfileAsString, password)
-
-    logger.info("Cert converted to PCKS12 file length: "+ pkcs12certFileAsByteArray.size)
-    val keyInput = new ByteArrayInputStream(pkcs12certFileAsByteArray)
     import java.security.KeyStore
     // Testing change me instead of null val password: Array[Char] = null
     val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
@@ -189,7 +150,6 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
-    printCert(pkcs12certFileAsByteArray, password)
   }
 
   import java.security.KeyStore
