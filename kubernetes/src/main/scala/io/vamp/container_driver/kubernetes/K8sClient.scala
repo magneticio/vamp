@@ -77,16 +77,22 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
 
     //The order of the following 3 calls is relevant. Moving these method around is very likely to cause errors
 
+    logger.info("Verifying ssl")
     client.setVerifyingSsl(config.tlsCheck)
 
 
     if (config.clientCert.nonEmpty && config.privateKey.nonEmpty) {
+      logger.info("Setting certificate")
       setCert(client, config.privateKey, config.clientCert)
 
     }
 
-    if (config.serverCaCert.nonEmpty) client.setSslCaCert(new FileInputStream(config.serverCaCert))
+    if (config.serverCaCert.nonEmpty) {
+      logger.info("Setting ssl ca cert")
+      client.setSslCaCert(new FileInputStream(config.serverCaCert))
+    }
 
+    logger.info("returning client")
     client
   }
 
