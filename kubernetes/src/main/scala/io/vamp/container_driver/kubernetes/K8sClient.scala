@@ -74,12 +74,20 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     if (apiKey.nonEmpty) client.setApiKey(s"Bearer $apiKey")
     if (config.username.nonEmpty) client.setUsername(config.username)
     if (config.password.nonEmpty) client.setPassword(config.password)
-    if (config.serverCaCert.nonEmpty) client.setSslCaCert(new FileInputStream(config.serverCaCert))
+
+    //The order of the following 3 calls is relevant. Moving these method around is very likely to cause errors
+
+    client.setVerifyingSsl(config.tlsCheck)
+
+
     if (config.clientCert.nonEmpty && config.privateKey.nonEmpty) {
       setCert(client, config.privateKey, config.clientCert)
 
     }
-    client.setVerifyingSsl(config.tlsCheck)
+
+    if (config.serverCaCert.nonEmpty) client.setSslCaCert(new FileInputStream(config.serverCaCert))
+
+    client
   }
 
   /**
@@ -144,8 +152,8 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     ks.load(null)
     val certs = new Array[java.security.cert.Certificate](1)
     certs(0) = X509Certificate
-    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], null, certs )
-    ks.store(bos, null)
+    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], password.toCharArray, certs )
+    ks.store(bos, password.toCharArray)
     bos.close
     ks
   }
@@ -172,7 +180,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     val uri = new URI(apiClient.getBasePath)
     logger.info("alias will be set to"+ uri.getHost)
     val keyStore = getKeyStoreForPEM(keyfileAsString, certfileAsString, null, uri.getHost)
-    keyManagerFactory.init(keyStore, null)
+    keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
     logger.info("Cert added to api client.")
     printCert(pkcs12certFileAsByteArray, password)
