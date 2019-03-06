@@ -16,6 +16,8 @@ object K8sClientConfig {
       username = Config.string(s"$config.username")(),
       password = Config.string(s"$config.password")(),
       serverCaCert = Config.string(s"$config.server-ca-cert")(),
+      clientCert = Config.string(s"$config.client-cert")(),
+      privateKey = Config.string(s"$config.private-key")(),
       tlsCheck = Config.boolean(s"$config.tls-check")()
     )
   }
@@ -28,6 +30,8 @@ case class K8sClientConfig(
   username:     String,
   password:     String,
   serverCaCert: String,
+  clientCert:   String,
+  privateKey:   String,
   tlsCheck:     Boolean
 )
 
