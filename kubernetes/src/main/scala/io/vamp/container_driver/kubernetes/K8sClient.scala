@@ -1,22 +1,22 @@
 package io.vamp.container_driver.kubernetes
 
 import java.io._
-import java.net.{URI, URL}
-import java.security.cert.{Certificate, CertificateFactory, X509Certificate}
-import java.security.{KeyStore, SecureRandom}
+import java.net.{ URI, URL }
+import java.security.cert.{ Certificate, CertificateFactory, X509Certificate }
+import java.security.{ KeyStore, SecureRandom }
 import java.util
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import com.typesafe.scalalogging.{LazyLogging, Logger}
+import com.typesafe.scalalogging.{ LazyLogging, Logger }
 import io.kubernetes.client.ApiClient
-import io.kubernetes.client.apis.{ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api}
+import io.kubernetes.client.apis.{ ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api }
 import io.vamp.common.Namespace
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
+import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
+import org.bouncycastle.openssl.{ PEMKeyPair, PEMParser }
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.slf4j.LoggerFactory
 import sun.security.util.Password
@@ -78,7 +78,6 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     //The order of the following 3 calls is relevant. Moving these method around is very likely to cause errors
     client.setVerifyingSsl(config.tlsCheck)
 
-
     if (config.clientCert.nonEmpty && config.privateKey.nonEmpty) {
       setCert(client, config.privateKey, config.clientCert)
 
@@ -92,14 +91,14 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
   }
 
   /**
-    * Pem keys as private key and server certificates used as input in many applications
-    * but akka requires PKCS12 type keys for https, so this method is needed for conversion
-    * TODO: check keystore if this method is not actually needed.
-    * @param keyString private-key
-    * @param cerString server-certificate
-    * @param password password for keystore default is change me
-    * @return PKCS12 file as byte array
-    */
+   * Pem keys as private key and server certificates used as input in many applications
+   * but akka requires PKCS12 type keys for https, so this method is needed for conversion
+   * TODO: check keystore if this method is not actually needed.
+   * @param keyString private-key
+   * @param cerString server-certificate
+   * @param password password for keystore default is change me
+   * @return PKCS12 file as byte array
+   */
   def getKeyStoreForPEM(keyString: String, cerString: String, password: String, alias: String): KeyStore = { // Get the private key
     var reader = new StringReader(keyString)
     var pem = new PEMParser(reader)
@@ -123,15 +122,14 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     ks.load(null)
     val certs = new Array[java.security.cert.Certificate](1)
     certs(0) = X509Certificate
-    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], password.toCharArray, certs )
+    ks.setKeyEntry(alias, key.asInstanceOf[java.security.Key], password.toCharArray, certs)
     ks.store(bos, password.toCharArray)
     bos.close
     ks
   }
 
-
-  private def setCert(apiClient: ApiClient, keyfilepath: String, certfilepath: String) : Unit = {
-    logger.info("Setting up Client Certs: key file: "+keyfilepath+"  cert file: "+ certfilepath)
+  private def setCert(apiClient: ApiClient, keyfilepath: String, certfilepath: String): Unit = {
+    logger.info("Setting up Client Certs: key file: " + keyfilepath + "  cert file: " + certfilepath)
     val password = "change me" // default java password
     val keyfileAsString = scala.io.Source.fromFile(keyfilepath).mkString
     val certfileAsString = scala.io.Source.fromFile(certfilepath).mkString
@@ -145,7 +143,7 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     keyInput.close()
     */
     val uri = new URI(apiClient.getBasePath)
-    logger.info("alias will be set to"+ uri.getHost)
+    logger.info("alias will be set to" + uri.getHost)
     val keyStore = getKeyStoreForPEM(keyfileAsString, certfileAsString, password, uri.getHost)
     keyManagerFactory.init(keyStore, password.toCharArray)
     apiClient.setKeyManagers(keyManagerFactory.getKeyManagers)
@@ -159,14 +157,14 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     val keyInput = new ByteArrayInputStream(cert)
     p12.load(keyInput, password.toCharArray)
     val e = p12.aliases
-    while ( {
+    while ({
       e.hasMoreElements
     }) {
       val alias = e.nextElement.asInstanceOf[String]
       val c = p12.getCertificate(alias).asInstanceOf[X509Certificate]
       val subject = c.getSubjectDN
       val subjectArray = subject.toString.split(",")
-      for (s <- subjectArray) {
+      for (s ← subjectArray) {
         val str = s.trim.split("=")
         val key = str(0)
         val value = str(1)
