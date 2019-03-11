@@ -8,7 +8,7 @@ object K8sClientConfig {
 
   import KubernetesContainerDriver._
 
-  def apply()(implicit namespace: Namespace): K8sClientConfig = {
+  def apply(kubernetesNamespace: String)(implicit namespace: Namespace): K8sClientConfig = {
     K8sClientConfig(
       url = Config.string(s"$config.url")(),
       bearer = Config.string(s"$config.bearer")(),
@@ -18,6 +18,7 @@ object K8sClientConfig {
       serverCaCert = Config.string(s"$config.server-ca-cert")(),
       clientCert = Config.string(s"$config.client-cert")(),
       privateKey = Config.string(s"$config.private-key")(),
+      namespace = kubernetesNamespace,
       tlsCheck = Config.boolean(s"$config.tls-check")()
     )
   }
@@ -32,6 +33,7 @@ case class K8sClientConfig(
   serverCaCert: String,
   clientCert:   String,
   privateKey:   String,
+  namespace:    String,
   tlsCheck:     Boolean
 )
 

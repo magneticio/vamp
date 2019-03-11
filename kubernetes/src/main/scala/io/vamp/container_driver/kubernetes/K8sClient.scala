@@ -175,6 +175,8 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
     }
   }
 
+  val kubernetesNamespace: String = config.namespace
+
   val watch = new K8sWatch(this)
 
   val caches = new mutable.HashSet[K8sCache]()
