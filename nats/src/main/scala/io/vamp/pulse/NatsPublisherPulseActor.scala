@@ -1,6 +1,12 @@
 package io.vamp.pulse
 
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, StringReader }
+import java.security.{ KeyStore, SecureRandom }
+import org.json4s.ext.EnumNameSerializer
+
 import akka.actor.Actor
+import akka.http.scaladsl.{ ConnectionContext, HttpsConnectionContext }
+import io.nats.client.{ Nats, Options }
 import io.nats.streaming.{ AckHandler, StreamingConnection, StreamingConnectionFactory }
 import io.vamp.common.akka.IoC
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
@@ -10,12 +16,22 @@ import io.vamp.model.event._
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
-import org.json4s.ext.EnumNameSerializer
+import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManager, TrustManagerFactory }
 import org.json4s.native.Serialization.write
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
 import scala.util.{ Random, Try }
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, StringReader }
+import java.security.cert.{ Certificate, CertificateFactory }
+import java.security.{ KeyStore, SecureRandom }
+
+import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
+import org.bouncycastle.cert.X509CertificateHolder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.openssl.{ PEMKeyPair, PEMParser }
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 
 class NatsPublisherPulseActorMapper extends ClassMapper {
   val name = "natspublisher"
@@ -31,6 +47,109 @@ object NatsPublisherPulseActor {
   val natsUrl: ConfigMagnet[String] = Config.string(s"$config.nats.url")
   val clusterId: ConfigMagnet[String] = Config.string(s"$config.nats.cluster-id")
   val clientId: ConfigMagnet[String] = Config.string(s"$config.nats.client-id")
+  val token: ConfigMagnet[String] = Config.string(s"$config.nats.token")
+  val caCert: ConfigMagnet[String] = Config.string(s"$config.nats.ca-cert")
+  val clientCert: ConfigMagnet[String] = Config.string(s"$config.nats.client-cert")
+  val clientKey: ConfigMagnet[String] = Config.string(s"$config.nats.client-key")
+  val username: ConfigMagnet[String] = Config.string(s"$config.nats.username")
+  val password: ConfigMagnet[String] = Config.string(s"$config.nats.password")
+
+  def getTrustManager(sslCaCert: ByteArrayInputStream): Array[TrustManager] = {
+    val password = "change me".toCharArray
+    val certificateFactory: CertificateFactory = CertificateFactory.getInstance("X.509")
+    val certificates = certificateFactory.generateCertificates(sslCaCert)
+    /*
+    Empty ca cert is allowed
+    if (certificates.isEmpty())
+      throw new IllegalArgumentException("expected non-empty set of trusted certificates")
+    */
+    val caKeyStore: KeyStore = newEmptyKeyStore(password)
+    var index: Int = 0
+    val var8 = certificates.iterator()
+
+    while (var8.hasNext()) {
+      val certificate: Certificate = var8.next()
+      val certificateAlias = "ca" + Integer.toString(index)
+      caKeyStore.setCertificateEntry(certificateAlias, certificate)
+      index += 1
+    }
+
+    val trustManagerFactory: TrustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+    trustManagerFactory.init(caKeyStore)
+    val trustManagers = trustManagerFactory.getTrustManagers()
+    trustManagers
+  }
+
+  def newEmptyKeyStore(password: Array[Char]): KeyStore = {
+    val keyStore: KeyStore = KeyStore.getInstance(KeyStore.getDefaultType())
+    keyStore.load(null, password)
+    keyStore
+  }
+
+  /**
+   * Pem keys as private key and server certificates used as input in many applications
+   * but akka requires PKCS12 type keys for https, so this method is needed for conversion
+   * TODO: check keystore if this method is not actually needed.
+   *
+   * @param keyString private-key
+   * @param cerString server-certificate
+   * @param password password for keystore default is change me
+   * @return PKCS12 file as byte array
+   */
+  def convertPEMToPKCS12(keyString: String, cerString: String, password: String) = { // Get the private key
+    var reader = new StringReader(keyString)
+    var pem = new PEMParser(reader)
+    val pemKeyPair = pem.readObject.asInstanceOf[PEMKeyPair]
+    val provider = new BouncyCastleProvider()
+    val jcaPEMKeyConverter = new JcaPEMKeyConverter().setProvider(provider)
+    val keyPair = jcaPEMKeyConverter.getKeyPair(pemKeyPair)
+    val key = keyPair.getPrivate
+    pem.close()
+    reader.close()
+    // Get the certificate
+    reader = new StringReader(cerString)
+    pem = new PEMParser(reader)
+    val certHolder = pem.readObject.asInstanceOf[X509CertificateHolder]
+    val X509Certificate = new JcaX509CertificateConverter().setProvider(provider).getCertificate(certHolder)
+    pem.close()
+    reader.close()
+    // Put them into a PKCS12 keystore and write it to a byte[]
+    val bos = new ByteArrayOutputStream()
+    val ks = KeyStore.getInstance("PKCS12")
+    ks.load(null)
+    val certs = new Array[java.security.cert.Certificate](1)
+    certs(0) = X509Certificate
+    ks.setKeyEntry("alias", key.asInstanceOf[java.security.Key], password.toCharArray, certs)
+    ks.store(bos, password.toCharArray)
+    bos.close
+    bos.toByteArray
+  }
+
+  /**
+   * Creates and returns required SSL context using configuration
+   * @return Ssl context
+   */
+  def getSslContext(keyString: String, cerString: String, caString: String) = {
+    val keyManagers = {
+      if (keyString.nonEmpty && cerString.nonEmpty) {
+        val password = "change me"
+        val p12 = convertPEMToPKCS12(keyString, cerString, password)
+        val keystore = new ByteArrayInputStream(p12)
+        val ks = KeyStore.getInstance("PKCS12")
+        ks.load(keystore, password.toCharArray)
+        val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+        keyManagerFactory.init(ks, password.toCharArray)
+        keyManagerFactory.getKeyManagers
+      }
+      else {
+        null
+      }
+    }
+    val trustManagers = getTrustManager(new ByteArrayInputStream(caString.getBytes))
+    val sslContext = SSLContext.getInstance("TLS")
+    sslContext.init(keyManagers, trustManagers, new SecureRandom)
+    sslContext
+  }
 
 }
 
@@ -54,11 +173,49 @@ class NatsPublisherPulseActor extends NamespaceValueResolver with PulseActor wit
 
   lazy val clusterId = NatsPublisherPulseActor.clusterId()
   lazy val clientId = s"${NatsPublisherPulseActor.clientId()}_${namespace.name}_$randomId"
+  lazy val token = getOrElseNil(NatsPublisherPulseActor.token())
+  lazy val username = getOrElseNil(NatsPublisherPulseActor.username())
+  lazy val password = getOrElseNil(NatsPublisherPulseActor.password())
+  lazy val clientCert = NatsPublisherPulseActor.clientCert()
+  lazy val clientKey = NatsPublisherPulseActor.clientKey()
+  lazy val caCert = NatsPublisherPulseActor.caCert()
+
+  lazy val clientKeyContent: String = readFileIfExists(clientKey)
+  lazy val clientCertContent: String = readFileIfExists(clientCert)
+  lazy val caCertContent: String = readFileIfExists(caCert)
+
+  def getOrElseNil(input: String): String = {
+    if (input == null || input.isEmpty()) {
+      null
+    }
+    else {
+      input
+    }
+  }
+
+  def readFileIfExists(path: String): String = {
+    if (path.nonEmpty) {
+      scala.io.Source.fromFile(path).mkString
+    }
+    else {
+      ""
+    }
+  }
 
   lazy val natsUrl = NatsPublisherPulseActor.natsUrl()
   lazy val cf = {
     val scf = new StreamingConnectionFactory(clusterId, clientId)
+    val ctx = NatsPublisherPulseActor.getSslContext(clientKeyContent, clientCertContent, caCertContent)
     scf.setNatsUrl(natsUrl)
+    val o = new Options.Builder()
+      .server(natsUrl)
+      .userInfo(username, password)
+      .token(token)
+      .sslContext(ctx)
+      .maxReconnects(-1)
+      .build
+    val nc = Nats.connect(o)
+    scf.setNatsConnection(nc)
     scf
   }
 
@@ -78,9 +235,7 @@ class NatsPublisherPulseActor extends NamespaceValueResolver with PulseActor wit
         if (count > 0)
           sc.publish(subject, message.getBytes, ackHandler(subject, message, count - 1))
       }
-      else {
-        logger.info("Received ack for msg id %s ".format(guid))
-      }
+      else logger.info("Received ack for msg id %s ".format(guid))
     }
   }
 

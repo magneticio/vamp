@@ -79,7 +79,9 @@ val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
 val k8s = Seq("io.kubernetes" % "client-java" % "2.0.0")
 
-val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0")
+val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0",
+  "io.kubernetes" % "client-java" % "2.0.0")
+ // TODO: fix dependency: "org.bouncycastle" % "bcprov-jdk15on" % "1.49")
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
