@@ -27,7 +27,7 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
 
   private val cache = new CacheStore()
 
-  logger.info(s"starting Kubernetes cache: ${namespace.name}")
+  logger.debug(s"starting Kubernetes cache: ${namespace.name}")
 
   def readAllWithCache[T](kind: String, selector: String, request: () ⇒ T): T = {
     requestWithCache[T](read = true, "list", id(kind, selector = Option(selector).getOrElse("")), request)._2
@@ -52,7 +52,7 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
         logger.debug(s"K8sCache - Getting response from cache for $id on operation $operation")
         response match {
           case Left(r) ⇒ {
-            logger.info("K8sCache - Returning from cache for {} on operation {}", id, operation)
+            logger.debug("K8sCache - Returning from cache for {} on operation {}", id, operation)
             op → r
           }
           case Right(e) ⇒ {
@@ -62,20 +62,20 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
         }
       case _ ⇒
         try {
-          logger.info("K8sCache - Sending request for {} on operation {}", id, operation)
+          logger.debug("K8sCache - Sending request for {} on operation {}", id, operation)
           val response = request()
-          logger.info("K8sCache - Request sent for {} on operation {}", id, operation)
+          logger.debug("K8sCache - Request sent for {} on operation {}", id, operation)
           val ttl = if (read) config.readTimeToLivePeriod else config.writeTimeToLivePeriod
-          logger.info(s"cK8sCache - cache put [${ttl.toSeconds}s]: $id on operation $operation")
+          logger.debug(s"cK8sCache - cache put [${ttl.toSeconds}s]: $id on operation $operation")
           cache.put[(String, Either[T, Exception])](id, operation → Left(response), ttl)
-          logger.info("K8sCache - Returning from request for {} on operation {}", id, operation)
+          logger.debug("K8sCache - Returning from request for {} on operation {}", id, operation)
           operation → response
         }
         catch {
           case e: Exception ⇒
             logger.error(s"K8sCache - Error while running request for $id on operation $operation", e)
             val ttl = config.failureTimeToLivePeriod
-            logger.info(s"cache put [${ttl.toSeconds}s]: $id")
+            logger.debug(s"cache put [${ttl.toSeconds}s]: $id")
             cache.put[(String, Either[T, Exception])](id, operation → Right(e), ttl)
             throw e
         }
@@ -85,17 +85,17 @@ class K8sCache(config: K8sCacheConfig, val namespace: Namespace) {
   def invalidate(kind: String, name: String): Unit = {
     val ofKind = all(kind)
     cache.keys.filter(_.startsWith(ofKind)).foreach { key ⇒
-      logger.info(s"invalidate cache: $key")
+      logger.debug(s"invalidate cache: $key")
       cache.remove(key)
     }
     (id(kind, name) :: id(kind, name, read = false) :: Nil).foreach { key ⇒
-      logger.info(s"invalidate cache: $key")
+      logger.debug(s"invalidate cache: $key")
       cache.remove(key)
     }
   }
 
   def close(): Unit = {
-    logger.info(s"closing Kubernetes cache: ${namespace.name}")
+    logger.debug(s"closing Kubernetes cache: ${namespace.name}")
     cache.close()
   }
 

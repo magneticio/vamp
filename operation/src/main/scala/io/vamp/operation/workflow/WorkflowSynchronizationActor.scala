@@ -33,7 +33,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
 
   private def synchronize() = {
 
-    logger.info("WorkflowSynchronizationActor - Synchronizing workflows")
+    logger.debug("WorkflowSynchronizationActor - Synchronizing workflows")
 
     implicit val timeout = PersistenceActor.timeout()
     forAll[Workflow](allArtifacts[Workflow], {
