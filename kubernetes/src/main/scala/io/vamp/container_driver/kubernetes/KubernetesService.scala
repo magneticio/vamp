@@ -69,7 +69,7 @@ trait KubernetesService extends KubernetesArtifact {
     ) match {
         case Some(_) ⇒
           if (update) {
-            log.info(s"Updating service: $name")
+            log.debug(s"Updating service: $name")
             k8sClient.cache.writeWithCache(
               K8sCache.update,
               K8sCache.services,
@@ -80,7 +80,7 @@ trait KubernetesService extends KubernetesArtifact {
           else log.debug(s"Service exists: $name")
 
         case None ⇒
-          log.info(s"Creating service: $name")
+          log.debug(s"Creating service: $name")
           k8sClient.cache.writeWithCache(
             K8sCache.create,
             K8sCache.services,
@@ -91,7 +91,7 @@ trait KubernetesService extends KubernetesArtifact {
   }
 
   protected def deleteService(name: String): Unit = {
-    log.info(s"Deleting service: $name")
+    log.debug(s"Deleting service: $name")
     import io.kubernetes.client.models.V1DeleteOptions
     val body = new V1DeleteOptions
     k8sClient.cache.writeWithCache(
@@ -103,7 +103,7 @@ trait KubernetesService extends KubernetesArtifact {
   }
 
   protected def createService(request: String): Unit = {
-    log.info(s"Creating service")
+    log.debug(s"Creating service")
     k8sClient.coreV1Api.createNamespacedService(
       customNamespace,
       k8sClient.coreV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Service]() {}.getType),

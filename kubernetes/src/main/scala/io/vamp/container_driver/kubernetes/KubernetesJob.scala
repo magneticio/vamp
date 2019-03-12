@@ -30,7 +30,7 @@ trait KubernetesJob extends KubernetesArtifact {
     ) match {
         case Some(_) ⇒ log.debug(s"Job exists: ${job.name}")
         case None ⇒
-          log.info(s"Creating job: ${job.name}")
+          log.debug(s"Creating job: ${job.name}")
 
           val request = new V1Job
           val metadata = new V1ObjectMeta
@@ -92,7 +92,7 @@ trait KubernetesJob extends KubernetesArtifact {
   }
 
   protected def deleteJob(group: String): Unit = {
-    log.info(s"Deleting job group: $group")
+    log.debug(s"Deleting job group: $group")
     jobs(group).foreach { job ⇒
       val name = job.getMetadata.getName
       k8sClient.cache.writeWithCache(

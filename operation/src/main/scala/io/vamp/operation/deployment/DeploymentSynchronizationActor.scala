@@ -66,7 +66,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(): Unit = {
-    log.info(s"deployment synchronization: ${namespace.name}")
+    log.debug(s"deployment synchronization: ${namespace.name}")
     forAll(allArtifacts[Deployment], { deployments ⇒
       val deploymentServices = deployments.map { deployment ⇒
         val services = deployment.clusters.flatMap { cluster ⇒
@@ -89,13 +89,13 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
-    log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
+    log.debug(s"[DeploymentSynchronizationActor] Deployment Synchronization started for ${containerService.deployment.name}")
     actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
       case Some(deployment: Deployment) ⇒ {
-        log.info(s"[DeploymentSynchronizationActor] Deployment Synchronization triggered for for ${containerService.deployment.name} network: ${containerService.service.network.getOrElse("Empty")}")
+        log.debug(s"[DeploymentSynchronizationActor] Deployment Synchronization triggered for for ${containerService.deployment.name} network: ${containerService.service.network.getOrElse("Empty")}")
         self ! (deployment → containerService)
       }
-      case _ ⇒ log.info(s"[DeploymentSynchronizationActor] Read from persistence got an unexpected data ${containerService.deployment.name}")
+      case _ ⇒ log.debug(s"[DeploymentSynchronizationActor] Read from persistence got an unexpected data ${containerService.deployment.name}")
     }
   }
 

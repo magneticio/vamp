@@ -31,26 +31,26 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
 
   protected override def request: PartialFunction[Workflow, Unit] = ({
     case workflow if workflow.schedule.isInstanceOf[EventSchedule] ⇒
-      logger.info("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule")
+      logger.debug("KubernetesWorkflowActor - Workflow schedule is an instance of EventSchedule")
 
       IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
         case Some(_) if runnable(workflow) ⇒
           if (workflow.instances.isEmpty) {
-            logger.info(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
+            logger.debug(s"KubernetesWorkflowActor - workflow.instances.isEmpty : ${workflow.instances.isEmpty}")
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
           }
         case _ ⇒
           if (workflow.instances.nonEmpty) {
-            logger.info(s"KubernetesWorkflowActor - workflow.instances.nonEmpty : ${workflow.instances.nonEmpty}")
+            logger.debug(s"KubernetesWorkflowActor - workflow.instances.nonEmpty : ${workflow.instances.nonEmpty}")
             IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
           }
       }
     //    case workflow ⇒
-    //      logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
+    //      logger.debug("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule - {}", workflow.toString)
     //      super.request
 
   }: PartialFunction[Workflow, Unit]) orElse {
-    logger.info("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule")
+    logger.debug("KubernetesWorkflowActor - workflow schedule is not an instance of EventSchedule")
     super.request
   }
 

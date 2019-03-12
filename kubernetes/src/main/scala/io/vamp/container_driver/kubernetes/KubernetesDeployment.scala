@@ -71,7 +71,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       id,
       () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDeploymentStatus(id, customNamespace, null)
     ).map { deployment ⇒
-        logger.info("KubernetesDeployment - Retrieved workflow deployment")
+        logger.debug("KubernetesDeployment - Retrieved workflow deployment")
         ContainerWorkflow(
           workflow,
           containers(
@@ -97,17 +97,17 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
         cpu ← request.get("cpu")
         memory ← request.get("memory")
       } yield {
-        logger.info("Quantity: cpu: {} memory: {}", cpu.toSuffixedString, memory.toSuffixedString)
+        logger.debug("Quantity: cpu: {} memory: {}", cpu.toSuffixedString, memory.toSuffixedString)
         DefaultScale(Quantity.of(cpu.toSuffixedString), MegaByte.of(memory.toSuffixedString), replicas)
       }
     }
     if (scale.isDefined) {
-      logger.info("KubernetesDeployment - scale is defined {}", scale.toString)
+      logger.debug("KubernetesDeployment - scale is defined {}", scale.toString)
 
       val instances = pods(id, selector).map { pod ⇒
         {
 
-          logger.info("KubernetesDeployment - Scale is defined and pod phase is {}", pod.getStatus.getPhase)
+          logger.debug("KubernetesDeployment - Scale is defined and pod phase is {}", pod.getStatus.getPhase)
 
           ContainerInstance(pod.getMetadata.getName, Option(pod.getStatus.getPodIP).getOrElse(""), ports, Try(pod.getStatus.getPhase.contains("Running")).toOption.getOrElse(false))
         }
@@ -115,7 +115,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       Option(Containers(scale.get, instances))
     }
     else {
-      logger.info("KubernetesDeployment - scale is undefined {}", scale.toString)
+      logger.debug("KubernetesDeployment - scale is undefined {}", scale.toString)
       None
     }
   }.recover {
@@ -138,7 +138,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     validateDeployable(service.breed.deployable)
 
     val id = appId(deployment, service.breed)
-    if (update) log.info(s"kubernetes update app: $id") else log.info(s"kubernetes create app: $id")
+    if (update) log.debug(s"kubernetes update app: $id") else log.debug(s"kubernetes create app: $id")
 
     val (local, dialect) = (deployment.dialects.get(KubernetesDeployment.dialect), cluster.dialects.get(KubernetesDeployment.dialect), service.dialects.get(KubernetesDeployment.dialect)) match {
       case (_, _, Some(d))       ⇒ Some(service) → d
@@ -160,7 +160,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
   protected def undeploy(deployment: Deployment, service: DeploymentService): Unit = {
     val id = appId(deployment, service.breed)
-    log.info(s"kubernetes delete app: $id")
+    log.debug(s"kubernetes delete app: $id")
     deleteDeployment(id)
   }
 
@@ -169,7 +169,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
     val id = appId(workflow)
-    if (update) log.info(s"kubernetes update workflow: ${workflow.name}") else log.info(s"kubernetes create workflow: ${workflow.name}")
+    if (update) log.debug(s"kubernetes update workflow: ${workflow.name}") else log.debug(s"kubernetes create workflow: ${workflow.name}")
 
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
     val dialect = workflow.dialects.getOrElse(KubernetesDeployment.dialect, Map())
@@ -187,7 +187,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
   protected def undeploy(workflow: Workflow): Unit = {
     val id = appId(workflow)
-    log.info(s"kubernetes delete workflow: ${workflow.name}")
+    log.debug(s"kubernetes delete workflow: ${workflow.name}")
     deleteDeployment(id)
   }
 
@@ -257,7 +257,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   }
 
   protected def createDeployment(request: String): Unit = {
-    log.info(s"Creating Kubernetes deployment")
+    log.debug(s"Creating Kubernetes deployment")
     k8sClient.extensionsV1beta1Api.createNamespacedDeployment(
       customNamespace,
       k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
@@ -266,7 +266,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   }
 
   protected def deleteDeployment(name: String): Unit = {
-    log.info(s"Deleting Kubernetes deployment $name")
+    log.debug(s"Deleting Kubernetes deployment $name")
     k8sClient.cache.writeWithCache(
       K8sCache.delete,
       K8sCache.deployments,

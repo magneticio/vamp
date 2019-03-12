@@ -100,7 +100,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
   private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = {
     implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
-    log.info(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
+    log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
     val attachment = (publishEventValue, event.value) match {
       case (true, str: String) ⇒ Map(typeName → str)
@@ -140,7 +140,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     // TODO: testing index type name, try using * as default value
     // val (indexName, typeName) = indexTypeName(query.`type`.getOrElse(Event.defaultType))
 
-    logger.info("Get Events called for index {} type was {}", indexName, query.`type`.getOrElse("None"))
+    logger.debug("Get Events called for index {} type was {}", indexName, query.`type`.getOrElse("None"))
 
     // '*' is added to index search so all types of events are returned.
     es.search[ElasticsearchSearchResponse](indexName + "*", constructSearch(query, p, pp)) map {
@@ -150,7 +150,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
         }
         EventResponseEnvelope(events, hits.total, p, pp)
       case other ⇒ {
-        logger.info("Get Events called for index {} and an error is occurred.", indexName)
+        logger.debug("Get Events called for index {} and an error is occurred.", indexName)
         reportException(EventQueryError(other))
       }
     }
