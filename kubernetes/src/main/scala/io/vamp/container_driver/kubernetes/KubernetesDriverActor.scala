@@ -65,7 +65,7 @@ class KubernetesDriverActor
 
   protected val schema: Enumeration = KubernetesDriverActor.Schema
 
-  private lazy val k8sConfig = K8sClientConfig()
+  private lazy val k8sConfig = K8sClientConfig(customNamespace)
 
   protected lazy val k8sClient: K8sClient = K8sClient.acquire(k8sConfig)
 

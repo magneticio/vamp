@@ -25,7 +25,7 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with WorkflowValueRes
 
   override protected lazy val supportedDeployableTypes: List[DeployableType] = DockerDeployableType :: Nil
 
-  override protected lazy val info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → K8sClientConfig().url)))
+  override protected lazy val info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → K8sClientConfig(customNamespace).url)))
 
   override protected lazy val driverActor: ActorRef = IoC.actorFor[KubernetesDriverActor]
 
