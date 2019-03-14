@@ -78,7 +78,7 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
         log.debug(s"cache get: $key")
         result
       case None ⇒
-        log.info(s"cache put [${cacheTtl.toSeconds} s]: $key")
+        log.debug(s"cache put [${cacheTtl.toSeconds} s]: $key")
         val value = get(path)
         cache.put(key, value, cacheTtl)
         value
@@ -87,7 +87,7 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
 
   private def cacheSet(path: List[String], data: Option[String]): Future[Any] = set(path, data).map { result ⇒
     val key = cacheId(path)
-    log.info(s"cache put [${cacheTtl.toSeconds} s]: $key")
+    log.debug(s"cache put [${cacheTtl.toSeconds} s]: $key")
     cache.put(key, Future.successful(data), cacheTtl)
     result
   }
