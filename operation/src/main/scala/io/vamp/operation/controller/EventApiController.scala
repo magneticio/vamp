@@ -53,7 +53,7 @@ trait EventApiController extends AbstractController with LazyLogging {
   }
 
   def queryEvents(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
-    logger.info("Events are queried with request {}", request)
+    logger.debug("Events are queried with request {}", request)
     val query = parseQuery(parameters, request)
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
