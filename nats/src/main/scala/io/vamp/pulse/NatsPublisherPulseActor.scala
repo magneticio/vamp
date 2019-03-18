@@ -145,7 +145,11 @@ object NatsPublisherPulseActor {
         null
       }
     }
-    val trustManagers = getTrustManager(new ByteArrayInputStream(caString.getBytes))
+    val trustManagers = if(caString.nonEmpty) {
+      getTrustManager(new ByteArrayInputStream(caString.getBytes))
+    } else {
+      null
+    }
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagers, trustManagers, new SecureRandom)
     sslContext
