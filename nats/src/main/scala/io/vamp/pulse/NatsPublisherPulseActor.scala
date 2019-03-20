@@ -127,32 +127,39 @@ object NatsPublisherPulseActor {
 
   /**
    * Creates and returns required SSL context using configuration
+   * can return null if ssl files are empty
    * @return Ssl context
    */
   def getSslContext(keyString: String, cerString: String, caString: String) = {
-    val keyManagers = {
-      if (keyString.nonEmpty && cerString.nonEmpty) {
-        val password = "change me"
-        val p12 = convertPEMToPKCS12(keyString, cerString, password)
-        val keystore = new ByteArrayInputStream(p12)
-        val ks = KeyStore.getInstance("PKCS12")
-        ks.load(keystore, password.toCharArray)
-        val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
-        keyManagerFactory.init(ks, password.toCharArray)
-        keyManagerFactory.getKeyManagers
+    if (keyString.nonEmpty || cerString.nonEmpty || caString.nonEmpty) {
+      val keyManagers = {
+        if (keyString.nonEmpty && cerString.nonEmpty) {
+          val password = "change me"
+          val p12 = convertPEMToPKCS12(keyString, cerString, password)
+          val keystore = new ByteArrayInputStream(p12)
+          val ks = KeyStore.getInstance("PKCS12")
+          ks.load(keystore, password.toCharArray)
+          val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+          keyManagerFactory.init(ks, password.toCharArray)
+          keyManagerFactory.getKeyManagers
+        }
+        else {
+          null
+        }
+      }
+      val trustManagers = if (caString.nonEmpty) {
+        getTrustManager(new ByteArrayInputStream(caString.getBytes))
       }
       else {
         null
       }
+      val sslContext = SSLContext.getInstance("TLS")
+      sslContext.init(keyManagers, trustManagers, new SecureRandom)
+      sslContext
     }
-    val trustManagers = if(caString.nonEmpty) {
-      getTrustManager(new ByteArrayInputStream(caString.getBytes))
-    } else {
+    else {
       null
     }
-    val sslContext = SSLContext.getInstance("TLS")
-    sslContext.init(keyManagers, trustManagers, new SecureRandom)
-    sslContext
   }
 
 }
