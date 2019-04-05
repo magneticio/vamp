@@ -1,30 +1,29 @@
 package io.vamp.operation.gateway
 
 import akka.actor.Actor
-import akka.http.scaladsl.model.HttpEntity.Default
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.common.util.HashUtil
-import io.vamp.common.{ Config, ConfigMagnet, Namespace, NamespaceProvider }
-import io.vamp.container_driver.ContainerDriverActor.{ DeployedGateways, GetRoutingGroups }
-import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup }
+import io.vamp.common.{Config, ConfigMagnet, Namespace, NamespaceProvider}
+import io.vamp.container_driver.ContainerDriverActor.{DeployedGateways, GetRoutingGroups}
+import io.vamp.container_driver.{ContainerDriverActor, RoutingGroup}
 import io.vamp.gateway_driver.GatewayDriverActor
-import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
+import io.vamp.gateway_driver.GatewayDriverActor.{Pull, Push}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.notification.InvalidSelectorError
-import io.vamp.model.reader.{ NameValidator, Percentage }
-import io.vamp.model.resolver.{ ConfigurationValueResolver, ValueResolver }
+import io.vamp.model.reader.{NameValidator, Percentage}
+import io.vamp.model.resolver.{ConfigurationValueResolver, ValueResolver}
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport, PersistenceActor}
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -205,10 +204,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }
 
         if (all != gateway.routes) {
-          compareNewRoutesAndGenerateEvents(gateway, all, "routes in Gateway Synchronization all != gateway.routes")
-          val ng = gateway.copy(routes = all)
-          IoC.actorFor[PersistenceActor] ! Update(ng)
-          ng
+          val updatedGateway = gateway.copy(routes = all)
+          compareNewRoutesAndGenerateEvents(gateway, updatedGateway, "routes in Gateway Synchronization all != gateway.routes")
+          IoC.actorFor[PersistenceActor] ! Update(updatedGateway)
+          updatedGateway
         }
         else gateway
 
@@ -228,8 +227,9 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
-        compareNewRoutesAndGenerateEvents(gateway, routes, "gateway.selector is None")
-        gateway.copy(routes = routes)
+        val updatedGateway = gateway.copy(routes = routes)
+        compareNewRoutesAndGenerateEvents(gateway, updatedGateway, "gateway.selector is None")
+        updatedGateway
     }
   }
 

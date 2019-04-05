@@ -6,14 +6,11 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.{ Config, ConfigMagnet }
+import io.vamp.common.{Config, ConfigMagnet}
 import io.vamp.model.artifact._
-import io.vamp.model.event.Event
-import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
+import io.vamp.model.reader.{GatewayRouteValidation, Percentage}
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
-import io.vamp.pulse.PulseActor
-import io.vamp.pulse.PulseActor.Publish
+import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -75,8 +72,10 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
         Try((process andThen validate andThen persist(source, create = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
 
-    // Route changes should be checked for both external internal gateways
-    checkRouteChanges(gateway)
+    if (!validateOnly) {
+      // Route changes should be checked for both external internal gateways
+      checkRouteChanges(gateway)
+    }
 
     if (gateway.internal && !force) routeChanged(gateway) flatMap {
       case true  ⇒ Future.failed(reportException(InternalGatewayUpdateError(gateway.name)))
@@ -102,7 +101,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   private def checkRouteChanges(gateway: Gateway): Unit = {
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
       case Some(old: Gateway) ⇒
-        compareNewRoutesAndGenerateEvents(old, gateway.routes, "routeChanged")
+        compareNewRoutesAndGenerateEvents(old, gateway, "routeChanged")
       case _ ⇒ logger.debug(s"Gateway ${gateway.name} doesn't exist")
     }
   }
@@ -123,7 +122,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def process: Gateway ⇒ Gateway = { gateway ⇒
 
-    val updatedWeights = if (gateway.routes.forall(_.isInstanceOf[DefaultRoute])) {
+    val newGateway = if (gateway.routes.forall(_.isInstanceOf[DefaultRoute])) {
 
       val allRoutes = gateway.routes.map(_.asInstanceOf[DefaultRoute])
 
@@ -153,13 +152,13 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     }
     else gateway
 
-    val routes = updatedWeights.routes.map(_.asInstanceOf[DefaultRoute]).map { route ⇒
+    val routes = newGateway.routes.map(_.asInstanceOf[DefaultRoute]).map { route ⇒
       val default = if (route.definedCondition) 100 else 0
       route.copy(conditionStrength = Option(route.conditionStrength.getOrElse(Percentage(default))))
     }
-
-    compareNewRoutesAndGenerateEvents(gateway, routes, "process")
-    updatedWeights.copy(routes = routes)
+    val gatewayWithUpdatedRoutes = newGateway.copy(routes = routes)
+    compareNewRoutesAndGenerateEvents(gateway, gatewayWithUpdatedRoutes, "process")
+    gatewayWithUpdatedRoutes
   }
 
   private def validate: Gateway ⇒ Gateway = validateGatewayRouteWeights andThen validateGatewayRouteConditionStrengths
