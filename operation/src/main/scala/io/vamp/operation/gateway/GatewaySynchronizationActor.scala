@@ -1,7 +1,6 @@
 package io.vamp.operation.gateway
 
 import akka.actor.Actor
-import akka.http.scaladsl.model.HttpEntity.Default
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
@@ -205,10 +204,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }
 
         if (all != gateway.routes) {
-          compareNewRoutesAndGenerateEvents(gateway, all, "routes in Gateway Synchronization all != gateway.routes")
-          val ng = gateway.copy(routes = all)
-          IoC.actorFor[PersistenceActor] ! Update(ng)
-          ng
+          val updatedGateway = gateway.copy(routes = all)
+          compareNewRoutesAndGenerateEvents(gateway, updatedGateway, "routes in Gateway Synchronization all != gateway.routes")
+          IoC.actorFor[PersistenceActor] ! Update(updatedGateway)
+          updatedGateway
         }
         else gateway
 
@@ -228,8 +227,9 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
             route.copy(targets = routeTargets)
           case route ⇒ route
         }
-        compareNewRoutesAndGenerateEvents(gateway, routes, "gateway.selector is None")
-        gateway.copy(routes = routes)
+        val updatedGateway = gateway.copy(routes = routes)
+        compareNewRoutesAndGenerateEvents(gateway, updatedGateway, "gateway.selector is None")
+        updatedGateway
     }
   }
 
