@@ -6,11 +6,11 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.{Config, ConfigMagnet}
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{GatewayRouteValidation, Percentage}
+import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 
 import scala.concurrent.Future
 import scala.util.Try

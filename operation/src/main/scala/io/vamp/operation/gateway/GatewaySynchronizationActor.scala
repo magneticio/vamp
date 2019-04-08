@@ -7,23 +7,23 @@ import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.common.util.HashUtil
-import io.vamp.common.{Config, ConfigMagnet, Namespace, NamespaceProvider}
-import io.vamp.container_driver.ContainerDriverActor.{DeployedGateways, GetRoutingGroups}
-import io.vamp.container_driver.{ContainerDriverActor, RoutingGroup}
+import io.vamp.common.{ Config, ConfigMagnet, Namespace, NamespaceProvider }
+import io.vamp.container_driver.ContainerDriverActor.{ DeployedGateways, GetRoutingGroups }
+import io.vamp.container_driver.{ ContainerDriverActor, RoutingGroup }
 import io.vamp.gateway_driver.GatewayDriverActor
-import io.vamp.gateway_driver.GatewayDriverActor.{Pull, Push}
+import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.notification.InvalidSelectorError
-import io.vamp.model.reader.{NameValidator, Percentage}
-import io.vamp.model.resolver.{ConfigurationValueResolver, ValueResolver}
+import io.vamp.model.reader.{ NameValidator, Percentage }
+import io.vamp.model.resolver.{ ConfigurationValueResolver, ValueResolver }
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.Namespace
 import io.vamp.common.akka.IoC
-import io.vamp.model.artifact.{DefaultCondition, DefaultRoute, Gateway}
+import io.vamp.model.artifact.{ DefaultCondition, DefaultRoute, Gateway }
 import io.vamp.model.event.Event
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
