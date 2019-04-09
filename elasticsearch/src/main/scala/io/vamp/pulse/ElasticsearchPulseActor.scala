@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 import akka.actor.Actor
+import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties }
 import io.vamp.common.{ ClassMapper, Config, ConfigMagnet, Namespace }
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
@@ -51,7 +52,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
   lazy val indexTimeFormat: Map[String, String] = ElasticsearchPulseActor.indexTimeFormat()
 
-  private lazy val es = new ElasticsearchClient(url)
+  private lazy val es = new ElasticsearchClient(ElasticClient(ElasticProperties(url)))
 
   private var boolFilteredKeyword: String = "bool"
 

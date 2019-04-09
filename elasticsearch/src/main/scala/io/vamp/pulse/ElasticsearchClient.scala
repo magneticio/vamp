@@ -6,6 +6,8 @@ import java.time.{ Instant, ZoneId, ZonedDateTime }
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
+import com.sksamuel.elastic4s.http.search.SearchResponse
+import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties, Response }
 import io.vamp.common.Namespace
 import io.vamp.common.http.{ HttpClient, HttpClientException }
 import org.json4s.native.JsonMethods._
@@ -13,6 +15,9 @@ import org.json4s.{ DefaultFormats, Formats, StringInput }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
+import ElasticsearchClient._
+import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.http.cluster.ClusterHealthResponse
 
 object ElasticsearchClient {
 
@@ -36,27 +41,36 @@ object ElasticsearchClient {
 
 }
 
-class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namespace: Namespace, val system: ActorSystem) {
-
-  import ElasticsearchClient._
-
+class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Timeout, val namespace: Namespace, val system: ActorSystem) {
   private val httpClient = new HttpClient
 
   implicit val executionContext: ExecutionContext = system.dispatcher
 
+  val url = "test"
+
   val baseUrl: String = if (url.endsWith("/")) url.substring(0, url.length - 1) else url
 
-  def health: Future[Any] = httpClient.get[Any](urlOf(url, "_cluster", "health"))
+  def health(): Future[String] = {
+    val responseFuture = elasticClient.execute(clusterHealth())
+    responseFuture.map(response => response.body.getOrElse("Could not get cluster health information"))
+  }
 
-  def version(): Future[Option[String]] = httpClient
-    .get[Map[String, Any]](url)
-    .map(m ⇒
+  def version(): Future[Option[String]] = {
+    val catMasterResponseFuture = elasticClient.execute(catMaster())
+    val masterIdFuture = catMasterResponseFuture.map(response =>
       for {
-        version ← m.get("version")
-        versionMap ← Try(version.asInstanceOf[Map[String, Any]]).toOption
-        number ← versionMap.get("number")
-        numberS ← Try(number.asInstanceOf[String]).toOption
-      } yield numberS)
+        responseOption <- response.toOption
+        masterIdOption <- Option(responseOption.id)
+      } yield masterIdOption)
+
+    val nodesInfoResponseFuture = masterIdFuture.flatMap(masterId => elasticClient.execute(nodeInfo(masterId)))
+    nodesInfoResponseFuture.map(response =>
+      for {
+        responseOption <- response.toOption
+        nodeInfoOption <- responseOption.nodes.headOption
+        versionOption <- Option(nodeInfoOption._2.version)
+      } yield versionOption)
+  }
 
   def creationTime(index: String): Future[String] = httpClient.get[Any](urlOf(url, index)) map {
     case response: Map[_, _] ⇒ Try {
@@ -76,7 +90,7 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
   def exists(index: String, `type`: String, id: String): Future[Boolean] = {
     httpClient.get[Any](urlOf(url, index, `type`, id), logError = false) map {
       case response: Map[_, _] ⇒ Try(response.asInstanceOf[Map[String, Boolean]].getOrElse("found", false)).getOrElse(false)
-      case _                   ⇒ false
+      case _ ⇒ false
     }
   }
 
@@ -106,8 +120,17 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
   def search[A](index: String, `type`: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
     httpClient.post[A](urlOf(url, index, `type`, "_search"), query)
 
-  def count(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] =
-    httpClient.post[ElasticsearchCountResponse](urlOf(url, index, "_count"), query)
+
+  def count(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] = {
+    val extendedStatsAggregation = "test1"
+    val a: Future[Response[SearchResponse]] = elasticClient.execute {
+      com.sksamuel.elastic4s.http.ElasticDsl.search(index).rawQuery(query.toString)
+      //        .aggs {
+      //        extendedStatsAggregation(extendedStatsAggregation)
+      //      }
+    }
+    a.map(s => ElasticsearchCountResponse(s.result.aggs.extendedStats(extendedStatsAggregation).count))
+  }
 
   def aggregate(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
     httpClient.post[ElasticsearchAggregationResponse](urlOf(url, index, "_search"), query)

@@ -16,10 +16,10 @@ scalaVersion in ThisBuild := scalaVersion.value
 
 description in ThisBuild := """Vamp"""
 
-organizationName in ThisBuild  := "Magnetic.io"
-organizationHomepage in ThisBuild  := Some(url("http://magnetic.io"))
+organizationName in ThisBuild := "Magnetic.io"
+organizationHomepage in ThisBuild := Some(url("http://magnetic.io"))
 
-bintrayOrganization in ThisBuild  := Some("magnetic-io")
+bintrayOrganization in ThisBuild := Some("magnetic-io")
 bintrayRepository in ThisBuild := "vamp"
 
 licenses in ThisBuild += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
@@ -66,7 +66,7 @@ val sql = Seq(
 
 val caching = Seq("com.github.cb372" %% "scalacache-caffeine" % "0.22.0")
 
-val config = Seq("com.typesafe"  % "config" % "1.3.1")
+val config = Seq("com.typesafe" % "config" % "1.3.1")
 
 val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
 
@@ -81,7 +81,13 @@ val k8s = Seq("io.kubernetes" % "client-java" % "2.0.0")
 
 val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0",
   "io.kubernetes" % "client-java" % "2.0.0")
- // TODO: fix dependency: "org.bouncycastle" % "bcprov-jdk15on" % "1.49")
+// TODO: fix dependency: "org.bouncycastle" % "bcprov-jdk15on" % "1.49")
+
+val elastic4sVersion = "6.5.1"
+val elastic4s = Seq(
+  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
+  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test")
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -105,7 +111,7 @@ lazy val root = project.in(file(".")).settings(
     (run in bootstrap in Compile).evaluated
   },
   publishLocal := {},
-  publish := { },
+  publish := {},
   bintrayUnpublish := {}
 ).aggregate(
   common,
@@ -236,7 +242,7 @@ lazy val elasticsearch = project.settings(
   description := "Pulse and metrics driver for Elasticsearch",
   name := "vamp-elasticsearch",
   formatting,
-  libraryDependencies ++= testing,
+  libraryDependencies ++= elastic4s ++ testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
 
@@ -280,7 +286,7 @@ lazy val consul = project.settings(
   bintrayRepository := "vamp"
 ).dependsOn(persistence)
 
-lazy val etcd =  project.settings(
+lazy val etcd = project.settings(
   description := "Driver for ETCD",
   name := "vamp-etcd",
   formatting,
@@ -303,6 +309,7 @@ lazy val docker = project.settings(
   libraryDependencies ++= testing ++ dockerlbs,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
+
 
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
