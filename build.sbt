@@ -51,10 +51,19 @@ val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
   "ch.qos.logback" % "logback-classic" % "1.1.7" ::
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.5.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
+val elastic4sVersion = "6.5.1"
+val elastic4s = Seq(
+  "org.apache.logging.log4j" % "log4j-core" % "2.8.2",
+  "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.8.2" ,
+  "org.apache.logging.log4j" % "log4j-api" % "2.8.2",
+  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion)
+
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test" ::
-  "com.typesafe.akka" %% "akka-testkit" % "2.5.9" % "test" :: Nil
+  "com.typesafe.akka" %% "akka-testkit" % "2.5.9" % "test" ::
+  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test" ::
+  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test" :: Nil
 
 val templating = Seq("org.jtwig" % "jtwig-core" % "5.65")
 
@@ -83,11 +92,7 @@ val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0",
   "io.kubernetes" % "client-java" % "2.0.0")
 // TODO: fix dependency: "org.bouncycastle" % "bcprov-jdk15on" % "1.49")
 
-val elastic4sVersion = "6.5.1"
-val elastic4s = Seq(
-  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
-  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
-  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test")
+
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(

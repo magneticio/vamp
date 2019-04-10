@@ -4,12 +4,14 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 import akka.actor.Actor
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties }
-import io.vamp.common.{ ClassMapper, Config, ConfigMagnet, Namespace }
+import com.sksamuel.elastic4s.searches.queries.RawQuery
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.util.HashUtil
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
+import io.vamp.common.{ ClassMapper, Config, ConfigMagnet, Namespace }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
 import io.vamp.model.resolver.NamespaceValueResolver
@@ -21,6 +23,7 @@ import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
 import scala.util.Try
+import scala.util.parsing.json.JSONObject
 
 class ElasticsearchPulseActorMapper extends ClassMapper {
   val name = "elasticsearch"
@@ -41,7 +44,7 @@ object ElasticsearchPulseActor {
 }
 
 class ElasticsearchPulseActor extends ElasticsearchPulseEvent
-    with NamespaceValueResolver with PulseStats with PulseActor with PulseActorSupport {
+  with NamespaceValueResolver with PulseStats with PulseActor with PulseActorSupport {
 
   import ElasticsearchClient._
   import PulseActor._
@@ -59,8 +62,8 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
   private var mustQueryKeyword: String = "must"
 
   /**
-   * Sets filterKeyword pending on elasticsearch version for creating the correct pulse queries in constructQuery.
-   */
+    * Sets filterKeyword pending on elasticsearch version for creating the correct pulse queries in constructQuery.
+    */
   override def preStart(): Unit = {
     super.preStart()
     es.version().foreach {
@@ -83,9 +86,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
     case StatsRequest ⇒ reply(stats)
 
-    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue)) (Event.expandTags(event)), classOf[EventIndexError])
 
-    case Query(envelope) ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
+    case Query(envelope) ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage)) (envelope.request), classOf[EventQueryError])
 
     case GetPercolator(name) ⇒ reply(Future.successful(getPercolator(name)))
 
@@ -105,8 +108,8 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
     val attachment = (publishEventValue, event.value) match {
       case (true, str: String) ⇒ Map(typeName → str)
-      case (true, any)         ⇒ Map("value" → write(any)(DefaultFormats), typeName → (if (typeName == Event.defaultType) "" else any))
-      case (false, _)          ⇒ Map("value" → "")
+      case (true, any) ⇒ Map("value" → write(any)(DefaultFormats), typeName → (if (typeName == Event.defaultType) "" else any))
+      case (false, _) ⇒ Map("value" → "")
     }
 
     val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
@@ -121,16 +124,16 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
   private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
     case event: Event ⇒ percolate(publishEventValue)(event)
-    case other        ⇒ other
+    case other ⇒ other
   }
 
   protected def eventQuery(page: Int, perPage: Int)(query: EventQuery): Future[Any] = {
     log.debug(s"Pulse query: $query")
     query.aggregator match {
-      case None                                    ⇒ getEvents(query, page, perPage)
+      case None ⇒ getEvents(query, page, perPage)
       case Some(Aggregator(Aggregator.`count`, _)) ⇒ countEvents(query)
-      case Some(Aggregator(aggregator, field))     ⇒ aggregateEvents(query, aggregator, field)
-      case _                                       ⇒ throw new UnsupportedOperationException
+      case Some(Aggregator(aggregator, field)) ⇒ aggregateEvents(query, aggregator, field)
+      case _ ⇒ throw new UnsupportedOperationException
     }
   }
 
@@ -157,9 +160,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     }
   }
 
-  protected def countEvents(eventQuery: EventQuery): Future[Any] = es.count(indexName, constructQuery(eventQuery)) map {
+  protected def countEvents(eventQuery: EventQuery): Future[Any] = es.count(indexName, getRawQuery(eventQuery)) map {
     case ElasticsearchCountResponse(count) ⇒ LongValueAggregationResult(count)
-    case other                             ⇒ reportException(EventQueryError(other))
+    case other ⇒ reportException(EventQueryError(other))
   }
 
   private def constructSearch(eventQuery: EventQuery, page: Int, perPage: Int): Map[Any, Any] = {
@@ -168,6 +171,20 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
       ("size" → perPage) +
       ("sort" → Map("timestamp" → Map("order" → "desc")))
   }
+
+  private def getRawQuery(eventQuery: EventQuery): RawQuery = rawQuery(
+    JSONObject(
+      Map("query" →
+        Map(boolFilteredKeyword →
+          Map(
+            mustQueryKeyword → Map("match_all" → Map()),
+            "filter" → Map("bool" →
+              Map("must" → List(
+                constructTagQuery(eventQuery.tags),
+                constructTypeQuery(eventQuery.`type`),
+                constructTimeRange(eventQuery.timestamp)
+              ).filter(_.isDefined).map(_.get)))
+          )))).toString())
 
   private def constructQuery(eventQuery: EventQuery): Map[Any, Any] =
     Map("query" →
@@ -213,7 +230,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
   private def constructAggregation(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]): Map[Any, Any] = {
     val aggregation = aggregator match {
       case Aggregator.average ⇒ "avg"
-      case _                  ⇒ aggregator.toString
+      case _ ⇒ aggregator.toString
     }
 
     constructQuery(eventQuery) +
