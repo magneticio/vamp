@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 import akka.actor.Actor
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties }
+import com.sksamuel.elastic4s.searches.aggs._
 import com.sksamuel.elastic4s.searches.queries.RawQuery
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
@@ -18,6 +19,7 @@ import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
+import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.{ read, write }
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
@@ -114,7 +116,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
     val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
 
-    es.index[ElasticsearchIndexResponse](indexName, typeName, data) map {
+    es.index(indexName, typeName, JsonMethods.compact(JsonMethods.render(data))) map {
       case r: ElasticsearchIndexResponse ⇒ event.copy(id = Option(convertId(r._id)))
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
@@ -146,8 +148,11 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
     logger.debug("Get Events called for index {} type was {}", indexName, query.`type`.getOrElse("None"))
 
+    val from = (p - 1) * pp
+    val sort = fieldSort("timestamp").desc()
+
     // '*' is added to index search so all types of events are returned.
-    es.search[ElasticsearchSearchResponse](indexName + "*", constructSearch(query, p, pp)) map {
+    es.search(indexName + "*", getRawQuery(constructQuery(query)), from, pp, sort) map {
       case ElasticsearchSearchResponse(hits) ⇒
         val events = hits.hits.flatMap { hit ⇒
           Try(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id)), digest = hit._source.get("digest").asInstanceOf[Option[String]])).toOption
@@ -160,44 +165,25 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     }
   }
 
-  protected def countEvents(eventQuery: EventQuery): Future[Any] = es.count(indexName, getRawQuery(eventQuery)) map {
+  protected def countEvents(eventQuery: EventQuery): Future[Any] = es.count(indexName, getRawQuery(constructQuery(eventQuery))) map {
     case ElasticsearchCountResponse(count) ⇒ LongValueAggregationResult(count)
     case other ⇒ reportException(EventQueryError(other))
   }
 
-  private def constructSearch(eventQuery: EventQuery, page: Int, perPage: Int): Map[Any, Any] = {
-    constructQuery(eventQuery) +
-      ("from" → ((page - 1) * perPage)) +
-      ("size" → perPage) +
-      ("sort" → Map("timestamp" → Map("order" → "desc")))
-  }
+  private def getRawQuery(queryMap: Map[String, Any]): RawQuery =
+    rawQuery(JSONObject(queryMap).toString())
 
-  private def getRawQuery(eventQuery: EventQuery): RawQuery = rawQuery(
-    JSONObject(
-      Map("query" →
-        Map(boolFilteredKeyword →
-          Map(
-            mustQueryKeyword → Map("match_all" → Map()),
-            "filter" → Map("bool" →
-              Map("must" → List(
-                constructTagQuery(eventQuery.tags),
-                constructTypeQuery(eventQuery.`type`),
-                constructTimeRange(eventQuery.timestamp)
-              ).filter(_.isDefined).map(_.get)))
-          )))).toString())
-
-  private def constructQuery(eventQuery: EventQuery): Map[Any, Any] =
-    Map("query" →
-      Map(boolFilteredKeyword →
-        Map(
-          mustQueryKeyword → Map("match_all" → Map()),
-          "filter" → Map("bool" →
-            Map("must" → List(
-              constructTagQuery(eventQuery.tags),
-              constructTypeQuery(eventQuery.`type`),
-              constructTimeRange(eventQuery.timestamp)
-            ).filter(_.isDefined).map(_.get)))
-        )))
+  private def constructQuery(eventQuery: EventQuery): Map[String, Any] =
+    Map(boolFilteredKeyword →
+      Map(
+        mustQueryKeyword → Map("match_all" → Map()),
+        "filter" → Map("bool" →
+          Map("must" → List(
+            constructTagQuery(eventQuery.tags),
+            constructTypeQuery(eventQuery.`type`),
+            constructTimeRange(eventQuery.timestamp)
+          ).filter(_.isDefined).map(_.get)))
+      ))
 
   private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = {
     if (tags.nonEmpty) Option((for (tag ← tags) yield Map("term" → Map("tags" → tag))).toList) else None
@@ -220,22 +206,25 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     case _ ⇒ None
   }
 
+
   protected def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]): Future[Any] = {
-    es.aggregate(indexName, constructAggregation(eventQuery, aggregator, field)) map {
+    es.aggregate(indexName, getRawQuery(constructQuery(eventQuery)), mapAggregation(aggregator, field)) map {
       case ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value))) ⇒ DoubleValueAggregationResult(value)
       case other ⇒ reportException(EventQueryError(other))
     }
   }
 
-  private def constructAggregation(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]): Map[Any, Any] = {
-    val aggregation = aggregator match {
-      case Aggregator.average ⇒ "avg"
-      case _ ⇒ aggregator.toString
+  def mapAggregation(aggregator: AggregatorType, field: Option[String]): Aggregation = {
+    val fieldName = field.getOrElse("value")
+    val fieldNameOption = Some(fieldName)
+    aggregator match {
+      case Aggregator.average ⇒ AvgAggregation(aggregator.toString, fieldNameOption)
+      case Aggregator.count => ValueCountAggregation(aggregator.toString, fieldNameOption)
+      case Aggregator.max => MaxAggregation(aggregator.toString, fieldNameOption)
+      case Aggregator.min => MinAggregation(aggregator.toString, fieldNameOption)
+      case Aggregator.sum => SumAggregation(aggregator.toString, fieldNameOption)
+      case _ ⇒ throw new UnsupportedOperationException
     }
-
-    constructQuery(eventQuery) +
-      ("size" → 0) +
-      ("aggs" → Map("aggregation" → Map(s"$aggregation" → Map("field" → field.getOrElse("value")))))
   }
 
   private def convertId(id: String) = HashUtil.hex(id)

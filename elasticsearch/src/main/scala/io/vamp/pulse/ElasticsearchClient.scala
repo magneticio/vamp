@@ -1,19 +1,14 @@
 package io.vamp.pulse
 
-import java.net.URLEncoder
-import java.time.format.DateTimeFormatter._
-import java.time.{ Instant, ZoneId, ZonedDateTime }
-
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticDsl }
+import com.sksamuel.elastic4s.searches.aggs.Aggregation
 import com.sksamuel.elastic4s.searches.queries.Query
+import com.sksamuel.elastic4s.searches.sort.Sort
 import io.vamp.common.Namespace
-import io.vamp.common.http.{ HttpClient, HttpClientException }
 import io.vamp.pulse.ElasticsearchClient._
-import org.json4s.native.JsonMethods._
-import org.json4s.{ DefaultFormats, Formats, StringInput }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
@@ -41,17 +36,11 @@ object ElasticsearchClient {
 }
 
 class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Timeout, val namespace: Namespace, val system: ActorSystem) {
-  private val httpClient = new HttpClient
-
   implicit val executionContext: ExecutionContext = system.dispatcher
 
-  val url = "test"
-
-  val baseUrl: String = if (url.endsWith("/")) url.substring(0, url.length - 1) else url
-
   def health(): Future[String] = {
-    val responseFuture = elasticClient.execute(ElasticDsl.clusterHealth())
-    responseFuture.map(response => response.body.getOrElse("Could not get cluster health information"))
+    val healthResponseFuture = elasticClient.execute(ElasticDsl.clusterHealth())
+    healthResponseFuture.map(response => response.body.getOrElse(s"Could not get health results: ${response.error}"))
   }
 
   def version(): Future[Option[String]] = {
@@ -71,21 +60,6 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
       } yield versionOption)
   }
 
-  def creationTime(index: String): Future[String] = httpClient.get[Any](urlOf(url, index)) map {
-    case response: Map[_, _] ⇒ Try {
-      response.asInstanceOf[Map[String, _]].get(index).flatMap {
-        _.asInstanceOf[Map[String, _]].get("settings")
-      } flatMap {
-        _.asInstanceOf[Map[String, _]].get("index")
-      } flatMap {
-        _.asInstanceOf[Map[String, _]].get("creation_date")
-      } map {
-        timestamp ⇒ ISO_OFFSET_DATE_TIME.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp.toString.toLong), ZoneId.of("UTC")))
-      } getOrElse ""
-    } getOrElse ""
-    case _ ⇒ ""
-  }
-
   def exists(index: String, `type`: String, id: String): Future[Boolean] = {
     val documentResponseFuture = elasticClient.execute {
       ElasticDsl.get(index, `type`, id)
@@ -98,53 +72,74 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
     })
   }
 
-  def get[A](index: String, `type`: String, id: String)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    httpClient.get[A](urlOf(url, index, `type`, id), logError = false).recover {
-      case HttpClientException(Some(404), body) ⇒ parse(StringInput(body), useBigDecimalForDouble = true).extract[A](formats, mf)
+  def index(index: String, `type`: String, jsonDoc: String): Future[ElasticsearchIndexResponse] = {
+    val indexResponseFuture = elasticClient.execute {
+      ElasticDsl.indexInto(index, `type`).doc(jsonDoc)
     }
-  }
-
-  def index[A](index: String, `type`: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
-    httpClient.post[A](urlOf(url, index, `type`), document)
-
-  def index[A](index: String, `type`: String, id: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
-    httpClient.post[A](urlOf(url, index, `type`, id), document)
-
-  def delete(index: String, `type`: String, id: String): Future[_] = {
-    httpClient.delete(urlOf(url, index, `type`, id), logError = false).recover {
-      case _ ⇒ None
-    }
-  }
-
-  def refresh(index: String): Future[_] = httpClient.post(urlOf(url, index, "_refresh"), "")
-
-  def search[A](index: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
-    httpClient.post[A](urlOf(url, index, "_search"), query)
-
-  def search[A](index: String, `type`: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
-    httpClient.post[A](urlOf(url, index, `type`, "_search"), query)
-
-
-  def count(index: String, query: Query)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] = {
-    val response = elasticClient.execute {
-      ElasticDsl.count(index).filter(query)
-    }
-
-    response.flatMap(countResponse => {
-      if (countResponse.isError) {
-        Future.failed(new RuntimeException(countResponse.error.reason))
-      }
-      else {
-        Future(ElasticsearchCountResponse(countResponse.result.count))
+    indexResponseFuture.flatMap(response => {
+      response.toOption match {
+        case Some(r) => Future(ElasticsearchIndexResponse(index, `type`, r.id))
+        case _ => Future.failed(new RuntimeException(s"Could not get index results: ${response.error}"))
       }
     })
   }
 
-  def aggregate(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
-    httpClient.post[ElasticsearchAggregationResponse](urlOf(url, index, "_search"), query)
+  def search(index: String, query: Query, from: Int, size: Int, sort: Sort): Future[ElasticsearchSearchResponse] = {
+    val searchResponseFuture = elasticClient.execute {
+      ElasticDsl
+        .search(index)
+        .query(query)
+        .from(from)
+        .size(size)
+        .sortBy(sort)
+    }
+    searchResponseFuture.flatMap(response => {
+      response.toOption match {
+        case Some(r) => {
+          val hits = r.hits.hits.map(hit => ElasticsearchHit(hit.index, hit.`type`, hit.id, hit.sourceAsMap)).toList
+          Future(ElasticsearchSearchResponse(ElasticsearchSearchHits(r.hits.total, hits)))
+        }
+        case _ => Future.failed(new RuntimeException(s"Could not get search results: ${response.error}"))
+      }
+    })
+  }
 
-  private def urlOf(url: String, paths: String*) = {
-    val path = paths.map(path ⇒ URLEncoder.encode(path, "UTF-8")).toList
-    baseUrl :: path mkString "/"
+  def count(index: String, query: Query): Future[ElasticsearchCountResponse] = {
+    val countResponseFuture = elasticClient.execute {
+      ElasticDsl.count(index).filter(query)
+    }
+
+    countResponseFuture.flatMap(response => {
+      response.toOption match {
+        case Some(r) => Future(ElasticsearchCountResponse(r.count))
+        case _ => Future.failed(new RuntimeException(s"Could not get count results: ${response.error}"))
+      }
+    })
+  }
+
+  def aggregate(index: String, query: Query, aggregation: Aggregation): Future[ElasticsearchAggregationResponse] = {
+    val aggregateResponseFuture = elasticClient.execute {
+      ElasticDsl.search(index).query(query).aggregations(aggregation)
+    }
+    aggregateResponseFuture.flatMap(response => {
+      response.toOption match {
+        case Some(r) => {
+          val aggregationValue = for {
+            agg <- r.aggs.data.get(aggregation.name)
+            aggMap <- agg match {
+              case valueMap: Map[Any, Any] => Some(valueMap)
+              case _ => None
+            }
+            value <- aggMap.get("value")
+            doubleValue <- Try(value.toString.toDouble).toOption
+          } yield doubleValue
+          aggregationValue match {
+            case Some(value) => Future(ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value.toString.toDouble))))
+            case _ => Future.failed(new RuntimeException(s"Aggregation value not found: ${aggregation.name}"))
+          }
+        }
+        case _ => Future.failed(new RuntimeException(s"Could not get aggregation results: ${response.error}"))
+      }
+    })
   }
 }
