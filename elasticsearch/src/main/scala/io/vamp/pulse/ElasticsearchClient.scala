@@ -40,23 +40,23 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
 
   def health(): Future[String] = {
     val healthResponseFuture = elasticClient.execute(ElasticDsl.clusterHealth())
-    healthResponseFuture.map(response => response.body.getOrElse(s"Could not get health results: ${response.error}"))
+    healthResponseFuture.map(response ⇒ response.body.getOrElse(s"Could not get health results: ${response.error}"))
   }
 
   def version(): Future[Option[String]] = {
     val catMasterResponseFuture = elasticClient.execute(ElasticDsl.catMaster())
-    val masterIdFuture = catMasterResponseFuture.map(response =>
+    val masterIdFuture = catMasterResponseFuture.map(response ⇒
       for {
-        responseOption <- response.toOption
-        masterIdOption <- Option(responseOption.id)
+        responseOption ← response.toOption
+        masterIdOption ← Option(responseOption.id)
       } yield masterIdOption)
 
-    val nodesInfoResponseFuture = masterIdFuture.flatMap(masterId => elasticClient.execute(ElasticDsl.nodeInfo(masterId)))
-    nodesInfoResponseFuture.map(response =>
+    val nodesInfoResponseFuture = masterIdFuture.flatMap(masterId ⇒ elasticClient.execute(ElasticDsl.nodeInfo(masterId)))
+    nodesInfoResponseFuture.map(response ⇒
       for {
-        responseOption <- response.toOption
-        nodeInfoOption <- responseOption.nodes.headOption
-        versionOption <- Option(nodeInfoOption._2.version)
+        responseOption ← response.toOption
+        nodeInfoOption ← responseOption.nodes.headOption
+        versionOption ← Option(nodeInfoOption._2.version)
       } yield versionOption)
   }
 
@@ -64,10 +64,10 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
     val documentResponseFuture = elasticClient.execute {
       ElasticDsl.get(index, `type`, id)
     }
-    documentResponseFuture.map(response => {
+    documentResponseFuture.map(response ⇒ {
       response.toOption match {
-        case Some(r) => r.exists
-        case _ => false
+        case Some(r) ⇒ r.exists
+        case _       ⇒ false
       }
     })
   }
@@ -76,10 +76,10 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
     val indexResponseFuture = elasticClient.execute {
       ElasticDsl.indexInto(index, `type`).doc(jsonDoc)
     }
-    indexResponseFuture.flatMap(response => {
+    indexResponseFuture.flatMap(response ⇒ {
       response.toOption match {
-        case Some(r) => Future(ElasticsearchIndexResponse(index, `type`, r.id))
-        case _ => Future.failed(new RuntimeException(s"Could not get index results: ${response.error}"))
+        case Some(r) ⇒ Future(ElasticsearchIndexResponse(index, `type`, r.id))
+        case _       ⇒ Future.failed(new RuntimeException(s"Could not get index results: ${response.error}"))
       }
     })
   }
@@ -93,13 +93,13 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
         .size(size)
         .sortBy(sort)
     }
-    searchResponseFuture.flatMap(response => {
+    searchResponseFuture.flatMap(response ⇒ {
       response.toOption match {
-        case Some(r) => {
-          val hits = r.hits.hits.map(hit => ElasticsearchHit(hit.index, hit.`type`, hit.id, hit.sourceAsMap)).toList
+        case Some(r) ⇒ {
+          val hits = r.hits.hits.map(hit ⇒ ElasticsearchHit(hit.index, hit.`type`, hit.id, hit.sourceAsMap)).toList
           Future(ElasticsearchSearchResponse(ElasticsearchSearchHits(r.hits.total, hits)))
         }
-        case _ => Future.failed(new RuntimeException(s"Could not get search results: ${response.error}"))
+        case _ ⇒ Future.failed(new RuntimeException(s"Could not get search results: ${response.error}"))
       }
     })
   }
@@ -109,10 +109,10 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
       ElasticDsl.count(index).filter(query)
     }
 
-    countResponseFuture.flatMap(response => {
+    countResponseFuture.flatMap(response ⇒ {
       response.toOption match {
-        case Some(r) => Future(ElasticsearchCountResponse(r.count))
-        case _ => Future.failed(new RuntimeException(s"Could not get count results: ${response.error}"))
+        case Some(r) ⇒ Future(ElasticsearchCountResponse(r.count))
+        case _       ⇒ Future.failed(new RuntimeException(s"Could not get count results: ${response.error}"))
       }
     })
   }
@@ -121,24 +121,24 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
     val aggregateResponseFuture = elasticClient.execute {
       ElasticDsl.search(index).query(query).aggregations(aggregation)
     }
-    aggregateResponseFuture.flatMap(response => {
+    aggregateResponseFuture.flatMap(response ⇒ {
       response.toOption match {
-        case Some(r) => {
+        case Some(r) ⇒ {
           val aggregationValue = for {
-            agg <- r.aggs.data.get(aggregation.name)
-            aggMap <- agg match {
-              case valueMap: Map[Any, Any] => Some(valueMap)
-              case _ => None
+            agg ← r.aggs.data.get(aggregation.name)
+            aggMap ← agg match {
+              case valueMap: Map[Any, Any] ⇒ Some(valueMap)
+              case _                       ⇒ None
             }
-            value <- aggMap.get("value")
-            doubleValue <- Try(value.toString.toDouble).toOption
+            value ← aggMap.get("value")
+            doubleValue ← Try(value.toString.toDouble).toOption
           } yield doubleValue
           aggregationValue match {
-            case Some(value) => Future(ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value.toString.toDouble))))
-            case _ => Future.failed(new RuntimeException(s"Aggregation value not found: ${aggregation.name}"))
+            case Some(value) ⇒ Future(ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value.toString.toDouble))))
+            case _           ⇒ Future.failed(new RuntimeException(s"Aggregation value not found: ${aggregation.name}"))
           }
         }
-        case _ => Future.failed(new RuntimeException(s"Could not get aggregation results: ${response.error}"))
+        case _ ⇒ Future.failed(new RuntimeException(s"Could not get aggregation results: ${response.error}"))
       }
     })
   }

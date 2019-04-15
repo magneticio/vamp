@@ -5,8 +5,8 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
+import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticProperties }
 import io.vamp.common.{ Config, Namespace }
 import org.scalatest.{ BeforeAndAfter, FunSpec, Matchers }
 
@@ -16,19 +16,19 @@ import scala.util.Try
 
 class ElasticsearchClientSpec extends FunSpec with BeforeAndAfter with Matchers {
   private implicit val namespace: Namespace = Namespace("default")
-  private implicit val actorSystem: ActorSystem = ActorSystem("RouteComparatorSpec")
+  private implicit val actorSystem: ActorSystem = ActorSystem("ElasticsearchClientSpec")
   private implicit val timeout: Timeout = new Timeout(10, TimeUnit.SECONDS)
 
   private val clusterName: String = "elasticsearch-local-client"
   private val homePath: Path = Files.createTempDirectory(clusterName)
-  //  private val localNode = LocalNode(clusterName, homePath.toAbsolutePath.toString)
-  private val elasticSearchHttpClient = ElasticClient(ElasticProperties("http://localhost:9200")) //localNode.client(true)
+  private val localNode = LocalNode(clusterName, homePath.toAbsolutePath.toString)
+  private val elasticSearchHttpClient = localNode.client(true)
   private val tenSecondsTimeout = Duration(10, TimeUnit.SECONDS)
 
   describe("ElasticSearchClient") {
 
-    Config.load(Map("vamp.common.http.client.tls-check" -> false))
-    val elasticSearchClient = new ElasticsearchClient(elasticSearchHttpClient) //new ElasticsearchClient(elasticSearchHttpClient)
+    Config.load(Map("vamp.common.http.client.tls-check" → false))
+    val elasticSearchClient = new ElasticsearchClient(elasticSearchHttpClient)
 
     Try {
       elasticSearchHttpClient.execute {
@@ -49,9 +49,9 @@ class ElasticsearchClientSpec extends FunSpec with BeforeAndAfter with Matchers 
 
     elasticSearchHttpClient.execute {
       bulk(
-        indexInto("countries" / "data").fields("country" -> "Mongolia", "capital" -> "Ulaanbaatar", "citizens" -> 1418000, "timestamp" -> "2019-04-01T12:10:30Z") id "1",
-        indexInto("countries" / "data").fields("country" -> "Poland", "capital" -> "Warsaw", "citizens" -> 1765000, "timestamp" -> "2020-04-01T12:10:30Z") id "2",
-        indexInto("countries" / "data").fields("country" -> "Portugal", "capital" -> "Lisbon", "citizens" -> 504718, "timestamp" -> "2021-04-01T12:10:30Z") id "3"
+        indexInto("countries" / "data").fields("country" → "Mongolia", "capital" → "Ulaanbaatar", "citizens" → 1418000, "timestamp" → "2019-04-01T12:10:30Z") id "1",
+        indexInto("countries" / "data").fields("country" → "Poland", "capital" → "Warsaw", "citizens" → 1765000, "timestamp" → "2020-04-01T12:10:30Z") id "2",
+        indexInto("countries" / "data").fields("country" → "Portugal", "capital" → "Lisbon", "citizens" → 504718, "timestamp" → "2021-04-01T12:10:30Z") id "3"
       ).refreshImmediately
     }.await
 
