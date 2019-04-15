@@ -14,7 +14,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-class ElasticsearchClientSpec extends FunSpec with BeforeAndAfter with Matchers {
+class ElasticsearchClientAdapterSpec extends FunSpec with BeforeAndAfter with Matchers {
   private implicit val namespace: Namespace = Namespace("default")
   private implicit val actorSystem: ActorSystem = ActorSystem("ElasticsearchClientSpec")
   private implicit val timeout: Timeout = new Timeout(10, TimeUnit.SECONDS)
@@ -28,7 +28,7 @@ class ElasticsearchClientSpec extends FunSpec with BeforeAndAfter with Matchers 
   describe("ElasticSearchClient") {
 
     Config.load(Map("vamp.common.http.client.tls-check" → false))
-    val elasticSearchClient = new ElasticsearchClient(elasticSearchHttpClient)
+    val elasticSearchClient = new ElasticsearchClientAdapter(elasticSearchHttpClient)
 
     Try {
       elasticSearchHttpClient.execute {
@@ -139,6 +139,7 @@ class ElasticsearchClientSpec extends FunSpec with BeforeAndAfter with Matchers 
     describe("when indexing document") {
       val doc = "{ \"country\": \"Spain\", \"capital\": \"Madrid\", \"timestamp\": \"2022-04-01T12:10:30Z\" }"
       val indexResponse = Await.result(elasticSearchClient.index("countries", "data", doc), tenSecondsTimeout)
+
       it("document should be stored") {
         indexResponse._id should not be empty
       }
@@ -151,6 +152,33 @@ class ElasticsearchClientSpec extends FunSpec with BeforeAndAfter with Matchers 
 
       it("should return aggregation value") {
         aggregationResponse.aggregations.aggregation.value should be(1134859.0)
+      }
+    }
+
+    describe("when creating index template") {
+      val createTemplateResponse = Await.result(elasticSearchClient.createIndexTemplate("countries", "countries.*"), tenSecondsTimeout)
+
+      it("should acknowledge that template is created") {
+        createTemplateResponse.acknowledged should be(true)
+      }
+
+      describe("and checking if template exists") {
+
+        describe("for existing template") {
+          val templateExistsResponse = Await.result(elasticSearchClient.templateExists("countries"), tenSecondsTimeout)
+
+          it("should return true") {
+            templateExistsResponse should be(true)
+          }
+        }
+
+        describe("for non-existent template") {
+          val templateExistsResponse = Await.result(elasticSearchClient.templateExists("cars"), tenSecondsTimeout)
+
+          it("should return false") {
+            templateExistsResponse should be(false)
+          }
+        }
       }
     }
   }

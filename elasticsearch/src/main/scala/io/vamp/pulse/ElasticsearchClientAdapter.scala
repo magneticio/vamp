@@ -3,19 +3,25 @@ package io.vamp.pulse
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticDsl }
+import com.sksamuel.elastic4s.http.index.{ CreateIndexResponse, CreateIndexTemplateResponse, GetIndexTemplates }
+import com.sksamuel.elastic4s.http.index.admin.IndexExistsResponse
+import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticDsl, RequestFailure, RequestSuccess }
 import com.sksamuel.elastic4s.searches.aggs.Aggregation
 import com.sksamuel.elastic4s.searches.queries.Query
 import com.sksamuel.elastic4s.searches.sort.Sort
 import io.vamp.common.Namespace
-import io.vamp.pulse.ElasticsearchClient._
+import io.vamp.pulse.ElasticsearchClientAdapter._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
-object ElasticsearchClient {
+object ElasticsearchClientAdapter {
 
   case class ElasticsearchIndexResponse(_index: String, _type: String, _id: String)
+
+  case class ElasticsearchCreateIndexResponse(created: Boolean)
+
+  case class ElasticsearchCreateTemplateResponse(acknowledged: Boolean)
 
   case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
 
@@ -35,7 +41,7 @@ object ElasticsearchClient {
 
 }
 
-class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Timeout, val namespace: Namespace, val system: ActorSystem) {
+class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val timeout: Timeout, val namespace: Namespace, val system: ActorSystem) {
   implicit val executionContext: ExecutionContext = system.dispatcher
 
   def health(): Future[String] = {
@@ -44,7 +50,9 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
   }
 
   def version(): Future[Option[String]] = {
-    val catMasterResponseFuture = elasticClient.execute(ElasticDsl.catMaster())
+    val catMasterResponseFuture = elasticClient.execute {
+      ElasticDsl.catMaster()
+    }
     val masterIdFuture = catMasterResponseFuture.map(response ⇒
       for {
         responseOption ← response.toOption
@@ -70,6 +78,50 @@ class ElasticsearchClient(elasticClient: ElasticClient)(implicit val timeout: Ti
         case _       ⇒ false
       }
     })
+  }
+
+  def createIndex(indexName: String): Future[ElasticsearchCreateIndexResponse] = {
+    val indexExistsResponseFuture = elasticClient.execute {
+      ElasticDsl.indexExists(indexName)
+    }
+    val indexExistsFuture = indexExistsResponseFuture.flatMap {
+      case response @ (_: RequestFailure)                      ⇒ Future.failed(new RuntimeException(s"Could not get index exists results: ${response.error}"))
+      case response @ (_: RequestSuccess[IndexExistsResponse]) ⇒ Future(response.result.exists)
+    }
+    indexExistsFuture.flatMap(indexExists ⇒ {
+      if (!indexExists) {
+        val createIndexResponseFuture = elasticClient.execute {
+          ElasticDsl.createIndex(indexName)
+        }
+        createIndexResponseFuture.flatMap {
+          case response @ (_: RequestFailure)         ⇒ Future.failed(new RuntimeException(s"Could not get crate index results: ${response.error}"))
+          case _: RequestSuccess[CreateIndexResponse] ⇒ Future(ElasticsearchCreateIndexResponse(true))
+        }
+      }
+      else {
+        Future(ElasticsearchCreateIndexResponse(false))
+      }
+    })
+  }
+
+  def templateExists(name: String): Future[Boolean] = {
+    val getIndexTemplateResponseFuture = elasticClient.execute {
+      ElasticDsl.getIndexTemplate(name)
+    }
+    getIndexTemplateResponseFuture.map {
+      case _: RequestFailure                    ⇒ false
+      case _: RequestSuccess[GetIndexTemplates] ⇒ true
+    }
+  }
+
+  def createIndexTemplate(name: String, pattern: String): Future[ElasticsearchCreateTemplateResponse] = {
+    val createIndexTemplateResponseFuture = elasticClient.execute {
+      ElasticDsl.createIndexTemplate(name, pattern)
+    }
+    createIndexTemplateResponseFuture.flatMap {
+      case response @ (_: RequestSuccess[CreateIndexTemplateResponse]) ⇒ Future(ElasticsearchCreateTemplateResponse(response.result.acknowledged))
+      case response @ (_: RequestFailure)                              ⇒ Future.failed(new RuntimeException(s"Could not get create index template results: ${response.error}"))
+    }
   }
 
   def index(index: String, `type`: String, jsonDoc: String): Future[ElasticsearchIndexResponse] = {

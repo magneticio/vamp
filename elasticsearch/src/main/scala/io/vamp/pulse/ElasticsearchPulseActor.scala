@@ -48,7 +48,7 @@ object ElasticsearchPulseActor {
 class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     with NamespaceValueResolver with PulseStats with PulseActor with PulseActorSupport {
 
-  import ElasticsearchClient._
+  import ElasticsearchClientAdapter._
   import PulseActor._
 
   lazy val url = ElasticsearchPulseActor.elasticsearchUrl()
@@ -57,7 +57,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
   lazy val indexTimeFormat: Map[String, String] = ElasticsearchPulseActor.indexTimeFormat()
 
-  private lazy val es = new ElasticsearchClient(ElasticClient(ElasticProperties(url)))
+  private lazy val es = new ElasticsearchClientAdapter(ElasticClient(ElasticProperties(url)))
 
   private var boolFilteredKeyword: String = "bool"
 
