@@ -46,7 +46,7 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
 
   def health(): Future[String] = {
     val healthResponseFuture = elasticClient.execute(ElasticDsl.clusterHealth())
-    healthResponseFuture.map(response ⇒ response.body.getOrElse(s"Could not get health results: ${response.error}"))
+    healthResponseFuture.map(response ⇒ response.body.getOrElse(s"Could not get health: ${response.error}"))
   }
 
   def version(): Future[Option[String]] = {
@@ -85,7 +85,7 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
       ElasticDsl.indexExists(indexName)
     }
     val indexExistsFuture = indexExistsResponseFuture.flatMap {
-      case response @ (_: RequestFailure)                      ⇒ Future.failed(new RuntimeException(s"Could not get index exists results: ${response.error}"))
+      case response @ (_: RequestFailure)                      ⇒ Future.failed(new RuntimeException(s"Could not check if index exists: ${response.error}"))
       case response @ (_: RequestSuccess[IndexExistsResponse]) ⇒ Future(response.result.exists)
     }
     indexExistsFuture.flatMap(indexExists ⇒ {
@@ -94,7 +94,7 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
           ElasticDsl.createIndex(indexName)
         }
         createIndexResponseFuture.flatMap {
-          case response @ (_: RequestFailure)         ⇒ Future.failed(new RuntimeException(s"Could not get crate index results: ${response.error}"))
+          case response @ (_: RequestFailure)         ⇒ Future.failed(new RuntimeException(s"Could not create index: ${response.error}"))
           case _: RequestSuccess[CreateIndexResponse] ⇒ Future(ElasticsearchCreateIndexResponse(true))
         }
       }
@@ -120,7 +120,7 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
     }
     createIndexTemplateResponseFuture.flatMap {
       case response @ (_: RequestSuccess[CreateIndexTemplateResponse]) ⇒ Future(ElasticsearchCreateTemplateResponse(response.result.acknowledged))
-      case response @ (_: RequestFailure)                              ⇒ Future.failed(new RuntimeException(s"Could not get create index template results: ${response.error}"))
+      case response @ (_: RequestFailure)                              ⇒ Future.failed(new RuntimeException(s"Could not create index template: ${response.error}"))
     }
   }
 
@@ -131,7 +131,7 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
     indexResponseFuture.flatMap(response ⇒ {
       response.toOption match {
         case Some(r) ⇒ Future(ElasticsearchIndexResponse(index, `type`, r.id))
-        case _       ⇒ Future.failed(new RuntimeException(s"Could not get index results: ${response.error}"))
+        case _       ⇒ Future.failed(new RuntimeException(s"Could not get index: ${response.error}"))
       }
     })
   }
@@ -164,7 +164,7 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
     countResponseFuture.flatMap(response ⇒ {
       response.toOption match {
         case Some(r) ⇒ Future(ElasticsearchCountResponse(r.count))
-        case _       ⇒ Future.failed(new RuntimeException(s"Could not get count results: ${response.error}"))
+        case _       ⇒ Future.failed(new RuntimeException(s"Could not get count result: ${response.error}"))
       }
     })
   }
