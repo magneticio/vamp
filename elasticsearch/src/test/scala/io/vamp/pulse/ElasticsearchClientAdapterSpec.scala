@@ -4,19 +4,19 @@ import java.nio.file._
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.testkit.TestKit
 import akka.util.Timeout
 import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import io.vamp.common.{ Config, Namespace }
-import org.scalatest.{ BeforeAndAfter, FunSpec, Matchers }
+import org.scalatest._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-class ElasticsearchClientAdapterSpec extends FunSpec with BeforeAndAfter with Matchers {
+class ElasticsearchClientAdapterSpec extends TestKit(ActorSystem("ElasticsearchClientAdapterSpec")) with FunSpecLike with BeforeAndAfterAll with Matchers {
   private implicit val namespace: Namespace = Namespace("default")
-  private implicit val actorSystem: ActorSystem = ActorSystem("ElasticsearchClientSpec")
   private implicit val timeout: Timeout = new Timeout(10, TimeUnit.SECONDS)
 
   private val clusterName: String = "elasticsearch-local-client"
@@ -24,6 +24,11 @@ class ElasticsearchClientAdapterSpec extends FunSpec with BeforeAndAfter with Ma
   private val localNode = LocalNode(clusterName, homePath.toAbsolutePath.toString)
   private val elasticSearchHttpClient = localNode.client(true)
   private val tenSecondsTimeout = Duration(10, TimeUnit.SECONDS)
+
+  override def afterAll {
+    elasticSearchHttpClient.close()
+    shutdown()
+  }
 
   describe("ElasticSearchClient") {
 
