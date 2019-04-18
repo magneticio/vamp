@@ -1,2 +1,5 @@
 -J-Xss2M
--J-XX:MaxMetaspaceSize=1024M
+-J-XX:MaxMetaspaceSize=2G
+-J-XX:+UseConcMarkSweepGC
+-J-XX:+UnlockExperimentalVMOptions
+-J-XX:+UseCGroupMemoryLimitForHeap
