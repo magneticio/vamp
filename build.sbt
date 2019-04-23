@@ -246,7 +246,7 @@ lazy val elasticsearch = project.settings(
   formatting,
   libraryDependencies ++= elastic4s ++ testing,
   bintrayRepository := "vamp"
-).dependsOn(pulse)
+).dependsOn(pulse, persistence)
 
 lazy val nats = project.settings(
   description := "Pulse and metrics driver for Nats",
