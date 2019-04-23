@@ -3,9 +3,10 @@ package io.vamp.pulse
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.index.{ CreateIndexResponse, CreateIndexTemplateResponse, GetIndexTemplates }
 import com.sksamuel.elastic4s.http.index.admin.IndexExistsResponse
+import com.sksamuel.elastic4s.http.index.{ CreateIndexResponse, CreateIndexTemplateResponse, GetIndexTemplates }
 import com.sksamuel.elastic4s.http.{ ElasticClient, ElasticDsl, RequestFailure, RequestSuccess }
+import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.sksamuel.elastic4s.searches.aggs.Aggregation
 import com.sksamuel.elastic4s.searches.queries.Query
 import com.sksamuel.elastic4s.searches.sort.Sort
@@ -114,9 +115,9 @@ class ElasticsearchClientAdapter(elasticClient: ElasticClient)(implicit val time
     }
   }
 
-  def createIndexTemplate(name: String, pattern: String): Future[ElasticsearchCreateTemplateResponse] = {
+  def createIndexTemplate(name: String, pattern: String, order: Int, mappings: Seq[MappingDefinition]): Future[ElasticsearchCreateTemplateResponse] = {
     val createIndexTemplateResponseFuture = elasticClient.execute {
-      ElasticDsl.createIndexTemplate(name, pattern)
+      ElasticDsl.createIndexTemplate(name, pattern).mappings(mappings).order(order)
     }
     createIndexTemplateResponseFuture.flatMap {
       case response @ (_: RequestSuccess[CreateIndexTemplateResponse]) ⇒ Future(ElasticsearchCreateTemplateResponse(response.result.acknowledged))

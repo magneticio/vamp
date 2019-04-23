@@ -161,7 +161,28 @@ class ElasticsearchClientAdapterSpec extends TestKit(ActorSystem("ElasticsearchC
     }
 
     describe("when creating index template") {
-      val createTemplateResponse = Await.result(elasticSearchClient.createIndexTemplate("countries", "countries.*"), tenSecondsTimeout)
+      val rawMapping = """{
+                          "_all": {
+                              "enabled": false
+                              },
+                          "properties": {
+                              "tags": {
+                                  "type": "keyword",
+                                  "index": true
+                              },
+                              "timestamp": {
+                                  "type": "date",
+                                  "format": "date_optional_time"
+                              },
+                              "type": {
+                                  "type": "keyword",
+                                  "index": true
+                              }
+                          }
+                      }"""
+      val pattern = "countries-*"
+      val mappings = Seq(mapping("testMapping").rawSource(rawMapping))
+      val createTemplateResponse = Await.result(elasticSearchClient.createIndexTemplate(name = "countries", pattern = pattern, order = 1, mappings = mappings), tenSecondsTimeout)
 
       it("should acknowledge that template is created") {
         createTemplateResponse.acknowledged should be(true)
