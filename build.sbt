@@ -95,7 +95,8 @@ val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0",
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-  "org.scala-lang" % "scala-library" % scalaVersion.value
+  "org.scala-lang" % "scala-library" % scalaVersion.value,
+  "org.apache.httpcomponents" % "httpclient" % "4.5.2"
 )
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
