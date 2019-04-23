@@ -52,8 +52,7 @@ val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.5.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val elastic4sVersion = "6.5.1"
-val elastic4s = Seq(
-  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion exclude("org.apache.httpcomponents", "httpclient"))
+val elastic4s = "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
@@ -69,7 +68,7 @@ val templating = Seq("org.jtwig" % "jtwig-core" % "5.65")
 val sql = Seq(
   "org.postgresql" % "postgresql" % "9.4-1202-jdbc42",
   "mysql" % "mysql-connector-java" % "6.0.6",
-  "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8",
+  "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8" exclude("org.apache.httpcomponents", "httpclient"),
   "org.xerial" % "sqlite-jdbc" % "3.19.3")
 
 val caching = Seq("com.github.cb372" %% "scalacache-caffeine" % "0.22.0")
