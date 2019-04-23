@@ -53,7 +53,7 @@ val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
 
 val elastic4sVersion = "6.5.1"
 val elastic4s = Seq(
-  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion)
+  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion exclude("org.apache.httpcomponents", "httpclient"))
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
@@ -95,8 +95,7 @@ val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0",
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-  "org.scala-lang" % "scala-library" % scalaVersion.value,
-  "org.apache.httpcomponents" % "httpclient" % "4.5.2"
+  "org.scala-lang" % "scala-library" % scalaVersion.value
 )
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
