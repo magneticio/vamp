@@ -52,7 +52,8 @@ val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.5.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val elastic4sVersion = "6.5.1"
-val elastic4s = "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion :: Nil
+val elastic4s = "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion ::
+  "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
