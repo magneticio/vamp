@@ -44,6 +44,8 @@ object KubernetesDriverActor {
 
   case class UnDeployKubernetesItems(request: String)
 
+  case class UpdateKubernetesItems(request: String);
+
   case class CreateJob(job: Job)
 
   case class DeleteJob(selector: String)
@@ -100,6 +102,7 @@ class KubernetesDriverActor
 
     case d: DeployKubernetesItems       ⇒ reply(deploy(d.request))
     case u: UnDeployKubernetesItems     ⇒ reply(undeploy(u.request))
+    case p: UpdateKubernetesItems       ⇒ reply(update(p.request))
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -187,6 +190,24 @@ class KubernetesDriverActor
         case "Service"    ⇒ createService(request)
         case "DaemonSet"  ⇒ createDaemonSet(request)
         case "Deployment" ⇒ createDeployment(request)
+        case other        ⇒ log.warning(s"Cannot process kind: $other")
+      }
+    }
+
+    YamlUtil.convert(YamlUtil.yaml.loadAll(request), preserveOrder = false) match {
+      case l: List[_] ⇒ l.foreach(process)
+      case other      ⇒ process(other)
+    }
+  }
+
+  private def update(request: String): Unit = {
+    def process(any: Any): Unit = {
+      val kind = any.asInstanceOf[Map[String, String]]("kind")
+      val request = write(any.asInstanceOf[AnyRef])(DefaultFormats)
+      kind match {
+        case "Service"    ⇒ createService(request)
+        case "DaemonSet"  ⇒ createDaemonSet(request)
+        case "Deployment" ⇒ updateDeployment(request)
         case other        ⇒ log.warning(s"Cannot process kind: $other")
       }
     }
