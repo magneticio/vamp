@@ -267,10 +267,13 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
   protected def updateDeployment(request: String): Unit = {
     log.debug(s"Creating Kubernetes deployment")
+    val parsed = k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType)
+    log.info("Request: " + request)
+    log.info("Parsed request: " + parsed)
     k8sClient.extensionsV1beta1Api.patchNamespacedDeployment(
       s"vamp-gateway-agent",
       customNamespace,
-      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+      request,
       null
     )
   }
