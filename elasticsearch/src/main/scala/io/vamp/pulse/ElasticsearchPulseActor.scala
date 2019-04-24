@@ -19,13 +19,12 @@ import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
-import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.{ read, write }
+import org.json4s.native.{ JsonMethods, Serialization }
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
 import scala.util.Try
-import scala.util.parsing.json.JSONObject
 
 class ElasticsearchPulseActorMapper extends ClassMapper {
   val name = "elasticsearch"
@@ -170,8 +169,10 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     case other                             ⇒ reportException(EventQueryError(other))
   }
 
-  private def getRawQuery(queryMap: Map[String, Any]): RawQuery =
-    rawQuery(JSONObject(queryMap).toString())
+  private def getRawQuery(queryMap: Map[String, Any]): RawQuery = {
+    implicit val format = DefaultFormats
+    rawQuery(Serialization.write(queryMap).toString)
+  }
 
   private def constructQuery(eventQuery: EventQuery): Map[String, Any] =
     Map(boolFilteredKeyword →
