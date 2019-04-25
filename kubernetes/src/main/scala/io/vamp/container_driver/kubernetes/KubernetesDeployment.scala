@@ -281,7 +281,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     val localVarPostBody: Any = request
 
     // create path and map variables
-    val localVarPath: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
+    val localVarPath: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
 
     val localVarQueryParams: util.ArrayList[Pair] = new util.ArrayList[Pair]
     val localVarCollectionQueryParams: util.List[Pair] = new util.ArrayList[Pair]
@@ -292,6 +292,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     localVarHeaderParams.put("Content-Type", "application/merge-patch+json")
 
     val localVarAuthNames: Array[String] = Array[String]("BearerToken")
+    log.info("Request path: " + localVarPath)
     apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
   }
 
