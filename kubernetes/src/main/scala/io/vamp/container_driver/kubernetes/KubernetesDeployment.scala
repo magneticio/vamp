@@ -2,6 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import java.util
 
+import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.squareup.okhttp.Call
 import com.typesafe.scalalogging.LazyLogging
@@ -15,10 +16,15 @@ import io.vamp.model.reader.{MegaByte, Quantity}
 
 import scala.collection.JavaConverters._
 import scala.util.Try
+import scala.util.parsing.json.{JSON, JSONObject}
 
 object KubernetesDeployment {
   val dialect = "kubernetes"
 }
+
+class CC[T] { def unapply(a:Any):Option[T] = Some(a.asInstanceOf[T]) }
+object M extends CC[Map[String, Any]]
+object S extends CC[String]
 
 trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
@@ -273,11 +279,24 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     log.debug(s"Creating Kubernetes deployment")
     log.info("Request: " + request)
 
-    val call = preparePatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, "vamp-gateway-agent")
+    val deploymentName = findDeploymentName(request)
+    val requestAsObject = new Gson().fromJson(request, classOf[Object])
+    val call = preparePatchCall(requestAsObject, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
     k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
   }
 
-  private def preparePatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
+  private def findDeploymentName(request: String) : String = {
+    val result = for {
+      Some(M(map)) <- List(JSON.parseFull(request))
+      M(metadata) = map("metadata")
+      S(name) = metadata("name")
+    } yield {
+      name
+    }
+    result.head
+  }
+
+  private def preparePatchCall(request: Object, apiClient: ApiClient, name: String) : Call = {
     val localVarPostBody: Any = request
 
     // create path and map variables
