@@ -1,13 +1,19 @@
 package io.vamp.container_driver.kubernetes
 
+import java.lang.reflect.Type
+import java.util
+import java.util.{ArrayList, HashMap, List, Map}
+
 import com.google.gson.reflect.TypeToken
+import com.squareup.okhttp.Call
 import com.typesafe.scalalogging.LazyLogging
+import io.kubernetes.client.{ApiClient, Pair, ProgressResponseBody}
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
-import io.vamp.container_driver.{ ContainerDriver, _ }
+import io.vamp.container_driver.{ContainerDriver, _}
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -268,19 +274,27 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   protected def updateDeployment(request: String): Unit = {
     log.debug(s"Creating Kubernetes deployment")
     log.info("Request: " + request)
-    try {
-      val parsed: ExtensionsV1beta1Deployment = k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType)
-      log.info("Parsed request: " + parsed)
-    } catch {
-      case e: Exception ⇒
-        log.error(e, "Parse failed");
-    }
-    k8sClient.extensionsV1beta1Api.patchNamespacedDeployment(
-      s"vamp-gateway-agent",
-      customNamespace,
-      request,
-      null
-    )
+
+    val call = preparePatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, "vamp-gateway-agent")
+    k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
+  }
+
+  private def preparePatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
+    val localVarPostBody: Any = request
+
+    // create path and map variables
+    val localVarPath: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
+
+    val localVarQueryParams: util.List[Pair] = new util.ArrayList[Pair]
+    val localVarCollectionQueryParams: util.List[Pair] = new util.ArrayList[Pair]
+    val localVarHeaderParams: util.Map[String, String] = new util.HashMap[String, String]
+    val localVarFormParams: util.Map[String, AnyRef] = new util.HashMap[String, AnyRef]
+
+    localVarHeaderParams.put("Accept", "application/json")
+    localVarHeaderParams.put("Content-Type", "application/merge-patch+json")
+
+    val localVarAuthNames: Array[String] = Array[String]("BearerToken")
+    apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
   }
 
   protected def deleteDeployment(name: String): Unit = {
