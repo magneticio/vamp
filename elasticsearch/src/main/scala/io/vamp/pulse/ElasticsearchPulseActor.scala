@@ -100,7 +100,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }
 
-  private def info = es.health map { health ⇒ Map[String, Any]("type" → "elasticsearch", "elasticsearch" → health) }
+  private def info = Map[String, Any]("type" → "elasticsearch", "elasticsearch" → es.health)
 
   private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = {
     implicit val formats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
