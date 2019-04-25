@@ -72,7 +72,7 @@ class ElasticsearchClientAdapterSpec extends TestKit(ActorSystem("ElasticsearchC
       val health = Await.result(elasticSearchClient.health(), tenSecondsTimeout).toString
 
       it("should return health information") {
-        health should not be "Could not get cluster health information"
+        health should not startWith "Could not get health:"
       }
     }
 
