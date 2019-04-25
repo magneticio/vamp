@@ -278,7 +278,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     k8sClient.extensionsV1beta1Api.patchNamespacedDeployment(
       s"vamp-gateway-agent",
       customNamespace,
-      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+      request,
       null
     )
   }
