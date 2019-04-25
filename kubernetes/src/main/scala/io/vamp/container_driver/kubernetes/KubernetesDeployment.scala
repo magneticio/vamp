@@ -310,10 +310,14 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
     val localVarAuthNames: Array[String] = Array[String]("BearerToken")
     log.info("Request path: " + localVarPath)
-    val r = new Request.Builder()
+
+    apiClient.updateParamsForAuth(localVarAuthNames, localVarQueryParams, localVarHeaderParams)
+
+    val builder = new Request.Builder()
+
+    apiClient.processHeaderParams(localVarHeaderParams, builder)
+    val r = builder
       .url(apiClient.buildUrl(localVarPath, localVarQueryParams, localVarCollectionQueryParams))
-      .addHeader("Accept", "application/json")
-      .addHeader("Content-Type", "application/merge-patch+json")
       .patch(RequestBody.create(MediaType.parse("application/merge-patch+json"), request))
       .build()
 
