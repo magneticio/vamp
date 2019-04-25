@@ -318,7 +318,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       .build()
 
     apiClient.getHttpClient.newCall(r)
-    apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
+    //apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
   }
 
   protected def deleteDeployment(name: String): Unit = {
