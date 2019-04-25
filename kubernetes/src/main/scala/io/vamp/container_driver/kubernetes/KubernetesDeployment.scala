@@ -310,14 +310,15 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
     val localVarAuthNames: Array[String] = Array[String]("BearerToken")
     log.info("Request path: " + localVarPath)
-    val r = new Request.Builder().url(localVarPath)
+    val r = new Request.Builder()
+      .url(apiClient.buildUrl(localVarPath, localVarQueryParams, localVarCollectionQueryParams))
       .addHeader("Accept", "application/json")
       .addHeader("Content-Type", "application/merge-patch+json")
       .patch(RequestBody.create(MediaType.parse("application/merge-patch+json"), request))
       .build()
 
-    apiClient.getHttpClient.newCall(r);
-    //apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
+    apiClient.getHttpClient.newCall(r)
+    apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
   }
 
   protected def deleteDeployment(name: String): Unit = {
