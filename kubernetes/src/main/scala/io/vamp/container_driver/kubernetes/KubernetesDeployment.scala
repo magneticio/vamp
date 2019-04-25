@@ -2,12 +2,11 @@ package io.vamp.container_driver.kubernetes
 
 import java.util
 
-import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.squareup.okhttp.Call
+import com.squareup.okhttp.{Call, MediaType, Request, RequestBody}
 import com.typesafe.scalalogging.LazyLogging
-import io.kubernetes.client.{ApiClient, Pair}
 import io.kubernetes.client.models._
+import io.kubernetes.client.{ApiClient, Pair}
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ContainerDriver, _}
@@ -16,7 +15,7 @@ import io.vamp.model.reader.{MegaByte, Quantity}
 
 import scala.collection.JavaConverters._
 import scala.util.Try
-import scala.util.parsing.json.{JSON, JSONObject}
+import scala.util.parsing.json.JSON
 
 object KubernetesDeployment {
   val dialect = "kubernetes"
@@ -280,8 +279,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     log.info("Request: " + request)
 
     val deploymentName = findDeploymentName(request)
-    val requestAsObject = new Gson().fromJson(request, classOf[Object])
-    val call = preparePatchCall(requestAsObject, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
+    val call = preparePatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
     k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
   }
 
@@ -296,7 +294,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     result.head
   }
 
-  private def preparePatchCall(request: Object, apiClient: ApiClient, name: String) : Call = {
+  private def preparePatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
     val localVarPostBody: Any = request
 
     // create path and map variables
@@ -312,7 +310,14 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
     val localVarAuthNames: Array[String] = Array[String]("BearerToken")
     log.info("Request path: " + localVarPath)
-    apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
+    val r = new Request.Builder().url(localVarPath)
+      .addHeader("Accept", "application/json")
+      .addHeader("Content-Type", "application/merge-patch+json")
+      .patch(RequestBody.create(MediaType.parse("application/merge-patch+json"), request))
+      .build()
+
+    apiClient.getHttpClient.newCall(r);
+    //apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
   }
 
   protected def deleteDeployment(name: String): Unit = {
