@@ -1,13 +1,11 @@
 package io.vamp.container_driver.kubernetes
 
-import java.lang.reflect.Type
 import java.util
-import java.util.{ArrayList, HashMap, List, Map}
 
 import com.google.gson.reflect.TypeToken
 import com.squareup.okhttp.Call
 import com.typesafe.scalalogging.LazyLogging
-import io.kubernetes.client.{ApiClient, Pair, ProgressResponseBody}
+import io.kubernetes.client.{ApiClient, Pair}
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
@@ -285,7 +283,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     // create path and map variables
     val localVarPath: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
 
-    val localVarQueryParams: util.List[Pair] = new util.ArrayList[Pair]
+    val localVarQueryParams: util.ArrayList[Pair] = new util.ArrayList[Pair]
     val localVarCollectionQueryParams: util.List[Pair] = new util.ArrayList[Pair]
     val localVarHeaderParams: util.Map[String, String] = new util.HashMap[String, String]
     val localVarFormParams: util.Map[String, AnyRef] = new util.HashMap[String, AnyRef]
