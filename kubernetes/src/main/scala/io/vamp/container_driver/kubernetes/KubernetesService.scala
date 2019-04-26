@@ -127,7 +127,7 @@ trait KubernetesService extends KubernetesArtifact {
 
 
   private def prepareServicePatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
-    val localVarPath = "/api/v1/namespaces/{namespace}/services/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
+    val localVarPath = "/api/v1/namespaces/{namespace}/services/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
 
     val localVarQueryParams = new util.ArrayList[Pair]
     val localVarCollectionQueryParams = new util.ArrayList[Pair]

@@ -100,7 +100,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
 
   private def prepareDaemonSetPatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
     // create path and map variables
-    val localVarPath = "/apis/extensions/v1beta1/namespaces/{namespace}/daemonsets/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
+    val localVarPath = "/apis/extensions/v1beta1/namespaces/{namespace}/daemonsets/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
 
     val localVarQueryParams = new util.ArrayList[Pair]
     val localVarCollectionQueryParams = new util.ArrayList[Pair]
