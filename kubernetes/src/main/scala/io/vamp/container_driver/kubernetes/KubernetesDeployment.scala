@@ -1,12 +1,8 @@
 package io.vamp.container_driver.kubernetes
 
-import java.util
-
 import com.google.gson.reflect.TypeToken
-import com.squareup.okhttp.{Call, MediaType, Request, RequestBody}
 import com.typesafe.scalalogging.LazyLogging
 import io.kubernetes.client.models._
-import io.kubernetes.client.{ApiClient, Pair}
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ContainerDriver, _}
@@ -15,7 +11,6 @@ import io.vamp.model.reader.{MegaByte, Quantity}
 
 import scala.collection.JavaConverters._
 import scala.util.Try
-import scala.util.parsing.json.JSON
 
 object KubernetesDeployment {
   val dialect = "kubernetes"
@@ -275,35 +270,8 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     log.info("Deployment Request: " + request)
 
     val deploymentName = KubernetesPatchHelper.findName(request)
-    val call = prepareDeploymentPatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
+    val call = KubernetesPatchHelper.prepareDeploymentPatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName, customNamespace)
     k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
-  }
-
-  private def prepareDeploymentPatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
-    // create path and map variables
-    val localVarPath: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
-
-    val localVarQueryParams: util.ArrayList[Pair] = new util.ArrayList[Pair]
-    val localVarCollectionQueryParams: util.List[Pair] = new util.ArrayList[Pair]
-    val localVarHeaderParams: util.Map[String, String] = new util.HashMap[String, String]
-
-    localVarHeaderParams.put("Accept", "application/json")
-    localVarHeaderParams.put("Content-Type", "application/merge-patch+json")
-
-    val localVarAuthNames: Array[String] = Array[String]("BearerToken")
-    log.info("Request path: " + localVarPath)
-
-    apiClient.updateParamsForAuth(localVarAuthNames, localVarQueryParams, localVarHeaderParams)
-
-    val builder = new Request.Builder()
-
-    apiClient.processHeaderParams(localVarHeaderParams, builder)
-    val r = builder
-      .url(apiClient.buildUrl(localVarPath, localVarQueryParams, localVarCollectionQueryParams))
-      .patch(RequestBody.create(MediaType.parse("application/merge-patch+json"), request))
-      .build()
-
-    apiClient.getHttpClient.newCall(r)
   }
 
   protected def deleteDeployment(name: String): Unit = {
