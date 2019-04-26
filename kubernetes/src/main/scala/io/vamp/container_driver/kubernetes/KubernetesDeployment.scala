@@ -21,10 +21,6 @@ object KubernetesDeployment {
   val dialect = "kubernetes"
 }
 
-class CC[T] { def unapply(a:Any):Option[T] = Some(a.asInstanceOf[T]) }
-object M extends CC[Map[String, Any]]
-object S extends CC[String]
-
 trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
@@ -276,34 +272,20 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
 
   protected def updateDeployment(request: String): Unit = {
     log.debug(s"Creating Kubernetes deployment")
-    log.info("Request: " + request)
+    log.info("Deployment Request: " + request)
 
-    val deploymentName = findDeploymentName(request)
-    val call = preparePatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
+    val deploymentName = KubernetesPatchHelper.findName(request)
+    val call = prepareDeploymentPatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
     k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
   }
 
-  private def findDeploymentName(request: String) : String = {
-    val result = for {
-      Some(M(map)) <- List(JSON.parseFull(request))
-      M(metadata) = map("metadata")
-      S(name) = metadata("name")
-    } yield {
-      name
-    }
-    result.head
-  }
-
-  private def preparePatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
-    val localVarPostBody: Any = request
-
+  private def prepareDeploymentPatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
     // create path and map variables
     val localVarPath: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
 
     val localVarQueryParams: util.ArrayList[Pair] = new util.ArrayList[Pair]
     val localVarCollectionQueryParams: util.List[Pair] = new util.ArrayList[Pair]
     val localVarHeaderParams: util.Map[String, String] = new util.HashMap[String, String]
-    val localVarFormParams: util.Map[String, AnyRef] = new util.HashMap[String, AnyRef]
 
     localVarHeaderParams.put("Accept", "application/json")
     localVarHeaderParams.put("Content-Type", "application/merge-patch+json")
@@ -322,7 +304,6 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       .build()
 
     apiClient.getHttpClient.newCall(r)
-    //apiClient.buildCall(localVarPath, "PATCH", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames, null)
   }
 
   protected def deleteDeployment(name: String): Unit = {

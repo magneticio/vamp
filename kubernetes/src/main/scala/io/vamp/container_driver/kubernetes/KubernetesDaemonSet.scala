@@ -1,10 +1,15 @@
 package io.vamp.container_driver.kubernetes
 
+
+import java.util
+
 import com.google.gson.reflect.TypeToken
+import com.squareup.okhttp.{Call, MediaType, Request, RequestBody}
+import io.kubernetes.client.{ApiClient, Pair}
 import io.kubernetes.client.custom.Quantity
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
-import io.vamp.container_driver.{ ContainerDriver, Docker }
+import io.vamp.container_driver.{ContainerDriver, Docker}
 
 import scala.collection.JavaConverters._
 
@@ -82,6 +87,45 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
       null
     )
+  }
+
+  protected def updateDaemonSet(request: String): Unit = {
+    log.debug(s"Updating daemon set")
+    log.info("DaemonSet Request: " + request)
+
+    val deploymentName = KubernetesPatchHelper.findName(request)
+    val call = prepareDaemonSetPatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName)
+    k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
+  }
+
+  private def prepareDaemonSetPatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
+    // create path and map variables
+    val localVarPath = "/apis/extensions/v1beta1/namespaces/{namespace}/daemonsets/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
+
+    val localVarQueryParams = new util.ArrayList[Pair]
+    val localVarCollectionQueryParams = new util.ArrayList[Pair]
+
+    val localVarHeaderParams = new util.HashMap[String, String]
+
+    localVarHeaderParams.put("Accept", "application/json")
+    localVarHeaderParams.put("Content-Type", "application/merge-patch+json")
+
+    val localVarAuthNames = Array[String]("BearerToken")
+
+    log.info("DaemonSet Request path: " + localVarPath)
+
+    apiClient.updateParamsForAuth(localVarAuthNames, localVarQueryParams, localVarHeaderParams)
+
+
+    val builder = new Request.Builder()
+
+    apiClient.processHeaderParams(localVarHeaderParams, builder)
+    val r = builder
+      .url(apiClient.buildUrl(localVarPath, localVarQueryParams, localVarCollectionQueryParams))
+      .patch(RequestBody.create(MediaType.parse("application/merge-patch+json"), request))
+      .build()
+
+    apiClient.getHttpClient.newCall(r)
   }
 
   protected def deleteDaemonSet(name: String): Unit = {

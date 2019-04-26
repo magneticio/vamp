@@ -1,7 +1,12 @@
 package io.vamp.container_driver.kubernetes
 
+
+import java.util
+
 import com.google.gson.reflect.TypeToken
+import com.squareup.okhttp.{Call, MediaType, Request, RequestBody}
 import io.kubernetes.client.models._
+import io.kubernetes.client.{ApiClient, Pair}
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
@@ -109,6 +114,43 @@ trait KubernetesService extends KubernetesArtifact {
       k8sClient.coreV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Service]() {}.getType),
       null
     )
+  }
+
+  protected def updateService(request: String): Unit = {
+    log.debug(s"Updating Kubernetes service")
+    log.info("Service Request: " + request)
+
+    val serviceName = KubernetesPatchHelper.findName(request)
+    val call = prepareServicePatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, serviceName)
+    k8sClient.coreV1Api.getApiClient.execute(call)
+  }
+
+
+  private def prepareServicePatchCall(request: String, apiClient: ApiClient, name: String) : Call = {
+    val localVarPath = "/api/v1/namespaces/{namespace}/services/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(namespace.toString))
+
+    val localVarQueryParams = new util.ArrayList[Pair]
+    val localVarCollectionQueryParams = new util.ArrayList[Pair]
+    val localVarHeaderParams = new util.HashMap[String, String]
+
+    localVarHeaderParams.put("Accept", "application/json")
+    localVarHeaderParams.put("Content-Type", "application/merge-patch+json")
+
+    val localVarAuthNames = Array[String]("BearerToken")
+
+    log.info("Request path: " + localVarPath)
+
+    apiClient.updateParamsForAuth(localVarAuthNames, localVarQueryParams, localVarHeaderParams)
+
+    val builder = new Request.Builder()
+
+    apiClient.processHeaderParams(localVarHeaderParams, builder)
+    val r = builder
+      .url(apiClient.buildUrl(localVarPath, localVarQueryParams, localVarCollectionQueryParams))
+      .patch(RequestBody.create(MediaType.parse("application/merge-patch+json"), request))
+      .build()
+
+    apiClient.getHttpClient.newCall(r)
   }
 
   private def toId(name: String): String = name match {
