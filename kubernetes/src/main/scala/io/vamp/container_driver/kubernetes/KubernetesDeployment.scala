@@ -5,9 +5,9 @@ import com.typesafe.scalalogging.LazyLogging
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
-import io.vamp.container_driver.{ContainerDriver, _}
+import io.vamp.container_driver.{ ContainerDriver, _ }
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -269,9 +269,10 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     log.debug(s"Creating Kubernetes deployment")
     log.info("Deployment Request: " + request)
 
-    val deploymentName = KubernetesPatchHelper.findName(request)
-    val call = KubernetesPatchHelper.prepareDeploymentPatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName, customNamespace)
-    k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
+    val apiRequest = KubernetesPatchHelper.prepareDeploymentPatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
+
+    val apiClient = k8sClient.coreV1Api.getApiClient
+    apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
   }
 
   protected def deleteDeployment(name: String): Unit = {

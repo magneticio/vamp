@@ -1,6 +1,5 @@
 package io.vamp.container_driver.kubernetes
 
-
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
@@ -116,9 +115,10 @@ trait KubernetesService extends KubernetesArtifact {
     log.debug(s"Updating Kubernetes service")
     log.info("Service Request: " + request)
 
-    val serviceName = KubernetesPatchHelper.findName(request)
-    val call = KubernetesPatchHelper.prepareServicePatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, serviceName, customNamespace)
-    k8sClient.coreV1Api.getApiClient.execute(call)
+    val apiRequest = KubernetesPatchHelper.prepareServicePatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
+
+    val apiClient = k8sClient.coreV1Api.getApiClient
+    apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
   }
 
   private def toId(name: String): String = name match {

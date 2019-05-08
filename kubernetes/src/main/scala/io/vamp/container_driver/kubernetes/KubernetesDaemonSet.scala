@@ -1,11 +1,10 @@
 package io.vamp.container_driver.kubernetes
 
-
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.custom.Quantity
 import io.kubernetes.client.models._
 import io.vamp.common.akka.CommonActorLogging
-import io.vamp.container_driver.{ContainerDriver, Docker}
+import io.vamp.container_driver.{ ContainerDriver, Docker }
 
 import scala.collection.JavaConverters._
 
@@ -89,11 +88,11 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
     log.debug(s"Updating daemon set")
     log.info("DaemonSet Request: " + request)
 
-    val deploymentName = KubernetesPatchHelper.findName(request)
-    val call = KubernetesPatchHelper.prepareDaemonSetPatchCall(request, k8sClient.extensionsV1beta1Api.getApiClient, deploymentName, customNamespace)
-    k8sClient.extensionsV1beta1Api.getApiClient.execute(call)
-  }
+    val apiRequest = KubernetesPatchHelper.prepareDaemonSetPatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
 
+    val apiClient = k8sClient.coreV1Api.getApiClient
+    apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
+  }
 
   protected def deleteDaemonSet(name: String): Unit = {
     log.debug(s"Deleting daemon set $name")
