@@ -113,7 +113,6 @@ trait KubernetesService extends KubernetesArtifact {
 
   protected def updateService(request: String): Unit = {
     log.debug(s"Updating Kubernetes service")
-    log.info("Service Request: " + request)
 
     val apiRequest = KubernetesPatchHelper.prepareServicePatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
 
