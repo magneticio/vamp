@@ -67,7 +67,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
     def default = {
       if (validateOnly)
-        Try((process andThen validate)(gateway)).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
+        Try((process(false) andThen validate)(gateway)).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
       else
         Try((process andThen validate andThen persist(source, create = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
@@ -120,7 +120,14 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     }
   }
 
-  private def process: Gateway ⇒ Gateway = { gateway ⇒
+  private def process : Gateway => Gateway = {
+    logger.info("process without args")
+    process(true)
+  }
+
+  private def process(generateEvents: Boolean): Gateway ⇒ Gateway = { gateway ⇒
+
+    logger.info("process: " + generateEvents)
 
     val newGateway = if (gateway.routes.forall(_.isInstanceOf[DefaultRoute])) {
 
@@ -157,7 +164,9 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       route.copy(conditionStrength = Option(route.conditionStrength.getOrElse(Percentage(default))))
     }
     val gatewayWithUpdatedRoutes = newGateway.copy(routes = routes)
-    compareNewRoutesAndGenerateEvents(gateway, gatewayWithUpdatedRoutes, "process")
+    if(generateEvents) {
+      compareNewRoutesAndGenerateEvents(gateway, gatewayWithUpdatedRoutes, "process")
+    }
     gatewayWithUpdatedRoutes
   }
 
