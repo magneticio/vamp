@@ -84,6 +84,15 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
     )
   }
 
+  protected def updateDaemonSet(request: String): Unit = {
+    log.debug(s"Updating daemon set")
+
+    val apiRequest = KubernetesPatchHelper.prepareDaemonSetPatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
+
+    val apiClient = k8sClient.coreV1Api.getApiClient
+    apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
+  }
+
   protected def deleteDaemonSet(name: String): Unit = {
     log.debug(s"Deleting daemon set $name")
     k8sClient.cache.writeWithCache(
