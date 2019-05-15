@@ -111,6 +111,15 @@ trait KubernetesService extends KubernetesArtifact {
     )
   }
 
+  protected def updateService(request: String): Unit = {
+    log.debug(s"Updating Kubernetes service")
+
+    val apiRequest = KubernetesPatchHelper.prepareServicePatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
+
+    val apiClient = k8sClient.coreV1Api.getApiClient
+    apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
+  }
+
   private def toId(name: String): String = name match {
     case nameMatcher(_*) if name.length < 25 ⇒ name
     case _                                   ⇒ s"hex${HashUtil.hexSha1(name).substring(0, 20)}"

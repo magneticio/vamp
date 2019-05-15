@@ -265,6 +265,15 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     )
   }
 
+  protected def updateDeployment(request: String): Unit = {
+    log.debug(s"Creating Kubernetes deployment")
+
+    val apiRequest = KubernetesPatchHelper.prepareDeploymentPatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
+
+    val apiClient = k8sClient.coreV1Api.getApiClient
+    apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
+  }
+
   protected def deleteDeployment(name: String): Unit = {
     log.debug(s"Deleting Kubernetes deployment $name")
     k8sClient.cache.writeWithCache(
