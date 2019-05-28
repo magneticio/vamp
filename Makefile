@@ -20,6 +20,7 @@ endif
 .PHONY: clean
 clean:
 	find "$(CURDIR)" -type d -name "target" | xargs rm -Rf
+	chmod 777 healthcheck.sh
 
 .PHONY: local
 local:
