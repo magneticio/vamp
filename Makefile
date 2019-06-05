@@ -9,7 +9,7 @@ STASH       := stash
 PROJECT     := vamp
 PROJECT_DIR := $(CURDIR)
 VERSION     := $(shell git describe --tags)
-FABRICATOR  := magneticio/fabricator:jdk_8u162_scala_2.12.1_sbt_0.13.13
+FABRICATOR  := magneticio/fabricator:jdk_8u212_scala_2.12.8_sbt_0.13.17
 TARGET      := $$HOME/.stash/$(PROJECT)
 
 # if Makefile.local exists, include it.
