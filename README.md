@@ -24,3 +24,4 @@ take some time to walk through the [getting started](http://vamp.io/documentatio
 
 Vamp is open source. Any contributions are welcome. Please check [our contribution guidelines](https://github.com/magneticio/vamp/blob/master/CONTRIBUTING.md)
 
+
