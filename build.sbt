@@ -10,7 +10,7 @@ name := """vamp"""
 
 version in ThisBuild := VersionHelper.versionByTag // version based on env VAMP_VERSION and "git describe"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.8"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
@@ -31,12 +31,18 @@ resolvers in ThisBuild ++= Seq(
 )
 
 // Libraries
-val akka = "com.typesafe.akka" %% "akka-stream" % "2.5.9" ::
-  "com.typesafe.akka" %% "akka-actor" % "2.5.9" ::
-  "com.typesafe.akka" %% "akka-http" % "10.0.11" ::
-  "com.typesafe.akka" %% "akka-parsing" % "10.0.11" ::
-  "ch.megard" %% "akka-http-cors" % "0.2.2" ::
+val akka = "com.typesafe.akka" %% "akka-stream" % "2.5.23" ::
+  "com.typesafe.akka" %% "akka-actor" % "2.5.23" ::
+  "com.typesafe.akka" %% "akka-http" % "10.1.8" ::
+  "com.typesafe.akka" %% "akka-parsing" % "10.1.8" ::
+  "com.lightbend.akka" %% "akka-stream-alpakka-sse" % "1.0.2" ::
+  "ch.megard" %% "akka-http-cors" % "0.4.0" ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.5.9" exclude("org.slf4j", "slf4j-api")) :: Nil
+
+val bouncyCastle =
+  "org.bouncycastle" % "bcprov-jdk15on" % "1.61" ::
+  "org.bouncycastle" % "bcprov-ext-jdk15on" % "1.61" :: 
+  "org.bouncycastle" % "bcpkix-jdk15on" % "1.61" :: Nil
 
 val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
   "org.json4s" %% "json4s-core" % "3.5.0" ::
@@ -48,7 +54,7 @@ val kamon = ("io.kamon" %% "kamon-core" % "0.6.4" excludeAll ExclusionRule(organ
   "org.slf4j" % "jul-to-slf4j" % "1.7.21" :: Nil
 
 val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
-  "ch.qos.logback" % "logback-classic" % "1.1.7" ::
+  "ch.qos.logback" % "logback-classic" % "1.2.0" ::
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.5.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
@@ -56,13 +62,17 @@ val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test" ::
   "com.typesafe.akka" %% "akka-testkit" % "2.5.9" % "test" :: Nil
 
-val templating = Seq("org.jtwig" % "jtwig-core" % "5.65")
+val templating = Seq(
+  "org.jtwig" % "jtwig-core" % "5.87.0.RELEASE" exclude("com.google.guava", "guava"),
+  "com.google.guava" % "guava" % "27.1-jre"
+)
 
 val sql = Seq(
-  "org.postgresql" % "postgresql" % "9.4-1202-jdbc42",
-  "mysql" % "mysql-connector-java" % "6.0.6",
-  "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8",
-  "org.xerial" % "sqlite-jdbc" % "3.19.3")
+  "org.postgresql" % "postgresql" % "42.2.5",
+  "mysql" % "mysql-connector-java" % "8.0.16",
+  "com.microsoft.sqlserver" % "mssql-jdbc" % "7.2.2.jre8" excludeAll ExclusionRule(organization = "org.bouncycastle"),
+  "org.xerial" % "sqlite-jdbc" % "3.19.3"
+) ++ bouncyCastle
 
 val caching = Seq("com.github.cb372" %% "scalacache-caffeine" % "0.22.0")
 
@@ -70,18 +80,20 @@ val config = Seq("com.typesafe"  % "config" % "1.3.1")
 
 val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
 
-val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.4.8"
+val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.5.5"
   exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"))
 
-val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
+val dockerlbs = Seq(
+  "com.spotify" % "docker-client" % "8.15.3" excludeAll ExclusionRule(organization = "org.bouncycastle")
+) ++ bouncyCastle
 
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
-val k8s = Seq("io.kubernetes" % "client-java" % "2.0.0")
+val k8s = Seq(
+  "io.kubernetes" % "client-java" % "2.0.0" excludeAll ExclusionRule(organization = "org.bouncycastle")
+) ++ bouncyCastle
 
-val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.0",
-  "io.kubernetes" % "client-java" % "2.0.0")
- // TODO: fix dependency: "org.bouncycastle" % "bcprov-jdk15on" % "1.49")
+val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.2")
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -244,7 +256,7 @@ lazy val nats = project.settings(
   description := "Pulse and metrics driver for Nats",
   name := "vamp-nats",
   formatting,
-  libraryDependencies ++= testing ++ natslibs,
+  libraryDependencies ++= testing ++ natslibs ++ bouncyCastle,
   bintrayRepository := "vamp"
 ).dependsOn(pulse)
 
