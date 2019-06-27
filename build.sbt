@@ -83,10 +83,6 @@ val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
 val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.5.5"
   exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"))
 
-val dockerlbs = Seq(
-  "com.spotify" % "docker-client" % "8.15.3" excludeAll ExclusionRule(organization = "org.bouncycastle")
-) ++ bouncyCastle
-
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
 val k8s = Seq(
@@ -305,14 +301,6 @@ lazy val kubernetes = project.settings(
   name := "vamp-kubernetes",
   formatting,
   libraryDependencies ++= k8s ++ testing,
-  bintrayRepository := "vamp"
-).dependsOn(pulse, workflow_driver, container_driver)
-
-lazy val docker = project.settings(
-  description := "Container driver for docker",
-  name := "vamp-docker",
-  formatting,
-  libraryDependencies ++= testing ++ dockerlbs,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
