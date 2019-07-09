@@ -17,12 +17,12 @@ trait RouteComparator extends LazyLogging {
   }
 
   /**
-    * This method gets old gateway and updated gateway, then
-    * sends events depending on the changes to the routes
-    *
-    * @param gateway
-    * @param updatedGateway
-    */
+   * This method gets old gateway and updated gateway, then
+   * sends events depending on the changes to the routes
+   *
+   * @param gateway
+   * @param updatedGateway
+   */
   protected def compareNewRoutesAndGenerateEvents(gateway: Gateway, updatedGateway: Gateway, caller: String = "")(implicit actorSystem: ActorSystem, namespace: Namespace): Unit = {
     logDebug(s"RouteEvents Triggered on $caller")
     val currentRoutes = gateway.routes.map { case route: DefaultRoute ⇒ route.path.source → route }.toMap

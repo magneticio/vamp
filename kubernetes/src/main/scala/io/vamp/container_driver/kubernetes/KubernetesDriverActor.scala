@@ -1,16 +1,16 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{ Actor, ActorRef }
 import io.kubernetes.client.models.V1Service
-import io.kubernetes.client.{ApiException, custom}
+import io.kubernetes.client.{ ApiException, custom }
 import io.vamp.common._
-import io.vamp.common.util.{HashUtil, YamlUtil}
+import io.vamp.common.util.{ HashUtil, YamlUtil }
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
-import io.vamp.model.artifact.{Gateway, Workflow}
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.artifact.{ Gateway, Workflow }
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization.write
@@ -18,7 +18,7 @@ import org.json4s.native.Serialization.write
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 
 class KubernetesDriverActorMapper extends ClassMapper {
   val name = "kubernetes"
@@ -253,38 +253,37 @@ class KubernetesDriverActor
     }.toOption
   } toList
 
-
   /**
-    * Checks if cluster ip is available for a service.
-    * Related to VE-719
-    * Headless services doesn't have a cluster ip, they are not handled by gateway
-    * @param service V1service
-    * @return true if there is a cluster ip available otherwise false
-    */
-  private def CheckIfClusterIPAvailable(service: V1Service): Boolean = Try{
+   * Checks if cluster ip is available for a service.
+   * Related to VE-719
+   * Headless services doesn't have a cluster ip, they are not handled by gateway
+   * @param service V1service
+   * @return true if there is a cluster ip available otherwise false
+   */
+  private def CheckIfClusterIPAvailable(service: V1Service): Boolean = Try {
     service.getSpec.getClusterIP != null && service.getSpec.getClusterIP != "" && service.getSpec.getClusterIP != "None"
   }.getOrElse(false)
 
   private def routingGroups: List[RoutingGroup] = {
     val services = servicesForAllNamespaces()
-      .filter( CheckIfClusterIPAvailable )
+      .filter(CheckIfClusterIPAvailable)
       .flatMap { service ⇒
-      Try {
-        RoutingGroup(
-          name = service.getMetadata.getName,
-          kind = "service",
-          namespace = service.getMetadata.getNamespace,
-          labels = service.getMetadata.getLabels.asScala.toMap,
-          image = None,
-          instances = List(
-            RoutingInstance(
-              ip = Option(service.getSpec.getClusterIP).get, // fail if null
-              ports = service.getSpec.getPorts.asScala.map(p ⇒ RoutingInstancePort(p.getPort, p.getTargetPort.getIntValue)).toList
+        Try {
+          RoutingGroup(
+            name = service.getMetadata.getName,
+            kind = "service",
+            namespace = service.getMetadata.getNamespace,
+            labels = service.getMetadata.getLabels.asScala.toMap,
+            image = None,
+            instances = List(
+              RoutingInstance(
+                ip = Option(service.getSpec.getClusterIP).get, // fail if null
+                ports = service.getSpec.getPorts.asScala.map(p ⇒ RoutingInstancePort(p.getPort, p.getTargetPort.getIntValue)).toList
+              )
             )
           )
-        )
-      } map (_ :: Nil) getOrElse Nil
-    } toList
+        } map (_ :: Nil) getOrElse Nil
+      } toList
 
     val pods = podsForAllNamespaces().flatMap { pod ⇒
       pod.getSpec.getContainers.asScala.flatMap { container ⇒

@@ -120,11 +120,11 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     }
   }
 
-  private def process : Gateway => Gateway = {
+  private def process: Gateway ⇒ Gateway = {
     process(false)
   }
 
-  private def processAndSendEvents: Gateway => Gateway = {
+  private def processAndSendEvents: Gateway ⇒ Gateway = {
     process(true)
   }
 
@@ -165,7 +165,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       route.copy(conditionStrength = Option(route.conditionStrength.getOrElse(Percentage(default))))
     }
     val gatewayWithUpdatedRoutes = newGateway.copy(routes = routes)
-    if(generateEvents) {
+    if (generateEvents) {
       compareNewRoutesAndGenerateEvents(gateway, gatewayWithUpdatedRoutes, "process")
     }
     gatewayWithUpdatedRoutes

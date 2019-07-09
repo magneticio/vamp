@@ -10,6 +10,7 @@ import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{ HttpEntity, _ }
 import akka.http.scaladsl.server.{ Directive0, Directives, MalformedHeaderRejection, Route }
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives
+import ch.megard.akka.http.cors.scaladsl.model.HttpHeaderRange
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import io.vamp.common.json.PrettyJson
 import io.vamp.common.notification.NotificationErrorException
@@ -61,9 +62,15 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
   override def post: Directive0 = super.post & contentTypeForModification
 
   def cors(): Directive0 = cors(
-    CorsSettings.defaultSettings
-      .withAllowedMethods(Seq(GET, POST, HEAD, OPTIONS, DELETE, PUT))
-      .withExposedHeaders(Seq("Link", "X-Total-Count"))
+    CorsSettings.Default(
+      allowGenericHttpRequests = true,
+      allowCredentials = true,
+      allowedOrigins = HttpOriginRange.*,
+      allowedHeaders = HttpHeaderRange.*,
+      allowedMethods = Seq(GET, POST, HEAD, OPTIONS, DELETE, PUT),
+      exposedHeaders = List("Link", "X-Total-Count"),
+      maxAge = Some(30 * 60)
+    )
   )
 
   protected def respondWith(status: StatusCode, response: Any): Route = {

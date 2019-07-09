@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.model.{ HttpHeader, HttpRequest, HttpResponse, Uri }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.alpakka.sse.scaladsl.EventSource
+import io.vamp.common.http.EventSource.EventSource
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -18,7 +18,7 @@ import scala.util.{ Failure, Success }
 
 private case class SseConnectionConfig(url: String, headers: List[(String, String)], tlsCheck: Boolean)
 
-private case class SseConnectionEntryValue(source: EventSource.EventSource)
+private case class SseConnectionEntryValue(source: EventSource)
 
 trait SseListener {
   def onEvent(event: ServerSentEvent): Unit
