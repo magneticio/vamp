@@ -15,7 +15,7 @@ import scala.util.{ Random, Try }
 
 class NatsPulseActorMapper extends ClassMapper {
   val name = "nats"
-  val clazz: Class[_] = classOf[NatsPublisherPulseActor]
+  val clazz: Class[_] = classOf[NatsPulseActor]
 }
 
 object NatsPulseActor {
