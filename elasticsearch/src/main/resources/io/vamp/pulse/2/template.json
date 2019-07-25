@@ -1,0 +1,29 @@
+{
+  "template": "$NAME-*",
+  "order": 1,
+  "mappings": {
+    "_default_": {
+      "_all": {
+        "enabled": false
+      },
+      "properties": {
+        "tags": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "timestamp": {
+          "type": "date",
+          "format": "date_optional_time"
+        },
+        "type": {
+          "type": "string",
+          "index" : "not_analyzed"
+        }
+      }
+    }
+  },
+  "aliases": {
+    "$NAME": {
+    }
+  }
+}
