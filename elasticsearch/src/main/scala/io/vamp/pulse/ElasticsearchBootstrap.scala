@@ -24,12 +24,9 @@ class ElasticsearchBootstrap
                      namespace: Namespace,
                      timeout: Timeout): Future[Unit] = {
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-    logger.info(s"Starting pulse initialization actor")
     super.start.flatMap {
       _ => {
-        logger.info(s"Initialization actor created")
         IoC.actorFor[PulseInitializationActor] ! PulseInitializationActor.Initialize
-        logger.info(s"Pulse initialized")
         Future.unit
       }
     }

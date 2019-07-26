@@ -25,10 +25,10 @@ class PulseInitializationActor extends ElasticsearchPulseInitializationActor wit
   private def initialize(): Unit = {
     val receiver = sender()
     val pulse = Config.string("vamp.pulse.type")().toLowerCase
-    log.info(s"Pulse type: $pulse")
+    log.info(s"Initializing pulse of type: $pulse")
 
     pulse match {
-      case "elasticsearch" ⇒ initializeElasticsearch().foreach(_ ⇒ done(receiver))
+      case "elasticsearch" | "nats" ⇒ initializeElasticsearch().foreach(_ ⇒ done(receiver))
       case _               ⇒ done(receiver)
     }
   }
