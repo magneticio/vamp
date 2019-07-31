@@ -92,7 +92,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent
 
     case UnregisterPercolator(name) ⇒ unregisterPercolator(name)
 
-    case Event ⇒  log.info(s"ElasticsearchPulseActor - received an event from: ${sender()}")
+    case Event ⇒  logger.info(s"ElasticsearchPulseActor - received an event from: ${sender()}")
 
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }

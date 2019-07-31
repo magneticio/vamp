@@ -50,7 +50,7 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
     case UnregisterPercolator(name) ⇒ IoC.actorFor[PulseActorSupport].forward(UnregisterPercolator(name))
 
-    case Event ⇒  log.info(s"PulseActor - received an event from: ${sender()}")
+    case Event ⇒  logger.info(s"PulseActor - received an event from: ${sender()}")
 
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }

@@ -270,7 +270,7 @@ class NatsPublisherPulseActor extends NamespaceValueResolver with PulseActor wit
 
     case UnregisterPercolator(name) ⇒ unregisterPercolator(name)
 
-    case Event ⇒  log.info(s"NatsPublisherPulseActor - received an event from: ${sender()}")
+    case Event ⇒  logger.info(s"NatsPublisherPulseActor - received an event from: ${sender()}")
 
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }
