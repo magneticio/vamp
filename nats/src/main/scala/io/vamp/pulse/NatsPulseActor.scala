@@ -32,6 +32,8 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
   import PulseActor._
 
+
+
   def receive: Actor.Receive = {
 
     case InfoRequest ⇒ IoC.actorFor[PulseActorSupport].forward(InfoRequest)
@@ -47,6 +49,8 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
     case RegisterPercolator(name, tags, kind, message) ⇒ IoC.actorFor[PulseActorSupport].forward(RegisterPercolator(name, tags, kind, message))
 
     case UnregisterPercolator(name) ⇒ IoC.actorFor[PulseActorSupport].forward(UnregisterPercolator(name))
+
+    case Event ⇒  log.info(s"PulseActor - received an event from: ${sender()}")
 
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }
