@@ -40,7 +40,9 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
     case StatsRequest ⇒ IoC.actorFor[PulseActorSupport].forward(StatsRequest)
 
-    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue) ⇒
+      IoC.actorFor[PulseActorSupport].forward(Publish(event, publishEventValue))
+      IoC.actorFor[PulseActorPublisher].forward(Publish(event, publishEventValue))
 
     case Query(envelope) ⇒ IoC.actorFor[PulseActorSupport].forward(Query(envelope))
 
@@ -50,31 +52,6 @@ class NatsPulseActor extends NamespaceValueResolver with PulseActor {
 
     case UnregisterPercolator(name) ⇒ IoC.actorFor[PulseActorSupport].forward(UnregisterPercolator(name))
 
-    case Event ⇒  logger.info(s"PulseActor - received an event from: ${sender()}")
-
     case any ⇒ unsupported(UnsupportedPulseRequest(any))
-  }
-
-  private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = Future {
-    logger.info("Publish event to publishers")
-    // send it to NATS publisher
-    Try(IoC.actorFor[PulseActorPublisher] ! Publish(event, publishEventValue)).recover {
-      case e: Throwable ⇒ logger.error("Error sending messages to Nats Publisher Actor ", e)
-    }
-    // Send it to Elasticsearch
-    Try(IoC.actorFor[PulseActorSupport] ! Publish(event, publishEventValue)).recover {
-      case e: Throwable ⇒ logger.error("Error sending messages to Elasticsearch Actor ", e)
-    }
-
-    // this is needed for percolator
-    // this is with a random id, normally elastic search id was used but now it doesn't exist.
-    // refactor this if it becomes a problem
-    val randomId = Random.alphanumeric.take(10).mkString("")
-    event.copy(id = Option(randomId))
-  }
-
-  private def broadcast(publishEventValue: Boolean): Future[Any] ⇒ Future[Any] = _.map {
-    case event: Event ⇒ percolate(publishEventValue)(event)
-    case other        ⇒ other
   }
 }
