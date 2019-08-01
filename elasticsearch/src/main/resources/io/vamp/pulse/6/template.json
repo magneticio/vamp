@@ -1,0 +1,29 @@
+{
+  "template": "$NAME-*",
+  "order": 1,
+  "mappings": {
+    "_default_": {
+      "_all": {
+        "enabled": false
+      },
+      "properties": {
+        "tags": {
+          "type": "keyword",
+          "index": true
+        },
+        "timestamp": {
+          "type": "date",
+          "format": "date_optional_time"
+        },
+        "type": {
+          "type": "keyword",
+          "index": true
+        }
+      }
+    }
+  },
+  "aliases": {
+    "$NAME": {
+    }
+  }
+}

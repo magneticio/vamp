@@ -88,7 +88,10 @@ val k8s = Seq(
   "io.kubernetes" % "client-java" % "2.0.0" excludeAll ExclusionRule(organization = "org.bouncycastle")
 ) ++ bouncyCastle
 
-val natslibs = Seq("io.nats" % "java-nats-streaming" % "2.1.2")
+val natslibs = Seq(
+  "io.nats" % "java-nats-streaming" % "2.1.2" exclude("io.nats", "jnats"),
+  "io.nats" % "jnats" % "2.1.0"
+)
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
