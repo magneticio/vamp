@@ -2,16 +2,11 @@ package io.vamp.pulse
 
 import akka.actor.Actor
 import io.vamp.common.ClassMapper
+import io.vamp.common.akka.IoC
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
-import io.vamp.model.event._
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
-
-import scala.concurrent.Future
-import io.vamp.common.akka.IoC
-
-import scala.util.{ Random, Try }
 
 class NatsPulseActorMapper extends ClassMapper {
   val name = "nats"
