@@ -166,7 +166,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with GatewaySel
         }.map {
           case (n, t) ⇒ DefaultRoute(
             name = "",
-            metadata = Map("groups" → n, "title" → s"route $n"),
+            metadata = Map("groups" → n, "title" → s"$n"),
             path = GatewayPath(n),
             selector = None,
             weight = Option(Percentage(0)),
