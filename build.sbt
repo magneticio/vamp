@@ -85,7 +85,7 @@ val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.5.5"
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
 val k8s = Seq(
-  "io.kubernetes" % "client-java" % "2.0.0" excludeAll ExclusionRule(organization = "org.bouncycastle")
+  "io.kubernetes" % "client-java" % "7.0.0" excludeAll ExclusionRule(organization = "org.bouncycastle")
 ) ++ bouncyCastle
 
 val natslibs = Seq(

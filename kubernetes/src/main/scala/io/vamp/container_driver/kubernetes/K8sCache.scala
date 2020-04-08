@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import com.typesafe.scalalogging.Logger
-import io.kubernetes.client.ApiException
+import io.kubernetes.client.openapi.ApiException
 import io.vamp.common.{ CacheStore, Namespace }
 import org.slf4j.LoggerFactory
 

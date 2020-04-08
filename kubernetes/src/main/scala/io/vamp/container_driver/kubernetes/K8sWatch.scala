@@ -2,19 +2,19 @@ package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{Sink, Source}
 import com.google.gson.reflect.TypeToken
-import com.squareup.okhttp.Call
 import com.typesafe.scalalogging.LazyLogging
-import io.kubernetes.client.models._
+import io.kubernetes.client.openapi.models._
 import io.kubernetes.client.util.Watch
 import io.vamp.TimeUtil
 import io.vamp.common.NamespaceProvider
+import okhttp3.Call
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging with Retriable with TimeUtil {
@@ -38,38 +38,38 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
   val futureWatches = Seq(
     WatchDefinition(
       K8sCache.jobs,
-      () ⇒ client.batchV1Api.listNamespacedJobCall(client.kubernetesNamespace, null, null, null, false, null, null, null, timeout, true, null, null),
+      () ⇒ client.batchV1Api.listNamespacedJobCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
       (call: Call) ⇒ Watch.createWatch(client.batchV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Job]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.pods,
-      () ⇒ client.coreV1Api.listNamespacedPodCall(client.kubernetesNamespace, null, null, null, false, null, null, null, timeout, true, null, null),
+      () ⇒ client.coreV1Api.listNamespacedPodCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
       (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Pod]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.services,
-      () ⇒ client.coreV1Api.listNamespacedServiceCall(client.kubernetesNamespace, null, null, null, false, null, null, null, timeout, true, null, null),
+      () ⇒ client.coreV1Api.listNamespacedServiceCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
       (call: Call) ⇒ Watch.createWatch(client.coreV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Service]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.daemonSets,
-      () ⇒ client.extensionsV1beta1Api.listNamespacedDaemonSetCall(client.kubernetesNamespace, null, null, null, false, null, null, null, timeout, true, null, null),
-      (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1DaemonSet]]() {}.getType)
+      () ⇒ client.appsV1Api.listNamespacedDaemonSetCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
+      (call: Call) ⇒ Watch.createWatch(client.appsV1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1DaemonSet]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.deployments,
-      () ⇒ client.extensionsV1beta1Api.listNamespacedDeploymentCall(client.kubernetesNamespace, null, null, null, false, null, null, null, timeout, true, null, null),
-      (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[ExtensionsV1beta1Deployment]]() {}.getType)
+      () ⇒ client.appsV1Api.listNamespacedDeploymentCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
+      (call: Call) ⇒ Watch.createWatch(client.appsV1Api.getApiClient, call, new TypeToken[Watch.Response[ExtensionsV1beta1Deployment]]() {}.getType)
     ),
 
     WatchDefinition(
       K8sCache.replicaSets,
-      () ⇒ client.extensionsV1beta1Api.listNamespacedReplicaSetCall(client.kubernetesNamespace, null, null, null, false, null, null, null, timeout, true, null, null),
-      (call: Call) ⇒ Watch.createWatch(client.extensionsV1beta1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1ReplicaSet]]() {}.getType)
+      () ⇒ client.appsV1Api.listNamespacedReplicaSetCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
+      (call: Call) ⇒ Watch.createWatch(client.appsV1Api.getApiClient, call, new TypeToken[Watch.Response[V1beta1ReplicaSet]]() {}.getType)
     )
   )
 

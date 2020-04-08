@@ -1,8 +1,9 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.{ Actor, ActorRef }
-import io.kubernetes.client.models.V1Service
-import io.kubernetes.client.{ ApiException, custom }
+import io.kubernetes.client.openapi.models.V1Service
+import io.kubernetes.client.openapi.{ ApiException }
+import io.kubernetes.client.custom
 import io.vamp.common._
 import io.vamp.common.util.{ HashUtil, YamlUtil }
 import io.vamp.common.vitals.InfoRequest

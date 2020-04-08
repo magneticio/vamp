@@ -1,6 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
-import io.kubernetes.client.models.{ V1Namespace, V1ObjectMeta }
+import io.kubernetes.client.openapi.models.{ V1Namespace, V1ObjectMeta }
 import io.vamp.common.{ Namespace, NamespaceProvider }
 import io.vamp.common.akka.CommonActorLogging
 
@@ -27,7 +27,7 @@ trait KubernetesNamespace extends KubernetesArtifact {
           val metadata = new V1ObjectMeta
           request.setMetadata(metadata)
           metadata.setName(customNamespace)
-          k8sClient.coreV1Api.createNamespace(request, null)
+          k8sClient.coreV1Api.createNamespace(request, null, null, null)
       }
 
     }

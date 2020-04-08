@@ -2,7 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import com.google.gson.reflect.TypeToken
 import io.kubernetes.client.custom.Quantity
-import io.kubernetes.client.models._
+import io.kubernetes.client.openapi.models._
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
 
@@ -24,20 +24,20 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
     k8sClient.cache.readWithCache(
       K8sCache.daemonSets,
       ds.name,
-      () ⇒ k8sClient.extensionsV1beta1Api.readNamespacedDaemonSetStatus(ds.name, customNamespace, null)
+      () ⇒ k8sClient.appsV1Api.readNamespacedDaemonSetStatus(ds.name, customNamespace, null)
     ) match {
         case Some(_) ⇒ log.debug(s"Daemon set exists: ${ds.name}")
         case None ⇒
           log.debug(s"Creating daemon set: ${ds.name}")
 
-          val request = new V1beta1DaemonSet
+          val request = new V1DaemonSet
 
           val metadata = new V1ObjectMeta
           request.setMetadata(metadata)
           metadata.setName(ds.name)
           metadata.setLabels(filterLabels(labels + (ContainerDriver.withNamespace("name") → ds.name)).asJava)
 
-          val spec = new V1beta1DaemonSetSpec
+          val spec = new V1DaemonSetSpec
           request.setSpec(spec)
           val template = new V1PodTemplateSpec
           spec.setTemplate(template)
@@ -70,16 +70,18 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
             K8sCache.update,
             K8sCache.daemonSets,
             ds.name,
-            () ⇒ k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(ds.name, request, null)
+            () ⇒ k8sClient.appsV1Api.createNamespacedDaemonSet(ds.name, request, null, null, null)
           )
       }
   }
 
   protected def createDaemonSet(request: String): Unit = {
     log.debug(s"Creating daemon set")
-    k8sClient.extensionsV1beta1Api.createNamespacedDaemonSet(
+    k8sClient.appsV1Api.createNamespacedDaemonSet(
       customNamespace,
-      k8sClient.extensionsV1beta1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
+      k8sClient.appsV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1beta1DaemonSet]() {}.getType),
+      null,
+      null,
       null
     )
   }
@@ -87,7 +89,11 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
   protected def updateDaemonSet(request: String): Unit = {
     log.debug(s"Updating daemon set")
 
-    val apiRequest = KubernetesPatchHelper.prepareDaemonSetPatchRequest(request, k8sClient.extensionsV1beta1Api.getApiClient, customNamespace)
+    val apiRequest = KubernetesPatchHelper.prepareDaemonSetPatchRequest(
+      body = request,
+      apiClient = k8sClient.apiClient,
+      customNamespace = customNamespace
+    )
 
     val apiClient = k8sClient.coreV1Api.getApiClient
     apiClient.execute(apiClient.getHttpClient.newCall(apiRequest))
@@ -99,7 +105,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       K8sCache.delete,
       K8sCache.daemonSets,
       name,
-      () ⇒ k8sClient.extensionsV1beta1Api.deleteNamespacedDaemonSet(name, customNamespace, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+      () ⇒ k8sClient.appsV1Api.deleteNamespacedDaemonSet(name, customNamespace, null, null, 0, false, null, new V1DeleteOptions().propagationPolicy("Background"))
     )
   }
 }

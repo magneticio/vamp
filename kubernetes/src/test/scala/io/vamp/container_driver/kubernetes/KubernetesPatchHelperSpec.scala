@@ -2,13 +2,13 @@ package io.vamp.container_driver.kubernetes
 
 import java.nio.charset.Charset
 
-import com.squareup.okhttp.Request
-import io.kubernetes.client.ApiClient
+import io.kubernetes.client.openapi.ApiClient
+import okhttp3.Request
 import okio.Buffer
 import org.json4s._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ FlatSpec, Matchers }
+import org.scalatest.{FlatSpec, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class KubernetesPatchHelperSpec extends FlatSpec with Matchers {
@@ -52,7 +52,7 @@ class KubernetesPatchHelperSpec extends FlatSpec with Matchers {
     val actual = KubernetesPatchHelper.prepareDeploymentPatchRequest(body, new ApiClient(), "customNamespace")
 
     actual.headers().get("Content-Type") should be("application/merge-patch+json")
-    actual.url().toString should be("https://localhost/apis/extensions/v1beta1/namespaces/customNamespace/deployments/vamp-gateway-agent")
+    actual.url().toString should be("http://localhost/apis/extensions/v1beta1/namespaces/customNamespace/deployments/vamp-gateway-agent")
     actual.method() should be("PATCH")
 
     val actualBody: String = getBody(actual)
@@ -75,7 +75,7 @@ class KubernetesPatchHelperSpec extends FlatSpec with Matchers {
     val actual = KubernetesPatchHelper.prepareDaemonSetPatchRequest(body, new ApiClient(), "customNamespace")
 
     actual.headers().get("Content-Type") should be("application/merge-patch+json")
-    actual.url().toString should be("https://localhost/apis/extensions/v1beta1/namespaces/customNamespace/daemonsets/vamp-daemon")
+    actual.url().toString should be("http://localhost/apis/extensions/v1beta1/namespaces/customNamespace/daemonsets/vamp-daemon")
     actual.method() should be("PATCH")
 
     val actualBody = getBody(actual)
@@ -98,7 +98,7 @@ class KubernetesPatchHelperSpec extends FlatSpec with Matchers {
     val actual = KubernetesPatchHelper.prepareServicePatchRequest(body, new ApiClient(), "customNamespace")
 
     actual.headers().get("Content-Type") should be("application/merge-patch+json")
-    actual.url().toString should be("https://localhost/api/v1/namespaces/customNamespace/services/vamp-service")
+    actual.url().toString should be("http://localhost/api/v1/namespaces/customNamespace/services/vamp-service")
     actual.method() should be("PATCH")
 
     val actualBody = getBody(actual)

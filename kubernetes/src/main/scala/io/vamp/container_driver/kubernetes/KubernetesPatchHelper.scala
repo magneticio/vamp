@@ -2,13 +2,16 @@ package io.vamp.container_driver.kubernetes
 
 import java.util
 
-import com.squareup.okhttp.{ MediaType, Request, RequestBody }
-import io.kubernetes.client.{ ApiClient, Pair }
+import io.kubernetes.client.openapi.{ApiClient, Pair}
+import okhttp3.{MediaType, Request, RequestBody}
 
 import scala.util.parsing.json.JSON
+import scala.collection.JavaConverters._
 
-class CC[T] { def unapply(a: Any): Option[T] = Some(a.asInstanceOf[T]) }
+class CC[T] {def unapply(a: Any): Option[T] = Some(a.asInstanceOf[T])}
+
 object M extends CC[Map[String, Any]]
+
 object S extends CC[String]
 
 object KubernetesPatchHelper {
@@ -41,7 +44,7 @@ object KubernetesPatchHelper {
 
     val builder = new Request.Builder()
 
-    apiClient.updateParamsForAuth(Array[String]("BearerToken"), localVarQueryParams, localVarHeaderParams)
+    apiClient.updateParamsForAuth(Array[String]("BearerToken"), localVarQueryParams, localVarHeaderParams, Map.empty[String, String].asJava)
     apiClient.processHeaderParams(localVarHeaderParams, builder)
 
     builder

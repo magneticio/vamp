@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import io.kubernetes.client.custom.{ Quantity, QuantityFormatter }
-import io.kubernetes.client.models.{ V1SecurityContext, _ }
+import io.kubernetes.client.openapi.models.{ V1SecurityContext, _ }
 import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.{ ContainerDriver, Docker }
 
@@ -86,7 +86,7 @@ trait KubernetesJob extends KubernetesArtifact {
             K8sCache.update,
             K8sCache.jobs,
             job.name,
-            () ⇒ k8sClient.batchV1Api.createNamespacedJob(customNamespace, request, null)
+            () ⇒ k8sClient.batchV1Api.createNamespacedJob(customNamespace, request, null, null, null)
           )
       }
   }
@@ -99,7 +99,7 @@ trait KubernetesJob extends KubernetesArtifact {
         K8sCache.delete,
         K8sCache.jobs,
         name,
-        () ⇒ k8sClient.batchV1Api.deleteNamespacedJob(name, customNamespace, new V1DeleteOptions().propagationPolicy("Background"), null, null, null, null)
+        () ⇒ k8sClient.batchV1Api.deleteNamespacedJob(name, customNamespace, null, null, null, null, null, new V1DeleteOptions().propagationPolicy("Background"))
       )
     }
   }
@@ -109,7 +109,7 @@ trait KubernetesJob extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.jobs,
       selector,
-      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(customNamespace, null, null, null, false, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.batchV1Api.listNamespacedJob(customNamespace, null, false, null, null, selector, null, null, 3, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 

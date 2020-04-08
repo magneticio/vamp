@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import com.typesafe.scalalogging.{ LazyLogging, Logger }
-import io.kubernetes.client.ApiClient
-import io.kubernetes.client.apis.{ ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api }
+import io.kubernetes.client.openapi.ApiClient
+import io.kubernetes.client.openapi.apis.{ ApisApi, BatchV1Api, CoreV1Api, ExtensionsV1beta1Api, AppsV1Api }
 import io.vamp.common.Namespace
 import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
 import org.bouncycastle.cert.X509CertificateHolder
@@ -66,10 +66,9 @@ object K8sClient {
 
 class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) extends LazyLogging {
 
-  private val api: ApiClient = {
+  val apiClient: ApiClient = {
     val client = new ApiClient()
     client.setBasePath(config.url)
-    client.getHttpClient.setReadTimeout(0, TimeUnit.SECONDS)
     val apiKey = if (config.bearer.nonEmpty) config.bearer else Try(Source.fromFile(config.token).mkString).getOrElse("")
     if (apiKey.nonEmpty) client.setApiKey(s"Bearer $apiKey")
     if (config.username.nonEmpty) client.setUsername(config.username)
@@ -179,13 +178,13 @@ class K8sClient(val config: K8sClientConfig)(implicit system: ActorSystem) exten
 
   val caches = new mutable.HashSet[K8sCache]()
 
-  lazy val apisApi: ApisApi = new ApisApi(api)
+  lazy val apisApi: ApisApi = new ApisApi(apiClient)
 
-  lazy val coreV1Api: CoreV1Api = new CoreV1Api(api)
+  lazy val coreV1Api: CoreV1Api = new CoreV1Api(apiClient)
 
-  lazy val batchV1Api: BatchV1Api = new BatchV1Api(api)
+  lazy val batchV1Api: BatchV1Api = new BatchV1Api(apiClient)
 
-  lazy val extensionsV1beta1Api: ExtensionsV1beta1Api = new ExtensionsV1beta1Api(api)
+  lazy val appsV1Api: AppsV1Api = new AppsV1Api(apiClient)
 
   def cache(implicit namespace: Namespace): K8sCache = caches.find(_.namespace.name == namespace.name).get
 

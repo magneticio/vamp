@@ -1,6 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
-import io.kubernetes.client.models.V1Node
+import io.kubernetes.client.openapi.models.V1Node
 import io.vamp.common.akka.CommonActorLogging
 
 import scala.collection.JavaConverters._
@@ -15,7 +15,7 @@ trait KubernetesNode extends KubernetesArtifact {
     k8sClient.cache.readAllWithCache(
       K8sCache.nodes,
       "*",
-      () ⇒ Try(k8sClient.coreV1Api.listNode(null, null, null, false, null, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
+      () ⇒ Try(k8sClient.coreV1Api.listNode(null, false, null, null, null, null, null, timeout, false).getItems.asScala).toOption.getOrElse(Nil)
     )
   }
 }
