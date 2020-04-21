@@ -2,7 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{ Sink, Source }
 import com.google.gson.reflect.TypeToken
 import com.typesafe.scalalogging.LazyLogging
 import io.kubernetes.client.openapi.models._
@@ -14,7 +14,7 @@ import okhttp3.Call
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
 class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogging with Retriable with TimeUtil {
@@ -63,7 +63,7 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
     WatchDefinition(
       K8sCache.deployments,
       () ⇒ client.appsV1Api.listNamespacedDeploymentCall(client.kubernetesNamespace, null, null, null, null, null, null, null, timeout, true, null),
-      (call: Call) ⇒ Watch.createWatch(client.appsV1Api.getApiClient, call, new TypeToken[Watch.Response[ExtensionsV1beta1Deployment]]() {}.getType)
+      (call: Call) ⇒ Watch.createWatch(client.appsV1Api.getApiClient, call, new TypeToken[Watch.Response[V1Deployment]]() {}.getType)
     ),
 
     WatchDefinition(
@@ -112,13 +112,13 @@ class K8sWatch(client: K8sClient)(implicit system: ActorSystem) extends LazyLogg
     def invalidate(kind: String, name: String): Unit = client.caches.foreach(_.invalidate(kind, name))
 
     event.`object` match {
-      case j: V1Job                       ⇒ invalidate(K8sCache.jobs, j.getMetadata.getName)
-      case p: V1Pod                       ⇒ invalidate(K8sCache.pods, p.getMetadata.getName)
-      case s: V1Service                   ⇒ invalidate(K8sCache.services, s.getMetadata.getName)
-      case d: V1beta1DaemonSet            ⇒ invalidate(K8sCache.daemonSets, d.getMetadata.getName)
-      case d: ExtensionsV1beta1Deployment ⇒ invalidate(K8sCache.deployments, d.getMetadata.getName)
-      case r: V1beta1ReplicaSet           ⇒ invalidate(K8sCache.replicaSets, r.getMetadata.getName)
-      case _                              ⇒
+      case j: V1Job             ⇒ invalidate(K8sCache.jobs, j.getMetadata.getName)
+      case p: V1Pod             ⇒ invalidate(K8sCache.pods, p.getMetadata.getName)
+      case s: V1Service         ⇒ invalidate(K8sCache.services, s.getMetadata.getName)
+      case d: V1beta1DaemonSet  ⇒ invalidate(K8sCache.daemonSets, d.getMetadata.getName)
+      case d: V1Deployment      ⇒ invalidate(K8sCache.deployments, d.getMetadata.getName)
+      case r: V1beta1ReplicaSet ⇒ invalidate(K8sCache.replicaSets, r.getMetadata.getName)
+      case _                    ⇒
     }
   }
 

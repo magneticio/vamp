@@ -2,13 +2,13 @@ package io.vamp.container_driver.kubernetes
 
 import java.util
 
-import io.kubernetes.client.openapi.{ApiClient, Pair}
-import okhttp3.{MediaType, Request, RequestBody}
+import io.kubernetes.client.openapi.{ ApiClient, Pair }
+import okhttp3.{ MediaType, Request, RequestBody }
 
 import scala.util.parsing.json.JSON
 import scala.collection.JavaConverters._
 
-class CC[T] {def unapply(a: Any): Option[T] = Some(a.asInstanceOf[T])}
+class CC[T] { def unapply(a: Any): Option[T] = Some(a.asInstanceOf[T]) }
 
 object M extends CC[Map[String, Any]]
 
@@ -18,14 +18,14 @@ object KubernetesPatchHelper {
 
   def prepareDaemonSetPatchRequest(body: String, apiClient: ApiClient, customNamespace: String): Request = {
     val name = findName(body)
-    val path = "/apis/extensions/v1beta1/namespaces/{namespace}/daemonsets/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
+    val path = "/apis/apps/v1/namespaces/{namespace}/daemonsets/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
 
     buildRequest(body, apiClient, path)
   }
 
   def prepareDeploymentPatchRequest(body: String, apiClient: ApiClient, customNamespace: String): Request = {
     val name = findName(body)
-    val path: String = "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
+    val path: String = "/apis/apps/v1/namespaces/{namespace}/deployments/{name}".replaceAll("\\{" + "name" + "\\}", apiClient.escapeString(name.toString)).replaceAll("\\{" + "namespace" + "\\}", apiClient.escapeString(customNamespace.toString))
 
     buildRequest(body, apiClient, path)
   }

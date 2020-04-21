@@ -214,7 +214,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
         () ⇒ k8sClient.appsV1Api.replaceNamespacedDeployment(
           id,
           customNamespace,
-          k8sClient.appsV1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+          k8sClient.appsV1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[V1Deployment]() {}.getType),
           null,
           null,
           null
@@ -226,7 +226,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       id,
       () ⇒ k8sClient.appsV1Api.createNamespacedDeployment(
         customNamespace,
-        k8sClient.appsV1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+        k8sClient.appsV1Api.getApiClient.getJSON.deserialize(app.toString, new TypeToken[V1Deployment]() {}.getType),
         null,
         null,
         null
@@ -264,7 +264,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
     log.debug(s"Creating Kubernetes deployment")
     k8sClient.appsV1Api.createNamespacedDeployment(
       customNamespace,
-      k8sClient.appsV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[ExtensionsV1beta1Deployment]() {}.getType),
+      k8sClient.appsV1Api.getApiClient.getJSON.deserialize(request, new TypeToken[V1Deployment]() {}.getType),
       null,
       null,
       null
@@ -286,7 +286,7 @@ trait KubernetesDeployment extends KubernetesArtifact with LazyLogging {
       K8sCache.delete,
       K8sCache.deployments,
       name,
-      () ⇒ k8sClient.appsV1Api.deleteNamespacedDeployment(name, customNamespace, null, null, null, false, null,  new V1DeleteOptions().propagationPolicy("Background"))
+      () ⇒ k8sClient.appsV1Api.deleteNamespacedDeployment(name, customNamespace, null, null, null, false, null, new V1DeleteOptions().propagationPolicy("Background"))
     )
   }
 }
